@@ -1,0 +1,23 @@
+{
+  "tickIntervalMs": 45000,
+  "models": {
+    "think": "deepseek/deepseek-chat",
+    "classify": "mistralai/mistral-small-latest"
+  },
+  "failureRate": 0.25,
+  "maxRetries": 3,
+  "varietyPenalty": {
+    "veryRecentHours": 0.5,
+    "recentHours": 1.5,
+    "moderateHours": 3.0
+  },
+  "emotions": {
+    "happiness": 0.6,
+    "curiosity": 0.7,
+    "anxiety": 0.2,
+    "boredom": 0.3,
+    "excitement": 0.4,
+    "contentment": 0.5,
+    "frustration": 0.1
+  }
+}
