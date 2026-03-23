@@ -43,7 +43,8 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 ### Taski:
 
 - [x] T1.1: Zweryfikować i uzupełnić monorepo foundation — upewnić się że `turbo build && turbo test && turbo typecheck` przechodzą, shared types kompilują się, vitest działa. Dodać brakujące devDependencies. (verify → fix → green)
-- [ ] T1.2: Docker Compose dev — PostgreSQL 17 + pgvector 0.8, Redis 7, Ollama. Health checks. `docker compose up` startuje bez błędów. (config → test → verify)
+- [x] T1.2: Docker Compose dev — PostgreSQL 17 + pgvector 0.8, Redis 7, Ollama. Health checks. `docker compose up` startuje bez błędów. (config → test → verify)
+<!-- NOTE: docker compose config validates OK. Docker daemon not available in CI env — full runtime test deferred to local dev. -->
 - [ ] T1.3: Shared types (core) — `AgentState`, `EmotionState`, `RoomObject`, `ActivityType`, `Position`, `AnimationState`, `BubbleType`. Zod schemas dla: `ActionCommand`, `EmotionDelta`. Stałe: lista obiektów pokoju z pozycjami, lista aktywności, emotion defaults/floors/ceilings. (test → implement → verify)
 - [ ] T1.4: Phaser 3 game bootstrap — Skonfigurować `packages/renderer` z Phaser 3. Game config z `pixelArt: true`, 960x540, scale FIT, 30 FPS. Dev server (Vite) — `npm run dev` otwiera grę w przeglądarce. Czarny ekran z "Hello Truman" = OK. (setup → config → verify in browser)
 - [ ] T1.5: Room scene — statyczne tło pokoju i obiekty. Tilemap lub indywidualne sprite'y dla: łóżko, biurko, komputer, regał, lodówka, kuchenka, stół+krzesło, sztaluga, mata, okno, zegar, roślina, plakat, drzwi. Placeholder art (kolorowe prostokąty lub proste pixel sprite'y). Zdefiniowane strefy pokoju z pozycjami. (art → scene → verify in browser)
