@@ -12,3 +12,9 @@ export type {
   AgentStateSnapshotRow,
   NewAgentStateSnapshotRow,
 } from "./db/schema.js";
+
+export { createDatabase } from "./db/connection.js";
+export type { Database } from "./db/connection.js";
+
+export { createMemoryRepository } from "./memory-repository.js";
+export type { MemoryRepository } from "./memory-repository.js";
