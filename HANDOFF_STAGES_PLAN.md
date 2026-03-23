@@ -42,7 +42,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Taski:
 
-- [ ] T1.1: Zweryfikować i uzupełnić monorepo foundation — upewnić się że `turbo build && turbo test && turbo typecheck` przechodzą, shared types kompilują się, vitest działa. Dodać brakujące devDependencies. (verify → fix → green)
+- [x] T1.1: Zweryfikować i uzupełnić monorepo foundation — upewnić się że `turbo build && turbo test && turbo typecheck` przechodzą, shared types kompilują się, vitest działa. Dodać brakujące devDependencies. (verify → fix → green)
 - [ ] T1.2: Docker Compose dev — PostgreSQL 17 + pgvector 0.8, Redis 7, Ollama. Health checks. `docker compose up` startuje bez błędów. (config → test → verify)
 - [ ] T1.3: Shared types (core) — `AgentState`, `EmotionState`, `RoomObject`, `ActivityType`, `Position`, `AnimationState`, `BubbleType`. Zod schemas dla: `ActionCommand`, `EmotionDelta`. Stałe: lista obiektów pokoju z pozycjami, lista aktywności, emotion defaults/floors/ceilings. (test → implement → verify)
 - [ ] T1.4: Phaser 3 game bootstrap — Skonfigurować `packages/renderer` z Phaser 3. Game config z `pixelArt: true`, 960x540, scale FIT, 30 FPS. Dev server (Vite) — `npm run dev` otwiera grę w przeglądarce. Czarny ekran z "Hello Truman" = OK. (setup → config → verify in browser)

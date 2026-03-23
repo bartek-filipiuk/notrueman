@@ -1,6 +1,9 @@
 import type { EmotionState } from "./types/emotions.js";
 import type { BubbleStyle } from "./types/renderer.js";
 
+/** Application name */
+export const APP_NAME = "No True Man Show";
+
 /** Brain loop constants (brain-algorithm.md S3.1) */
 export const TICK_INTERVAL_MS = 30_000;
 export const REFLECTION_THRESHOLD = 150;
