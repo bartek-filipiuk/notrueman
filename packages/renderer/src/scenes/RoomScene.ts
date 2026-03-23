@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
 import type { InteractiveObjectId, RoomZone } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 import { MovementSystem } from "../systems/MovementSystem";
+import { ActivityRenderer } from "../systems/ActivityRenderer";
 
 /** Zone-based color palette for placeholder objects */
 const ZONE_COLORS: Record<RoomZone, number> = {
@@ -25,6 +26,7 @@ export class RoomScene extends Phaser.Scene {
   private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Rectangle>();
   private truman!: TrumanSprite;
   private movement!: MovementSystem;
+  private activityRenderer!: ActivityRenderer;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -39,11 +41,13 @@ export class RoomScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     this.movement.update(time, delta);
+    this.activityRenderer.update();
   }
 
   private createTruman(): void {
     this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 400);
     this.movement = new MovementSystem(this, this.truman);
+    this.activityRenderer = new ActivityRenderer(this, this.truman);
   }
 
   getTruman(): TrumanSprite {
@@ -52,6 +56,10 @@ export class RoomScene extends Phaser.Scene {
 
   getMovement(): MovementSystem {
     return this.movement;
+  }
+
+  getActivityRenderer(): ActivityRenderer {
+    return this.activityRenderer;
   }
 
   private createBackground(): void {
