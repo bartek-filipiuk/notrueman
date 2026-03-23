@@ -10,3 +10,4 @@ export type {
 } from "./llm-client.js";
 
 export { loadPersonalityPrompt } from "./personality.js";
+export { generateDailyPlan } from "./daily-plan.js";
