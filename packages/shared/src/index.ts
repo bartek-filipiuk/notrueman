@@ -38,6 +38,8 @@ export type {
   EventLogEntry,
 } from "./types/events.js";
 export type {
+  Position,
+  AnimationState,
   BubbleType,
   BubbleStyle,
   InteractiveObjectId,

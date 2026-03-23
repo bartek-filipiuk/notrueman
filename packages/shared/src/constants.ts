@@ -1,5 +1,6 @@
 import type { EmotionState } from "./types/emotions.js";
-import type { BubbleStyle } from "./types/renderer.js";
+import type { BubbleStyle, RoomObject } from "./types/renderer.js";
+import type { ActivityType } from "./types/agent-state.js";
 
 /** Application name */
 export const APP_NAME = "No True Man Show";
@@ -207,3 +208,33 @@ export const GAME_HEIGHT = 540;
 export const GAME_FPS = 30;
 export const STREAM_WIDTH = 1920;
 export const STREAM_HEIGHT = 1080;
+
+/** All activity types as array (design-spec.md S5.2) */
+export const ACTIVITY_LIST: readonly ActivityType[] = [
+  "sleep",
+  "eat",
+  "read",
+  "computer",
+  "exercise",
+  "think",
+  "cook",
+  "draw",
+] as const;
+
+/** Room objects with positions (visual-spec.md S3.1, S4.1) */
+export const ROOM_OBJECTS: readonly RoomObject[] = [
+  { id: "bed", x: 60, y: 420, width: 128, height: 64, label: "Bed", zone: "sleep" },
+  { id: "desk", x: 340, y: 300, width: 96, height: 64, label: "Desk", zone: "work" },
+  { id: "computer", x: 404, y: 280, width: 64, height: 48, label: "Computer", zone: "work" },
+  { id: "bookshelf", x: 260, y: 140, width: 64, height: 96, label: "Bookshelf", zone: "reading" },
+  { id: "fridge", x: 220, y: 420, width: 48, height: 80, label: "Fridge", zone: "kitchen" },
+  { id: "stove", x: 276, y: 420, width: 48, height: 48, label: "Stove", zone: "kitchen" },
+  { id: "table_chair", x: 440, y: 380, width: 96, height: 64, label: "Table & Chair", zone: "kitchen" },
+  { id: "easel", x: 60, y: 180, width: 48, height: 80, label: "Easel", zone: "creative" },
+  { id: "exercise_mat", x: 60, y: 340, width: 96, height: 32, label: "Exercise Mat", zone: "exercise" },
+  { id: "window", x: 680, y: 140, width: 64, height: 80, label: "Window", zone: "window" },
+  { id: "clock", x: 760, y: 80, width: 32, height: 32, label: "Clock", zone: "window" },
+  { id: "plant", x: 640, y: 300, width: 32, height: 48, label: "Plant", zone: "window" },
+  { id: "poster", x: 60, y: 80, width: 48, height: 48, label: "Poster", zone: "creative" },
+  { id: "door", x: 800, y: 340, width: 48, height: 96, label: "Door", zone: "door" },
+] as const;

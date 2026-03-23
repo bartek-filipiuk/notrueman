@@ -1,3 +1,16 @@
+/** 2D position in game coordinates */
+export interface Position {
+  x: number;
+  y: number;
+}
+
+/** Animation state descriptor */
+export interface AnimationState {
+  key: string;
+  frameRate: number;
+  loop: boolean;
+}
+
 /** Bubble types (visual-spec.md S7.1) */
 export type BubbleType = "thought" | "speech" | "exclamation" | "whisper";
 
