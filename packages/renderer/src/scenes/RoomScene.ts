@@ -6,6 +6,7 @@ import { MovementSystem } from "../systems/MovementSystem";
 import { ActivityRenderer } from "../systems/ActivityRenderer";
 import { ActivityManager } from "../systems/ActivityManager";
 import { HUD } from "../ui/HUD";
+import { ThoughtBubble } from "../ui/ThoughtBubble";
 
 /** Zone-based color palette for placeholder objects */
 const ZONE_COLORS: Record<RoomZone, number> = {
@@ -31,6 +32,7 @@ export class RoomScene extends Phaser.Scene {
   private activityRenderer!: ActivityRenderer;
   private activityManager!: ActivityManager;
   private hud!: HUD;
+  private thoughtBubble!: ThoughtBubble;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -56,6 +58,7 @@ export class RoomScene extends Phaser.Scene {
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
 
     this.hud = new HUD(this);
+    this.thoughtBubble = new ThoughtBubble(this);
     this.activityManager.setOnActivityChange((activity, state) => {
       this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
     });
@@ -77,6 +80,15 @@ export class RoomScene extends Phaser.Scene {
 
   getActivityManager(): ActivityManager {
     return this.activityManager;
+  }
+
+  /** Show a thought bubble above Truman */
+  showThought(text: string, mood: string): void {
+    this.thoughtBubble.showThought(text, mood, this.truman.x, this.truman.y);
+  }
+
+  getThoughtBubble(): ThoughtBubble {
+    return this.thoughtBubble;
   }
 
   private createBackground(): void {

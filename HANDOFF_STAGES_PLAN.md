@@ -53,7 +53,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T1.8: Activity animations — Minimum 6 animacji aktywności: sleeping (w łóżku), eating (przy stole), reading (przy biurku), typing (przy komputerze), exercising (na macie), thinking (przy oknie). Każda 2-3 klatki. `playActivity(type: ActivityType): void`. (art → implement → verify)
 - [x] T1.9: Activity state machine — `ActivityManager` steruje cyklem: idle → moveTo(object) → playActivity → idle. Hardcoded sekwencja aktywności do testów (np. co 15 sekund następna aktywność z listy). Truman chodzi po pokoju i robi różne rzeczy. (test state machine → implement → verify loop in browser)
 - [x] T1.10: HUD overlay — Czas (zegar realny, 24h), ikona nastroju (placeholder emoji-style), label aktywności. Phaser text/sprites, 80% opacity, top corners. (implement → verify in browser)
-- [ ] T1.11: Thought bubble system — Renderowanie dymka myśli (chmurka) nad Trumanem. Typewriter effect (1 char / 50ms). Kolor tła dymka parametryzowany (mood). Fade out po 8-10s. Max 1 dymek. API: `showThought(text: string, mood: string): void`. Na razie hardcoded teksty do testów. (test → implement → verify)
+- [x] T1.11: Thought bubble system — Renderowanie dymka myśli (chmurka) nad Trumanem. Typewriter effect (1 char / 50ms). Kolor tła dymka parametryzowany (mood). Fade out po 8-10s. Max 1 dymek. API: `showThought(text: string, mood: string): void`. Na razie hardcoded teksty do testów. (test → implement → verify)
 - [ ] T1.12: Dev server integration — Vite dev server serwuje Phaser game. Hot reload. `npm run dev` w packages/renderer startuje wszystko. Dodać skrypt `turbo dev` w root. (config → verify)
 
 ### Security (MANDATORY):
