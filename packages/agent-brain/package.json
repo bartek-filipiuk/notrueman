@@ -17,8 +17,10 @@
     "lint": "echo 'lint ok'"
   },
   "dependencies": {
+    "@nts/memory-service": "*",
     "@nts/shared": "*",
-    "@nts/memory-service": "*"
+    "@openrouter/ai-sdk-provider": "^2.3.3",
+    "ai": "^6.0.137"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
