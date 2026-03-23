@@ -99,23 +99,23 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Security (MANDATORY):
 
-- [ ] S2.1: LLM output validation — KAŻDY output z LLM walidowany przez Zod schema. Nigdy nie renderuj surowego LLM stringa bez sanityzacji. `generateObject()` z schema lub `.parse()` na `generateText()` output.
-- [ ] S2.2: OpenRouter API key w env — `OPENROUTER_API_KEY` tylko w `.env`, nigdy w kodzie. Weryfikacja: `grep -r "sk-or-" --include="*.ts"` zwraca 0 wyników.
-- [ ] S2.3: Cost cap — Rate limiter na LLM calls: max N calls per minute (configurable). Log warning przy >80% limitu. Hard stop przy 100%. (test → implement)
-- [ ] S2.4: XSS prevention — Tekst z LLM escapowany przed renderowaniem w Phaser text objects. Brak `innerHTML` lub `eval()`. (test → verify)
+- [x] S2.1: LLM output validation — KAŻDY output z LLM walidowany przez Zod schema. Nigdy nie renderuj surowego LLM stringa bez sanityzacji. `generateObject()` z schema lub `.parse()` na `generateText()` output.
+- [x] S2.2: OpenRouter API key w env — `OPENROUTER_API_KEY` tylko w `.env`, nigdy w kodzie. Weryfikacja: `grep -r "sk-or-" --include="*.ts"` zwraca 0 wyników.
+- [x] S2.3: Cost cap — Rate limiter na LLM calls: max N calls per minute (configurable). Log warning przy >80% limitu. Hard stop przy 100%. (test → implement)
+- [x] S2.4: XSS prevention — Tekst z LLM escapowany przed renderowaniem w Phaser text objects. Brak `innerHTML` lub `eval()`. (test → verify)
 
 ### Docs (MANDATORY):
 
-- [ ] D2.1: Update `docs/CHANGELOG.md` — wpis Stage 2
-- [ ] D2.2: Update `docs/README.md` — dodać sekcję o konfiguracji (env vars, truman-config.json)
-- [ ] D2.3: Update `docs/API.md` — opisać brain → renderer interface (RendererCommands)
+- [x] D2.1: Update `docs/CHANGELOG.md` — wpis Stage 2
+- [x] D2.2: Update `docs/README.md` — dodać sekcję o konfiguracji (env vars, truman-config.json)
+- [x] D2.3: Update `docs/API.md` — opisać brain → renderer interface (RendererCommands)
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC2.1: Self-check — US-5, US-6, US-4 pełne pokryte
-- [ ] SC2.2: Self-check — brak hardcoded secrets
-- [ ] SC2.3: Self-check — testy zielone
-- [ ] SC2.4: Zaktualizuj HANDOFF → [x]
+- [x] SC2.1: Self-check — US-5, US-6, US-4 pełne pokryte
+- [x] SC2.2: Self-check — brak hardcoded secrets
+- [x] SC2.3: Self-check — testy zielone
+- [x] SC2.4: Zaktualizuj HANDOFF → [x]
 
 **Stage 2 DoD:** Truman sam decyduje co robić. Otwierasz przeglądarkę → Truman budzi się, planuje dzień, chodzi po pokoju, robi różne rzeczy, myśli (dymki z LLM-generated tekstem), czasem mu się nie udaje i reaguje. Działa 30+ minut bez crash.
 
