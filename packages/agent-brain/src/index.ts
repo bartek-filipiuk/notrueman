@@ -8,3 +8,5 @@ export type {
   GenerateObjectParams,
   GenerateObjectResult,
 } from "./llm-client.js";
+
+export { loadPersonalityPrompt } from "./personality.js";
