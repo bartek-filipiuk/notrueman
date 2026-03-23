@@ -1,1 +1,1 @@
-export {};
+export { BootScene } from "./scenes/BootScene";
