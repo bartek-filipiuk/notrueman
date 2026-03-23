@@ -15,3 +15,5 @@ export { planNextAction, calculateVarietyScores } from "./action-planner.js";
 export type { ActionPlannerState } from "./action-planner.js";
 export { generateThought } from "./thought-generator.js";
 export type { ThoughtContext } from "./thought-generator.js";
+export { checkActivityFailure } from "./failure-mechanic.js";
+export type { FailureResult, FailureConfig, FailureType } from "./failure-mechanic.js";
