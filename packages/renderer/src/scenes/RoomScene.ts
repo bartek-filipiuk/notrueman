@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
 import type { InteractiveObjectId, RoomZone } from "@nts/shared";
+import { TrumanSprite } from "../entities/TrumanSprite";
 
 /** Zone-based color palette for placeholder objects */
 const ZONE_COLORS: Record<RoomZone, number> = {
@@ -21,6 +22,7 @@ const FLOOR_Y = 460;
 
 export class RoomScene extends Phaser.Scene {
   private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Rectangle>();
+  private truman!: TrumanSprite;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -30,6 +32,16 @@ export class RoomScene extends Phaser.Scene {
     this.createBackground();
     this.createRoomObjects();
     this.createObjectLabels();
+    this.createTruman();
+  }
+
+  private createTruman(): void {
+    // Start Truman near the center of the room
+    this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 400);
+  }
+
+  getTruman(): TrumanSprite {
+    return this.truman;
   }
 
   private createBackground(): void {
