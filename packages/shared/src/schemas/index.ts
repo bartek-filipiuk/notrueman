@@ -77,6 +77,15 @@ export const ReflectionQuestionsSchema = z.object({
 });
 export type ReflectionQuestions = z.infer<typeof ReflectionQuestionsSchema>;
 
+/** Action command from LLM (brain-algorithm.md S3.3 step 5) */
+export const ActionCommandSchema = z.object({
+  activity: z.enum(["sleep", "eat", "read", "computer", "exercise", "think", "cook", "draw"]),
+  durationSeconds: z.number().min(10).max(600),
+  thought: z.string().max(200),
+  reason: z.string().max(100),
+});
+export type ActionCommand = z.infer<typeof ActionCommandSchema>;
+
 /** Bubble type determination */
 export const BubbleTypeSchema = z.enum([
   "thought",

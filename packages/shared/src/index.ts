@@ -75,6 +75,7 @@ export {
   ActionQueueSchema,
   ActionSchema,
   ReflectionQuestionsSchema,
+  ActionCommandSchema,
   BubbleTypeSchema,
 } from "./schemas/index.js";
 export type {
@@ -84,6 +85,7 @@ export type {
   DailyPlan,
   HourlyPlan,
   ActionQueue,
+  ActionCommand,
   ReflectionQuestions,
 } from "./schemas/index.js";
 
