@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, GAME_FPS } from "@nts/shared";
 import { BootScene } from "./scenes/BootScene";
+import { RoomScene } from "./scenes/RoomScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.CANVAS,
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
     target: GAME_FPS,
     forceSetTimeOut: true,
   },
-  scene: [BootScene],
+  scene: [BootScene, RoomScene],
 };
 
 new Phaser.Game(config);

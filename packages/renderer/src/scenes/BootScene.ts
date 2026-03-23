@@ -11,19 +11,24 @@ export class BootScene extends Phaser.Scene {
     const centerY = GAME_HEIGHT / 2;
 
     this.add
-      .text(centerX, centerY, "Hello Truman", {
-        fontSize: "32px",
+      .text(centerX, centerY, "No True Man Show", {
+        fontSize: "24px",
         color: "#ffffff",
         fontFamily: "monospace",
       })
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, centerY + 50, "No True Man Show", {
-        fontSize: "16px",
+      .text(centerX, centerY + 40, "Loading...", {
+        fontSize: "14px",
         color: "#aaaaaa",
         fontFamily: "monospace",
       })
       .setOrigin(0.5);
+
+    // Transition to RoomScene after 1 second
+    this.time.delayedCall(1000, () => {
+      this.scene.start("RoomScene");
+    });
   }
 }
