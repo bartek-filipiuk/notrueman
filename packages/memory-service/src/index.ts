@@ -21,3 +21,11 @@ export type { MemoryRepository } from "./memory-repository.js";
 
 export { createEmbeddingClient, createMockEmbeddingClient } from "./embedding-client.js";
 export type { EmbeddingClient } from "./embedding-client.js";
+
+export {
+  retrieveMemories,
+  calculateRecency,
+  cosineSimilarity,
+  normalizeImportance,
+} from "./memory-retrieval.js";
+export type { ScoredMemoryResult } from "./memory-retrieval.js";
