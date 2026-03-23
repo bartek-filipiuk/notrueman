@@ -128,7 +128,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Taski:
 
-- [ ] T3.1: Drizzle ORM setup + schema — Skonfigurować Drizzle w `packages/memory-service`. Tabele: `memories` (id, agent_id, type, description, embedding, importance, created_at, last_accessed_at, location, emotional_context, metadata), `reflection_sources`, `agent_state_snapshots`. Migracja. HNSW index. (test migration → implement → verify tables)
+- [x] T3.1: Drizzle ORM setup + schema — Skonfigurować Drizzle w `packages/memory-service`. Tabele: `memories` (id, agent_id, type, description, embedding, importance, created_at, last_accessed_at, location, emotional_context, metadata), `reflection_sources`, `agent_state_snapshots`. Migracja. HNSW index. (test migration → implement → verify tables)
 - [ ] T3.2: Memory CRUD — `createMemory()`, `getMemory()`, `updateLastAccessed()`, `getRecentMemories()`. Integration tests z prawdziwym PostgreSQL (Docker). (test → implement → verify)
 - [ ] T3.3: Embedding client — Adapter do Ollama (nomic-embed-text, 768 dims). Mockable interface. `embed(text: string): Promise<number[]>`. Fallback: random vector w dev (gdy Ollama niedostępna). (test → implement → verify)
 - [ ] T3.4: Park et al. retrieval — `retrieveMemories(query, k, types)` z `score = recency × importance × relevance`. SQL: cosine similarity + exponential decay (0.995^hours) + normalized importance. `last_accessed_at` update przy retrieval. (test scoring math → test SQL → implement → verify <100ms for 1000 memories)

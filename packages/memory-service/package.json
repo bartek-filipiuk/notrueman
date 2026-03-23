@@ -17,9 +17,14 @@
     "lint": "echo 'lint ok'"
   },
   "dependencies": {
-    "@nts/shared": "*"
+    "@nts/shared": "*",
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
