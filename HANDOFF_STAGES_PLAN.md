@@ -58,23 +58,23 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Security (MANDATORY):
 
-- [ ] S1.1: `.env` w `.gitignore` — zweryfikować że sekrety nie trafią do repo. `.env.example` z listą wymaganych zmiennych (bez wartości).
-- [ ] S1.2: Brak hardcoded API keys w kodzie — przeskanować repo (`grep -r "API_KEY\|SECRET\|PASSWORD\|TOKEN" --include="*.ts" --include="*.json"`)
-- [ ] S1.3: Docker Compose env vars — PostgreSQL password z `.env`, nie hardcoded w `docker-compose.yml`
+- [x] S1.1: `.env` w `.gitignore` — zweryfikować że sekrety nie trafią do repo. `.env.example` z listą wymaganych zmiennych (bez wartości).
+- [x] S1.2: Brak hardcoded API keys w kodzie — przeskanować repo (`grep -r "API_KEY\|SECRET\|PASSWORD\|TOKEN" --include="*.ts" --include="*.json"`)
+- [x] S1.3: Docker Compose env vars — PostgreSQL password z `.env`, nie hardcoded w `docker-compose.yml`
 
 ### Docs (MANDATORY):
 
-- [ ] D1.1: Update `docs/CHANGELOG.md` — wpis `## [Stage 1] - YYYY-MM-DD`
-- [ ] D1.2: Update `docs/README.md` — Quick Start (jak uruchomić dev), Struktura katalogów
-- [ ] D1.3: Utworzyć `docs/API.md` — placeholder "Endpoints będą dokumentowane w miarę implementacji" (brak API w Stage 1)
+- [x] D1.1: Update `docs/CHANGELOG.md` — wpis `## [Stage 1] - YYYY-MM-DD`
+- [x] D1.2: Update `docs/README.md` — Quick Start (jak uruchomić dev), Struktura katalogów
+- [x] D1.3: Utworzyć `docs/API.md` — placeholder "Endpoints będą dokumentowane w miarę implementacji" (brak API w Stage 1)
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC1.1: Self-check — zakres stage zgodny z PRD (US-1, US-2, US-3, US-4 częściowo, US-9 pokryte)
-- [ ] SC1.2: Self-check — brak hardcoded secrets w kodzie
-- [ ] SC1.3: Self-check — testy zielone (`turbo test`)
-- [ ] SC1.4: Self-check — `turbo build && turbo typecheck` przechodzą
-- [ ] SC1.5: Zaktualizuj HANDOFF — WSZYSTKIE checkboxy tego stage → [x]
+- [x] SC1.1: Self-check — zakres stage zgodny z PRD (US-1, US-2, US-3, US-4 częściowo, US-9 pokryte)
+- [x] SC1.2: Self-check — brak hardcoded secrets w kodzie
+- [x] SC1.3: Self-check — testy zielone (`turbo test`)
+- [x] SC1.4: Self-check — `turbo build && turbo typecheck` przechodzą
+- [x] SC1.5: Zaktualizuj HANDOFF — WSZYSTKIE checkboxy tego stage → [x]
 
 **Stage 1 DoD:** Otwierasz `http://localhost:5173` (lub inny port Vite) → widzisz pixel art pokój → Truman chodzi między obiektami → wykonuje animacje aktywności → dymki testowe pojawiają się → HUD pokazuje czas i aktywność.
 
