@@ -5,6 +5,7 @@ import { TrumanSprite } from "../entities/TrumanSprite";
 import { MovementSystem } from "../systems/MovementSystem";
 import { ActivityRenderer } from "../systems/ActivityRenderer";
 import { ActivityManager } from "../systems/ActivityManager";
+import { HUD } from "../ui/HUD";
 
 /** Zone-based color palette for placeholder objects */
 const ZONE_COLORS: Record<RoomZone, number> = {
@@ -29,6 +30,7 @@ export class RoomScene extends Phaser.Scene {
   private movement!: MovementSystem;
   private activityRenderer!: ActivityRenderer;
   private activityManager!: ActivityManager;
+  private hud!: HUD;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -44,6 +46,7 @@ export class RoomScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     this.movement.update(time, delta);
     this.activityRenderer.update();
+    this.hud.updateTime();
   }
 
   private createTruman(): void {
@@ -51,6 +54,12 @@ export class RoomScene extends Phaser.Scene {
     this.movement = new MovementSystem(this, this.truman);
     this.activityRenderer = new ActivityRenderer(this, this.truman);
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
+
+    this.hud = new HUD(this);
+    this.activityManager.setOnActivityChange((activity, state) => {
+      this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
+    });
+
     this.activityManager.startLoop();
   }
 
