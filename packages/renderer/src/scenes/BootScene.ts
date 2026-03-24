@@ -26,6 +26,8 @@ export class BootScene extends Phaser.Scene {
     for (const mood of moods) {
       this.load.image(`truman_${mood}`, `sprites/truman/${mood}.png`);
     }
+    // Room background
+    this.load.image("room_background", "sprites/room_background.png");
     // Tiles
     this.load.image("tile_floor", "sprites/tiles/floor.png");
     this.load.image("tile_wall", "sprites/tiles/wall.png");

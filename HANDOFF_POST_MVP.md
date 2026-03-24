@@ -355,3 +355,54 @@ Stage 9 (Streaming & Deployment)
 - [ ] SC12.5: Zaktualizuj HANDOFF → [x]
 
 **Stage 12 DoD:** Prawdziwe pixel art sprite'y (Retro Diffusion), normal maps (Laigter), Truman z PNG spritesheetem, floor/wall tiles. Light2D oświetla prawdziwe sprite'y z normal maps. Koszt: <$5.
+
+---
+
+## Stage 13: Room Layout PRO — Spójny Pokój (nie plansza z artami)
+
+**Cel:** Pokój wygląda jak POKÓJ — meble stoją na podłodze, obiekty wiszą na ścianie, tło jest spójne stylistycznie z AI sprite'ami. Dollhouse cutaway view jak Fallout Shelter / The Sims 1.
+**User Stories:** US-1 (pokój) — final quality
+
+### Problem do rozwiązania:
+Obiekty AI (piękne) wiszą na flat beżowej ścianie (brzydkiej, rysowanej kodem). Zero kontekstu przestrzennego — brak poczucia "pokoju". Clash stylistyczny: AI sprites vs Graphics API tło.
+
+### Podejście:
+1. Wygenerować AI room shell (ściana + podłoga + architektoniczne detale) jako jedno duże tło
+2. Poprawić pozycje obiektów — wyraźne strefy: ściana (wiszące), podłoga (stojące)
+3. Dodać grounding do KAŻDEGO obiektu (cienie, baseline alignment)
+4. Dodać foreground element (np. krawędź podłogi bliżej kamery) dla głębi
+5. Usunąć stare programatyczne tło (Graphics API beige rectangles)
+
+### Taski:
+
+- [x] T13.1: AI room background shell — Wygenerować przez Retro Diffusion rd-plus pełne tło pokoju 960x540: ściana z tapetą/teksturą, podłoga drewniana, sufit z fryzem, listwa przypodłogowa, corner shading. Jedno duże PNG. Bez mebli — tylko "pusty pokój". (generate → verify → iterate prompt)
+- [x] T13.2: Replace programmatic background — Usunąć `createBackground()` (Graphics API). Załadować AI PNG jako background image na depth 0. Fallback do Graphics API jeśli PNG missing. (implement → verify)
+- [x] T13.3: Object position audit — Poprawić Y pozycje obiektów:
+  - Floor objects (bed, desk, fridge, stove, table, exercise_mat): bottom edge na FLOOR_Y=460
+  - Wall objects (poster, clock, window, bookshelf top): Y=80-250
+  - Bridging objects (door, bookshelf, easel): bottom na FLOOR_Y, top sięga do wall zone
+  - Truman walk Y: ~410 (na podłodze, nie w powietrzu)
+  (adjust constants → verify alignment)
+- [ ] T13.4: Object grounding shadows — KAŻDY floor object ma shadow ellipse (width 80%, 6px tall, alpha 0.12). Wall objects mają tiny drop shadow na ścianie (2px offset, alpha 0.08). Spójne z kierunkiem światła (z prawej/okna). (implement → verify all shadows)
+- [ ] T13.5: Foreground depth layer — Dodać ciemniejszy pas na dole ekranu (krawędź podłogi bliżej kamery) jako foreground element na depth 999. Daje poczucie głębi — "patrzymy do pokoju z zewnątrz". Opcjonalnie: delikatny gradient ciemności na dole. (implement → verify depth feel)
+- [ ] T13.6: Color harmony pass — Dostosować kolory programatycznych elementów (HUD bar, thought bubble, shadow ellipses, particle colors) do palety AI sprite'ów. Ciepłe brązy i kremowe zamiast cold grays. (audit → adjust → verify)
+- [ ] T13.7: Visual coherence test — Przeładować z AI sprites + nowym tłem. Sprawdzić: czy meble wyglądają jak stojące na podłodze? Czy wiszące obiekty wyglądają jak na ścianie? Czy Truman wygląda jak w pokoju? Screenshot + subiektywna ocena. (test → iterate → done)
+
+### Security (MANDATORY):
+
+- [ ] S13.1: AI background PNG — brak executable content, file type verify. (verify)
+- [ ] S13.2: Test regression — turbo test PASS. (verify)
+
+### Docs (MANDATORY):
+
+- [ ] D13.1: Update `docs/CHANGELOG.md` — wpis Stage 13
+- [ ] D13.2: Update `docs/ART_GUIDE.md` — room layout guide, object zones, depth values
+
+### Stage Completion (MANDATORY):
+
+- [ ] SC13.1: Self-check — pokój wygląda jak pokój (meble na podłodze, obiekty na ścianie)
+- [ ] SC13.2: Self-check — brak hardcoded secrets
+- [ ] SC13.3: Self-check — testy zielone
+- [ ] SC13.4: Zaktualizuj HANDOFF → [x]
+
+**Stage 13 DoD:** Pokój wygląda jak prawdziwy pixel art pokój — dollhouse cutaway. Meble stoją na podłodze. Obiekty wiszą na ścianie. Tło AI-generated, spójne z meblami. Zero "artów na planszy".

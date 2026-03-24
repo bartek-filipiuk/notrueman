@@ -209,7 +209,7 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createTruman(): void {
-    this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 400);
+    this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 420);
     this.movement = new MovementSystem(this, this.truman);
     this.activityRenderer = new ActivityRenderer(this, this.truman);
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
@@ -298,6 +298,15 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
+    // Use AI-generated room background if available
+    if (this.textures.exists("room_background")) {
+      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_background");
+      bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+      bg.setDepth(0);
+      return; // Skip programmatic background
+    }
+
+    // Fallback: programmatic background
     const bg = this.add.graphics();
     bg.setDepth(0);
 
