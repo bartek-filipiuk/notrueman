@@ -29,7 +29,11 @@ export class SceneHandler implements RendererHandler {
 
   updateHUD(update: { mood?: string; activity?: string; time?: string }): void {
     const hud = this.scene.getHUD();
-    if (update.mood) hud.updateMood(update.mood);
+    if (update.mood) {
+      hud.updateMood(update.mood);
+      // Update Truman's facial expression based on mood
+      this.scene.getTruman().setMood(update.mood);
+    }
     if (update.activity) hud.updateActivity(update.activity);
   }
 }
