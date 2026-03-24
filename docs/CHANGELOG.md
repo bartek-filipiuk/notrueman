@@ -1,5 +1,18 @@
 # Changelog
 
+## [Stage 8 — Audio & Voice: T8.3 TTS] - 2026-03-24
+
+### Added
+- TTSClient: OpenAI gpt-4o-mini-tts API integration with mood-based emotional instructions
+- TTSManager: speech queue (max 1 utterance), Web Audio API playback on AudioMixer voice channel
+- Speech bubbles: pointed balloon tail (distinct from thought cloud-dots)
+- ThoughtBubble.showSpeech() method with onSpeechBubbleShow callback for TTS sync
+- RendererBridge routes show_bubble type "speech" to showSpeech handler
+- URL params: ?tts=on, ?openaiKey=sk-..., ?voice=nova (10 voices supported)
+- ConfigPanel: TTS status (enabled/disabled, voice, playing, queue size)
+- 30% of AI brain thoughts become spoken-aloud speech bubbles (with TTS audio)
+- tts-integration.test.ts: 18 tests for TTSClient, TTSManager, config, architecture
+
 ## [Stage 10 — Visual Pro Upgrade] - 2026-03-24
 
 ### Added

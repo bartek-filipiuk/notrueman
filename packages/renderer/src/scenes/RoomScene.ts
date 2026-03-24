@@ -15,6 +15,7 @@ import { AudioMixer } from "../systems/AudioMixer";
 import { AmbientManager } from "../systems/AmbientManager";
 import { generateAllAmbientSounds } from "../systems/ProceduralAudio";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
+import { TTSManager } from "../systems/TTSManager";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -46,6 +47,7 @@ export class RoomScene extends Phaser.Scene {
   private windowView!: WindowView;
   private audioMixer!: AudioMixer;
   private ambientManager!: AmbientManager;
+  private ttsManager: TTSManager | null = null;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -203,6 +205,7 @@ export class RoomScene extends Phaser.Scene {
     this.thoughtBubble.hide();
     this.ambientManager.destroy();
     this.audioMixer.destroy();
+    this.ttsManager?.destroy();
   }
 
   private createTruman(): void {
@@ -264,8 +267,26 @@ export class RoomScene extends Phaser.Scene {
     this.thoughtBubble.showThought(text, mood, this.truman.x, this.truman.y);
   }
 
+  /** Show a speech bubble above Truman (triggers TTS if enabled) */
+  showSpeech(text: string, mood: string): void {
+    this.thoughtBubble.showSpeech(text, mood, this.truman.x, this.truman.y);
+  }
+
   getThoughtBubble(): ThoughtBubble {
     return this.thoughtBubble;
+  }
+
+  /** Set TTSManager for speech audio playback */
+  setTTSManager(tts: TTSManager): void {
+    this.ttsManager = tts;
+    // Wire speech bubble callback to TTS
+    this.thoughtBubble.onSpeechBubbleShow = (bubbleText, bubbleMood) => {
+      void this.ttsManager?.speak(bubbleText, bubbleMood);
+    };
+  }
+
+  getTTSManager(): TTSManager | null {
+    return this.ttsManager;
   }
 
   getHUD(): HUD {

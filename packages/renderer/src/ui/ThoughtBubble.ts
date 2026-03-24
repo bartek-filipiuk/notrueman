@@ -31,8 +31,12 @@ export function getBubbleBorderRadius(borderStyle: string): number {
   }
 }
 
+/** Bubble type: thought (cloud tail) or speech (pointed tail) */
+export type BubbleDisplayType = "thought" | "speech";
+
 /**
- * Thought bubble system: renders a cloud-shaped bubble above Truman with typewriter effect.
+ * Thought/Speech bubble system: renders a bubble above Truman with typewriter effect.
+ * Thought: cloud-shaped tail (small circles). Speech: pointed balloon tail.
  * Color based on mood (visual-spec.md S7.3). Max 1 bubble at a time. Fade out after 8-10s.
  */
 export class ThoughtBubble {
@@ -48,6 +52,10 @@ export class ThoughtBubble {
   private fadeTimer?: Phaser.Time.TimerEvent;
   private fadeTween?: Phaser.Tweens.Tween;
   private isVisible = false;
+  private currentType: BubbleDisplayType = "thought";
+
+  /** Fired when a speech bubble starts displaying (for TTS sync) */
+  onSpeechBubbleShow: ((text: string, mood: string) => void) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -79,8 +87,29 @@ export class ThoughtBubble {
    * @param anchorY Y position to anchor the bubble
    */
   showThought(text: string, mood: string, anchorX: number, anchorY: number): void {
+    this.showBubble(text, mood, anchorX, anchorY, "thought");
+  }
+
+  /**
+   * Show a speech bubble with typewriter effect (pointed tail).
+   * Triggers onSpeechBubbleShow callback for TTS sync.
+   */
+  showSpeech(text: string, mood: string, anchorX: number, anchorY: number): void {
+    this.showBubble(text, mood, anchorX, anchorY, "speech");
+    this.onSpeechBubbleShow?.(text, mood);
+  }
+
+  /** Internal: show a bubble of the given type */
+  private showBubble(
+    text: string,
+    mood: string,
+    anchorX: number,
+    anchorY: number,
+    type: BubbleDisplayType,
+  ): void {
     this.hide();
 
+    this.currentType = type;
     const style = MOOD_BUBBLE_STYLES[mood] ?? MOOD_BUBBLE_STYLES["contemplative"];
 
     this.fullText = text;
@@ -97,8 +126,12 @@ export class ThoughtBubble {
     const borderRadius = getBubbleBorderRadius(style.border);
     this.drawBubbleBg(style.bubbleColor, text, borderRadius, style.border);
 
-    // Draw tail dots (leading to Truman's head)
-    this.drawTail(style.bubbleColor, anchorY + BUBBLE_OFFSET_Y + 20, anchorY - 10);
+    // Draw tail (cloud dots for thought, pointed for speech)
+    if (type === "speech") {
+      this.drawSpeechTail(style.bubbleColor);
+    } else {
+      this.drawTail(style.bubbleColor, anchorY + BUBBLE_OFFSET_Y + 20, anchorY - 10);
+    }
 
     this.container.setAlpha(1);
     this.isVisible = true;
@@ -183,6 +216,28 @@ export class ThoughtBubble {
       this.bg.fillStyle(0xffffff, 0.08);
       this.bg.fillRoundedRect(-w / 2 + 2, -h / 2 + 2, w - 4, 4, Math.max(borderRadius - 2, 0));
     }
+  }
+
+  /** Draw a pointed speech balloon tail (triangle pointing down to Truman) */
+  private drawSpeechTail(colorHex: string): void {
+    this.tailDots.clear();
+    const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
+
+    // Pointed triangle from bubble bottom to Truman
+    this.tailDots.fillStyle(color, 0.92);
+    this.tailDots.fillTriangle(
+      -6, 18,   // left point at bubble bottom
+      6, 18,    // right point at bubble bottom
+      0, 38,    // tip pointing down toward Truman
+    );
+
+    // Border on tail
+    this.tailDots.lineStyle(1, 0xcccccc, 0.5);
+    this.tailDots.strokeTriangle(
+      -6, 18,
+      6, 18,
+      0, 38,
+    );
   }
 
   private drawTail(colorHex: string, bubbleBottom: number, trumanHead: number): void {

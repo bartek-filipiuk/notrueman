@@ -26,6 +26,7 @@ export interface RendererHandler {
   moveTo(objectId: InteractiveObjectId): Promise<void>;
   playActivity(activity: string): void;
   showThought(text: string, mood: string): void;
+  showSpeech?(text: string, mood: string): void;
   updateHUD(update: { mood?: string; activity?: string; time?: string }): void;
 }
 
@@ -67,7 +68,11 @@ export class RendererBridge {
       }
       case "show_bubble": {
         const payload = command.payload as RendererCommands["show_bubble"];
-        this.handler.showThought(payload.text, payload.mood);
+        if (payload.type === "speech" && this.handler.showSpeech) {
+          this.handler.showSpeech(payload.text, payload.mood);
+        } else {
+          this.handler.showThought(payload.text, payload.mood);
+        }
         break;
       }
       case "update_hud": {

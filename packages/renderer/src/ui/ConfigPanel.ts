@@ -61,6 +61,15 @@ export class ConfigPanel {
       }
     }
 
+    if (state.tts) {
+      const tts = state.tts as { enabled: boolean; voice: string; playing: boolean; queueSize: number };
+      lines.push(``);
+      lines.push(`<b>TTS:</b> ${tts.enabled ? `ON (${tts.voice})` : "OFF"}`);
+      if (tts.enabled) {
+        lines.push(`  Playing: ${tts.playing ? "🔊" : "—"}  Queue: ${tts.queueSize}`);
+      }
+    }
+
     if (state.recentActivities) {
       const recent = state.recentActivities as Array<{ activity: string }>;
       lines.push(``);

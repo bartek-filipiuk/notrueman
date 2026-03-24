@@ -10,6 +10,7 @@ import {
   EmotionEngine,
 } from "@nts/agent-brain";
 import { ConfigPanel } from "./ui/ConfigPanel";
+import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
 
 /** Read API key from URL params (?apiKey=sk-or-...) or empty string */
 function getApiKey(): string {
@@ -98,6 +99,12 @@ function initBrain(): void {
     },
   });
 
+  // Initialize TTS (if configured via URL params)
+  const ttsConfig = getTTSConfigFromURL();
+  const ttsManager = new TTSManager(ttsConfig);
+  ttsManager.setAudioMixer(roomScene.getAudioMixer());
+  roomScene.setTTSManager(ttsManager);
+
   // Create renderer bridge
   const bridge = new RendererBridge(emotionAwareHandler);
 
@@ -108,6 +115,23 @@ function initBrain(): void {
     maxRetries: 2,
     systemPrompt: PERSONALITY,
   });
+
+  // Patch bridge.executeAction to sometimes produce speech bubbles (30% chance)
+  // Per visual-spec S7.1: speech = speaking aloud (with TTS), thought = internal monologue
+  const originalExecuteAction = bridge.executeAction.bind(bridge);
+  bridge.executeAction = async function (activity, thought, mood) {
+    // Override: randomly make some thoughts into spoken-aloud speech
+    if (thought && ttsManager.isEnabled() && Math.random() < 0.3) {
+      // Execute everything except bubble, then show speech bubble
+      await bridge.executeCommand({ type: "update_hud", payload: { activity, mood } });
+      const objectId = RendererBridge.getObjectForActivity(activity);
+      await bridge.executeCommand({ type: "move_to", payload: { objectId } });
+      await bridge.executeCommand({ type: "play_animation", payload: { state: activity } });
+      await bridge.executeCommand({ type: "show_bubble", payload: { text: thought, type: "speech", mood } });
+    } else {
+      await originalExecuteAction(activity, thought, mood);
+    }
+  };
 
   // After each tick, update emotions based on activity outcome
   const originalTick = brain.tick.bind(brain);
@@ -151,6 +175,7 @@ function initBrain(): void {
   (window as any).__brain = brain;
   (window as any).__bridge = bridge;
   (window as any).__emotions = emotions;
+  (window as any).__tts = ttsManager;
 
   // Config panel (toggle with ~ key)
   new ConfigPanel(() => ({
@@ -158,7 +183,16 @@ function initBrain(): void {
     ...brain.getState(),
     currentMood: emotions.getOverallMood(),
     emotions: emotions.getState(),
+    tts: {
+      enabled: ttsManager.isEnabled(),
+      voice: ttsManager.getVoice(),
+      playing: ttsManager.getIsPlaying(),
+      queueSize: ttsManager.getQueueSize(),
+    },
   }));
 
-  console.log("[main] Brain loop started with emotion engine. Press ~ for debug panel.");
+  const ttsStatus = ttsManager.isEnabled()
+    ? `TTS enabled (voice: ${ttsManager.getVoice()})`
+    : "TTS disabled (add ?tts=on&openaiKey=sk-... to enable)";
+  console.log(`[main] Brain loop started with emotion engine. ${ttsStatus}. Press ~ for debug panel.`);
 }

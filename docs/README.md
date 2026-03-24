@@ -32,6 +32,21 @@ Get a key at https://openrouter.ai/keys. Uses DeepSeek Chat (~$0.28/1M tokens) +
 
 Press `~` (tilde) to open the debug panel showing brain state, emotions, and recent activities.
 
+### TTS (Text-to-Speech)
+
+To have Truman speak aloud via OpenAI gpt-4o-mini-tts:
+
+```
+http://localhost:5173/?apiKey=sk-or-KEY&tts=on&openaiKey=sk-OPENAI_KEY
+```
+
+Optional voice selection (default: `echo`):
+```
+http://localhost:5173/?apiKey=sk-or-KEY&tts=on&openaiKey=sk-KEY&voice=nova
+```
+
+Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer. ~30% of thoughts become speech bubbles (pointed tail + audio). TTS status visible in debug panel (`~`).
+
 ### Visual FX
 
 Requires WebGL (default). To disable all visual effects (vignette, bloom, glow) for lower-end machines:

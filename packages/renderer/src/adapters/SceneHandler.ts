@@ -27,6 +27,10 @@ export class SceneHandler implements RendererHandler {
     this.scene.showThought(text, mood);
   }
 
+  showSpeech(text: string, mood: string): void {
+    this.scene.showSpeech(text, mood);
+  }
+
   updateHUD(update: { mood?: string; activity?: string; time?: string }): void {
     const hud = this.scene.getHUD();
     if (update.mood) {
