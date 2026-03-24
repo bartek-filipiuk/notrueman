@@ -1,71 +1,56 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "@nts/shared";
+import { getVisualConfig } from "../config/VisualConfig";
 
 /**
- * Dynamic lighting overlay that changes based on real-time hour.
- * Creates a color tint over the entire scene to simulate day/night.
+ * Dynamic lighting using ColorMatrix PostFX for proper color grading.
+ * Falls back to Rectangle overlay when colorGrading is disabled.
  *
- * Time of day palette:
- * - Morning (6-10): warm golden glow
- * - Midday (10-16): neutral/bright
- * - Afternoon (16-19): warm amber/orange
- * - Evening (19-22): cool blue-purple
- * - Night (22-6): dark blue
+ * Time presets: morning (warm), midday (neutral), afternoon (amber),
+ * evening (cool blue), night (dark blue).
  */
 
-interface LightPreset {
-  tintColor: number;
-  tintAlpha: number;
-  windowGlowAlpha: number;
-}
-
-const PRESETS: Record<string, LightPreset> = {
-  morning:   { tintColor: 0xffd54f, tintAlpha: 0.06,  windowGlowAlpha: 0.08 },
-  midday:    { tintColor: 0xffffff, tintAlpha: 0.0,   windowGlowAlpha: 0.10 },
-  afternoon: { tintColor: 0xff8f00, tintAlpha: 0.08,  windowGlowAlpha: 0.06 },
-  evening:   { tintColor: 0x5c6bc0, tintAlpha: 0.12,  windowGlowAlpha: 0.03 },
-  night:     { tintColor: 0x1a237e, tintAlpha: 0.22,  windowGlowAlpha: 0.01 },
-};
-
-function getPresetForHour(hour: number): LightPreset {
-  if (hour >= 6 && hour < 10) return PRESETS.morning;
-  if (hour >= 10 && hour < 16) return PRESETS.midday;
-  if (hour >= 16 && hour < 19) return PRESETS.afternoon;
-  if (hour >= 19 && hour < 22) return PRESETS.evening;
-  return PRESETS.night;
+function getPresetForHour(hour: number): string {
+  if (hour >= 6 && hour < 10) return "morning";
+  if (hour >= 10 && hour < 16) return "midday";
+  if (hour >= 16 && hour < 19) return "afternoon";
+  if (hour >= 19 && hour < 22) return "evening";
+  return "night";
 }
 
 export class LightingSystem {
-  private overlay: Phaser.GameObjects.Rectangle;
+  private scene: Phaser.Scene;
+  private colorMatrix: Phaser.FX.ColorMatrix | null = null;
   private windowGlow: Phaser.GameObjects.Rectangle;
   private cornerShadowL: Phaser.GameObjects.Rectangle;
   private cornerShadowR: Phaser.GameObjects.Rectangle;
   private lastHour = -1;
 
   constructor(scene: Phaser.Scene) {
-    // Full-screen color overlay
-    this.overlay = scene.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0)
-      .setDepth(50)
-      .setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.scene = scene;
+    const fx = getVisualConfig();
 
-    // Window light brightening effect
+    // Try ColorMatrix PostFX (WebGL only, config-gated)
+    if (fx.colorGrading && scene.cameras.main.postFX) {
+      this.colorMatrix = scene.cameras.main.postFX.addColorMatrix();
+    }
+
+    // Window light brightening effect (spatial, not full-screen)
     this.windowGlow = scene.add
       .rectangle(680 + 32, 300, 200, 300, 0xfff8e1, 0)
       .setDepth(1);
 
-    // Corner shadows (darker in corners, especially at night)
+    // Corner shadows
     this.cornerShadowL = scene.add
       .rectangle(30, GAME_HEIGHT / 2, 60, GAME_HEIGHT, 0x000000, 0)
-      .setDepth(50);
+      .setDepth(2);
     this.cornerShadowR = scene.add
       .rectangle(GAME_WIDTH - 20, GAME_HEIGHT / 2, 40, GAME_HEIGHT, 0x000000, 0)
-      .setDepth(50);
+      .setDepth(2);
 
     this.updateLighting();
   }
 
-  /** Call from scene.update() — checks hour and applies lighting */
   update(): void {
     const hour = new Date().getHours();
     if (hour !== this.lastHour) {
@@ -78,15 +63,42 @@ export class LightingSystem {
     const hour = new Date().getHours();
     const preset = getPresetForHour(hour);
 
-    // Main overlay tint
-    this.overlay.setFillStyle(preset.tintColor, preset.tintAlpha);
+    // Apply ColorMatrix color grading
+    if (this.colorMatrix) {
+      this.colorMatrix.reset();
+      switch (preset) {
+        case "morning":
+          this.colorMatrix.saturate(0.12);
+          this.colorMatrix.brightness(0.04);
+          break;
+        case "midday":
+          // Neutral — no grading
+          this.colorMatrix.brightness(0.02);
+          break;
+        case "afternoon":
+          this.colorMatrix.saturate(0.08);
+          this.colorMatrix.brightness(-0.02);
+          break;
+        case "evening":
+          this.colorMatrix.desaturate();
+          this.colorMatrix.brightness(-0.06);
+          break;
+        case "night":
+          this.colorMatrix.night(0.25);
+          this.colorMatrix.brightness(-0.08);
+          break;
+      }
+    }
 
     // Window glow intensity
-    this.windowGlow.setAlpha(preset.windowGlowAlpha);
+    const glowMap: Record<string, number> = {
+      morning: 0.08, midday: 0.10, afternoon: 0.06, evening: 0.03, night: 0.01,
+    };
+    this.windowGlow.setAlpha(glowMap[preset] ?? 0.05);
 
-    // Corner shadows more intense at night
-    const cornerAlpha = preset.tintAlpha > 0.1 ? 0.08 : 0.03;
-    this.cornerShadowL.setAlpha(cornerAlpha);
-    this.cornerShadowR.setAlpha(cornerAlpha);
+    // Corner shadows
+    const isNight = preset === "evening" || preset === "night";
+    this.cornerShadowL.setAlpha(isNight ? 0.08 : 0.03);
+    this.cornerShadowR.setAlpha(isNight ? 0.08 : 0.03);
   }
 }

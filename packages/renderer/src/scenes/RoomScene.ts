@@ -65,6 +65,46 @@ export class RoomScene extends Phaser.Scene {
 
     // Apply camera PostFX (WebGL only)
     this.applyCameraFX();
+
+    // Ambient dust particles in window light
+    if (getVisualConfig().ambientParticles) {
+      this.createAmbientDust();
+    }
+  }
+
+  /** Floating dust motes in sunlight from window */
+  private createAmbientDust(): void {
+    const windowObj = ROOM_OBJECTS.find((o) => o.id === "window");
+    if (!windowObj) return;
+
+    // Generate tiny warm-gold particle texture
+    const g = this.add.graphics();
+    g.fillStyle(0xffd54f, 0.8);
+    g.fillRect(0, 0, 2, 2);
+    g.generateTexture("particle_dust_ambient", 2, 2);
+    g.destroy();
+
+    // Emitter in the window light cone area
+    const emitter = this.add.particles(
+      windowObj.x + windowObj.width / 2,
+      windowObj.y + windowObj.height,
+      "particle_dust_ambient",
+      {
+        speed: { min: 3, max: 10 },
+        angle: { min: 150, max: 210 },
+        scale: { start: 0.5, end: 0.1 },
+        alpha: { start: 0.35, end: 0 },
+        lifespan: { min: 4000, max: 8000 },
+        frequency: 900,
+        quantity: 1,
+        blendMode: Phaser.BlendModes.ADD,
+        emitZone: {
+          type: "random",
+          source: new Phaser.Geom.Rectangle(-30, 0, 60, 80),
+        },
+      },
+    );
+    emitter.setDepth(3);
   }
 
   /** Apply pro-level camera PostFX effects */
@@ -80,6 +120,9 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
+  private glowFrameCounter = 0;
+  private lastGlowedId: string | null = null;
+
   update(time: number, delta: number): void {
     this.movement.update(time, delta);
     this.activityRenderer.update();
@@ -89,6 +132,46 @@ export class RoomScene extends Phaser.Scene {
 
     // Depth sort: Truman renders in front of objects below him, behind objects above
     this.truman.setDepth(this.truman.y);
+
+    // Object glow on proximity (check every 10 frames for performance)
+    this.glowFrameCounter++;
+    if (this.glowFrameCounter % 10 === 0 && getVisualConfig().objectGlow) {
+      this.updateObjectGlow();
+    }
+  }
+
+  /** Add glow to nearest object when Truman is close */
+  private updateObjectGlow(): void {
+    let closestId: string | null = null;
+    let closestDist = 60; // proximity threshold
+
+    for (const obj of ROOM_OBJECTS) {
+      const cx = obj.x + obj.width / 2;
+      const cy = obj.y + obj.height / 2;
+      const dist = Phaser.Math.Distance.Between(this.truman.x, this.truman.y, cx, cy);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestId = obj.id;
+      }
+    }
+
+    // Remove glow from previous object
+    if (this.lastGlowedId && this.lastGlowedId !== closestId) {
+      const prev = this.roomObjects.get(this.lastGlowedId as InteractiveObjectId);
+      if (prev && "preFX" in prev && prev.preFX) {
+        (prev.preFX as Phaser.GameObjects.Components.FX).clear();
+      }
+    }
+
+    // Add glow to closest object
+    if (closestId && closestId !== this.lastGlowedId) {
+      const img = this.roomObjects.get(closestId as InteractiveObjectId);
+      if (img && "preFX" in img && img.preFX) {
+        (img.preFX as Phaser.GameObjects.Components.FX).addGlow(0xffffff, 2, 0, false, 0.06, 6);
+      }
+    }
+
+    this.lastGlowedId = closestId;
   }
 
   /** Clean up all timers and tweens when scene shuts down */
