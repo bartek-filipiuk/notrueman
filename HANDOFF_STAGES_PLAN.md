@@ -233,11 +233,11 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC5.1: Self-check — WSZYSTKIE US z PRD pokryte
-- [ ] SC5.2: Self-check — brak hardcoded secrets (final scan)
-- [ ] SC5.3: Self-check — testy zielone (unit + integration + smoke)
-- [ ] SC5.4: Self-check — dokumentacja kompletna
-- [ ] SC5.5: Zaktualizuj HANDOFF — WSZYSTKIE checkboxy WSZYSTKICH stages → [x]
+- [x] SC5.1: Self-check — WSZYSTKIE US z PRD pokryte
+- [x] SC5.2: Self-check — brak hardcoded secrets (final scan)
+- [x] SC5.3: Self-check — testy zielone (unit + integration + smoke)
+- [x] SC5.4: Self-check — dokumentacja kompletna
+- [x] SC5.5: Zaktualizuj HANDOFF — WSZYSTKIE checkboxy WSZYSTKICH stages → [x]
 
 **Stage 5 DoD:** Kod czysty, przetestowany, bezpieczny, udokumentowany. System stabilny 8h+. Gotowy na rozszerzenie o streaming, TTS, chat w następnej iteracji.
 
