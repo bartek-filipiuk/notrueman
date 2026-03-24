@@ -11,6 +11,7 @@ import { LightingSystem } from "../systems/LightingSystem";
 import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
 import { ParticleManager } from "../systems/ParticleManager";
+import { AudioMixer } from "../systems/AudioMixer";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -40,6 +41,7 @@ export class RoomScene extends Phaser.Scene {
   private thoughtBubble!: ThoughtBubble;
   private lighting!: LightingSystem;
   private windowView!: WindowView;
+  private audioMixer!: AudioMixer;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -75,6 +77,7 @@ export class RoomScene extends Phaser.Scene {
     this.activityManager.stopLoop();
     this.activityRenderer.stopActivity();
     this.thoughtBubble.hide();
+    this.audioMixer.destroy();
   }
 
   private createTruman(): void {
@@ -91,6 +94,17 @@ export class RoomScene extends Phaser.Scene {
 
     this.windowView = new WindowView(this);
     this.lighting = new LightingSystem(this);
+
+    // Audio mixer with three channels (voice, ambient, music)
+    this.audioMixer = new AudioMixer(this);
+    this.hud.setAudioMixer(this.audioMixer);
+
+    // Keyboard shortcut: M toggles master mute
+    this.input.keyboard?.on("keydown-M", () => {
+      this.audioMixer.toggleMasterMute();
+      // Re-sync HUD icon
+      this.hud.setAudioMixer(this.audioMixer);
+    });
 
     this.activityManager.startLoop();
   }
@@ -122,6 +136,10 @@ export class RoomScene extends Phaser.Scene {
 
   getHUD(): HUD {
     return this.hud;
+  }
+
+  getAudioMixer(): AudioMixer {
+    return this.audioMixer;
   }
 
   private createBackground(): void {

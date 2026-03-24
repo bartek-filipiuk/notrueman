@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH } from "@nts/shared";
+import type { AudioMixer } from "../systems/AudioMixer";
 
 // Mood emoji characters for pixel feel
 const MOOD_ICONS: Record<string, string> = {
@@ -37,6 +38,8 @@ export class HUD {
   private timeText: Phaser.GameObjects.Text;
   private activityText: Phaser.GameObjects.Text;
   private bgBar: Phaser.GameObjects.Rectangle;
+  private muteBtn: Phaser.GameObjects.Text;
+  private audioMixer: AudioMixer | null = null;
   private lastTimeString = "";
 
   constructor(scene: Phaser.Scene) {
@@ -85,6 +88,18 @@ export class HUD {
       })
       .setOrigin(1, 0)
       .setDepth(100);
+
+    // Mute/unmute button (speaker icon, center-right of HUD bar)
+    this.muteBtn = scene.add
+      .text(GAME_WIDTH / 2, 8, "\u266B", {
+        fontSize: "16px",
+        fontFamily: "monospace",
+        color: "#81c784",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(100)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => this.onMuteToggle());
   }
 
   updateMood(mood: string): void {
@@ -116,5 +131,25 @@ export class HUD {
 
   updateActivity(activity: string): void {
     this.activityText.setText(activity);
+  }
+
+  /** Connect an AudioMixer so the mute button can toggle audio */
+  setAudioMixer(mixer: AudioMixer): void {
+    this.audioMixer = mixer;
+    this.updateMuteIcon();
+  }
+
+  private onMuteToggle(): void {
+    if (!this.audioMixer) return;
+    this.audioMixer.toggleMasterMute();
+    this.updateMuteIcon();
+  }
+
+  private updateMuteIcon(): void {
+    if (!this.audioMixer) return;
+    const muted = this.audioMixer.isMasterMuted();
+    // ♫ when audio on, X when muted
+    this.muteBtn.setText(muted ? "\u2715" : "\u266B");
+    this.muteBtn.setColor(muted ? "#ef5350" : "#81c784");
   }
 }
