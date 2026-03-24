@@ -1,5 +1,28 @@
 # Changelog
 
+## [Stage 10 — Visual Pro Upgrade] - 2026-03-24
+
+### Added
+- WebGL rendering (switched from Canvas) with FX pipeline
+- Press Start 2P font loaded via Google Fonts CDN
+- CSS image-rendering: pixelated/crisp-edges for pixel-perfect canvas
+- Camera PostFX: vignette (edge darkening) + bloom (subtle glow)
+- ColorMatrix time-of-day lighting (replaces Rectangle overlay)
+- Object glow PreFX on proximity (white halo when Truman nearby)
+- Truman RenderTexture refactor with glow PreFX outline
+- VisualFXConfig system — all effects toggleable, ?fx=off URL param
+- Ambient dust particles in window light (warm-gold, ADD blend)
+- CRT scanline overlay (optional, off by default)
+- Depth sorting: Truman and objects sorted by Y position
+- visual-pro.test.ts — config schema and rendering tests
+
+### Changed
+- Phaser config: antialias:false, roundPixels:true for pixel-perfect rendering
+- Night mode reduced (was too dark with stacking vignette + ColorMatrix)
+- Vignette reduced to 0.18 strength (was 0.35)
+- TrumanSprite: Container+RenderTexture pattern (from Container+Graphics)
+- Removed camera sine zoom breathing (caused sub-pixel shimmer)
+
 ## [Stage 7 — Visual Overhaul] - 2026-03-24
 
 ### Added

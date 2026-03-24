@@ -72,3 +72,19 @@ scene.add.image(x, y, "my_object");
 2. Add `generate[Name]()` function in `packages/renderer/src/sprites/RoomObjectSprites.ts`
 3. Call it from `generateAllTextures()`
 4. The texture key must be `obj_[id]` where id matches the ROOM_OBJECTS entry
+
+## Visual FX (Stage 10)
+
+All effects configurable via `packages/renderer/src/config/VisualConfig.ts`.
+
+| Effect | Default | What it does |
+|---|---|---|
+| **vignette** | ON | Darkens screen edges, draws eye to center |
+| **bloom** | ON | Subtle glow on bright elements (window, screen) |
+| **colorGrading** | ON | ColorMatrix per time-of-day (warm morning, cool night) |
+| **objectGlow** | ON | White glow PreFX when Truman approaches object |
+| **trumanGlow** | ON | Subtle white outline on Truman (always readable) |
+| **ambientParticles** | ON | Gold dust motes floating in window light |
+| **crtScanlines** | OFF | Alternating dark lines for retro TV feel |
+
+Disable all: add `?fx=off` to URL. Toggle individual effects via `~` debug panel.

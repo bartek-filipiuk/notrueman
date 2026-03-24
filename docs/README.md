@@ -32,6 +32,14 @@ Get a key at https://openrouter.ai/keys. Uses DeepSeek Chat (~$0.28/1M tokens) +
 
 Press `~` (tilde) to open the debug panel showing brain state, emotions, and recent activities.
 
+### Visual FX
+
+Requires WebGL (default). To disable all visual effects (vignette, bloom, glow) for lower-end machines:
+
+```
+http://localhost:5173/?fx=off
+```
+
 ### With Database (optional — for memory persistence)
 
 ```bash
