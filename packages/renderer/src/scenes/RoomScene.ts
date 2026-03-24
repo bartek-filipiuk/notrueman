@@ -67,9 +67,8 @@ export class RoomScene extends Phaser.Scene {
     this.lighting.update();
     this.windowView.update();
 
-    // Subtle camera breathing — very gentle sine wave zoom
-    const breathe = Math.sin(time * 0.0005) * 0.002;
-    this.cameras.main.setZoom(1 + breathe);
+    // Depth sort: Truman renders in front of objects below him, behind objects above
+    this.truman.setDepth(this.truman.y);
   }
 
   /** Clean up all timers and tweens when scene shuts down */
@@ -284,8 +283,9 @@ export class RoomScene extends Phaser.Scene {
       const textureKey = `obj_${obj.id}`;
 
       if (this.textures.exists(textureKey)) {
-        // Use pixel art sprite
+        // Use pixel art sprite with depth based on bottom edge (Y sorting)
         const img = this.add.image(obj.x, obj.y, textureKey).setOrigin(0, 0);
+        img.setDepth(obj.y + obj.height);
         // Add subtle shadow under furniture
         if (obj.zone !== "window" && obj.id !== "clock" && obj.id !== "poster") {
           this.add
@@ -297,7 +297,7 @@ export class RoomScene extends Phaser.Scene {
               0x000000,
               0.12,
             )
-            .setDepth(0);
+            .setDepth(obj.y + obj.height - 1);
         }
         this.roomObjects.set(obj.id, img as any);
       } else {

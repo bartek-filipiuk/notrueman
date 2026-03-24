@@ -224,3 +224,48 @@ Stage 9 (Streaming & Deployment)
 | Chat input sanitization | PRD threat model | Stage 9 | S9.2 |
 | VPS hardening | Baseline #1, #6, #8 | Stage 9 | S9.3 |
 | AI disclosure | Platform compliance | Stage 9 | S9.4 |
+| FX URL param sanitization | Baseline #2 | Stage 10 | S10.1 |
+| Font CDN security | Baseline #4 | Stage 10 | S10.2 |
+| Test regression (final) | Baseline #9 | Stage 10 | S10.3 |
+
+---
+
+## Stage 10: Visual Pro Upgrade — Ostateczny Polish
+
+**Cel:** Zamienić prototypowy wygląd na produkcyjny. WebGL FX pipeline (bloom, vignette, color grading), pixel-perfect tekst (BitmapText), crisp rendering, depth sorting, ambient particles. Po tym stage — wyłącznie funkcjonalność.
+**User Stories:** US-1, US-2, US-9 — final visual quality
+
+### Taski:
+
+- [x] T10.1: Font + CSS fix — Dodać Google Fonts `Press Start 2P` do `index.html`. CSS: `canvas { image-rendering: pixelated; image-rendering: crisp-edges; }`. Tekst przestaje być blurry. (implement → verify crisp text in browser)
+- [x] T10.2: WebGL + pixel crisp config — Zmienić `Phaser.CANVAS` → `Phaser.WEBGL` w main.ts. Dodać `antialias: false, antialiasGL: false, roundPixels: true`. Zweryfikować że generateTexture() i wszystkie sprite'y działają. (implement → test → verify)
+- [x] T10.3: Fix camera + depth sorting — Usunąć fractional sine zoom (shimmer). Dodać depth sorting: `truman.setDepth(truman.y)` w update, obiekty `setDepth(obj.y + obj.height)` w create. Truman renderuje się poprawnie przed/za meblami. (implement → verify no shimmer, correct z-order)
+- [ ] T10.4: FX config system + camera PostFX — Nowy `config/VisualConfig.ts` z toggleable FX (vignette, bloom, colorGrading, objectGlow, trumanGlow, crtScanlines, ambientParticles). URL param `?fx=off`. Camera PostFX: vignette + subtle bloom. Toggle w ConfigPanel (~). (implement → verify FX visible, ?fx=off works)
+- [ ] T10.5: ColorMatrix time-of-day lighting — Zamienić LightingSystem Rectangle overlay na `camera.postFX.addColorMatrix()`. Morning: warm saturate. Evening: cool desaturate. Night: night(0.3). Prawdziwy color grading zamiast flat tint. (implement → verify time-of-day changes)
+- [ ] T10.6: Object glow on proximity — Gdy Truman < 60px od obiektu → `img.preFX.addGlow()`. Gdy oddali się → clear. Check co 10 klatek. Guard z fxConfig. (implement → verify glow appears/disappears)
+- [ ] T10.7: Truman sprite FX — Zamienić Graphics Container na generateTexture() → Image z preFX. Subtle white glow outline. Cache klatek jako tekstury (regeneruj tylko przy zmianie animacji). (refactor → implement → verify glow + no performance hit)
+- [ ] T10.8: BitmapText — Zamienić Phaser Text na BitmapText w HUD, ThoughtBubble, BootScene. Pixel-perfect tekst bez antyaliasingu. Runtime generation lub pre-built z SnowB BMF. (implement → verify crisp text everywhere)
+- [ ] T10.9: Ambient dust particles — Pływające pyłki w świetle z okna (warm-gold, ADD blend). ~10 particles max, 800ms frequency. Guard z fxConfig. (implement → verify atmospheric feel)
+- [ ] T10.10: CRT scanlines + testy — Opcjonalny CRT overlay (co 2. linia, alpha 0.08, OFF domyślnie). Testy: VisualFXConfig schema, Phaser WEBGL, antialias, roundPixels. (implement → test → verify)
+
+### Security (MANDATORY):
+
+- [ ] S10.1: FX URL param — `?fx=off` akceptuje tylko predefiniowane wartości (on/off). Sanityzacja input.
+- [ ] S10.2: Font CDN — Google Fonts (trusted). Alternatywa: self-host w `/public/fonts/`.
+- [ ] S10.3: Test regression — Wszystkie istniejące testy green po Stage 10. `turbo test` PASS.
+
+### Docs (MANDATORY):
+
+- [ ] D10.1: Update `docs/CHANGELOG.md` — wpis Stage 10
+- [ ] D10.2: Update `docs/ART_GUIDE.md` — sekcja FX (config, toggles, efekty)
+- [ ] D10.3: Update `docs/README.md` — `?fx=off` parameter, WebGL requirement
+
+### Stage Completion (MANDATORY):
+
+- [ ] SC10.1: Self-check — tekst pixel-perfect, FX widoczne, no shimmer
+- [ ] SC10.2: Self-check — brak hardcoded secrets
+- [ ] SC10.3: Self-check — testy zielone
+- [ ] SC10.4: Self-check — `?fx=off` działa (graceful degradation)
+- [ ] SC10.5: Zaktualizuj HANDOFF → [x]
+
+**Stage 10 DoD:** Pokój wygląda PRO — crisp pixel text, vignette, bloom, color grading, object glow, Truman outline, dust particles. Opcjonalny CRT. Wszystko toggleable. 30 FPS stable.

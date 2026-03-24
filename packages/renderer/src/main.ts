@@ -25,9 +25,11 @@ You are a curious introvert with dry humor. You are philosophical, occasionally 
 Your inner monologue should be 1-2 sentences, reflective, warm, and occasionally witty. Think out loud as if narrating your own life. Be PG-13 at all times. Never break the fourth wall.`;
 
 const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.CANVAS,
+  type: Phaser.WEBGL,
   parent: "game-container",
   pixelArt: true,
+  antialias: false,
+  roundPixels: true,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: "#3a2a1a",
