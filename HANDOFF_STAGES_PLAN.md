@@ -213,7 +213,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T5.1: Visual polish — Poprawić placeholder art tam gdzie najbardziej razi. Lepsze kolory dymków. Smooth transitions między aktywnościami. Drobne particle effects (opcjonalnie: para z gotowania, pocenie przy ćwiczeniach). (implement → verify in browser)
 - [x] T5.2: Code review — Przejrzeć wszystkie pakiety: czytelność, modularnośc, brak duplikacji, jasne kontrakty API. Refactor gdzie potrzeba. (review → refactor → verify tests still pass)
 - [x] T5.3: Test coverage review — Zidentyfikować brakujące testy. Dodać edge case testy: emotion extremes, memory retrieval z pustą bazą, LLM timeout, invalid Zod parse. (identify gaps → write tests → verify)
-- [ ] T5.4: Performance audit — Profilować: Phaser object count, Node.js heap, PostgreSQL query times, LLM call latency P50/P95/P99. Naprawić bottlenecki. (profile → fix → re-profile)
+- [x] T5.4: Performance audit — Profilować: Phaser object count, Node.js heap, PostgreSQL query times, LLM call latency P50/P95/P99. Naprawić bottlenecki. (profile → fix → re-profile)
 - [ ] T5.5: Security final audit — Przeskanować kod pod kątem: hardcoded secrets, SQL injection, XSS, unvalidated LLM output, exposed stack traces. Napisać `docs/SECURITY.md`. (audit → fix → document)
 - [ ] T5.6: Agent-friendliness review — Czy kolejny agent (lub developer) może łatwo: dodać nową aktywność? zmienić model LLM? zmodyfikować emocje? Jeśli nie — uprościć interfejsy. (review → simplify → verify)
 - [ ] T5.7: Dokumentacja finalna — `docs/README.md` kompletny (Quick Start, Architecture, Config, Development). `docs/CHANGELOG.md` aktualny. `docs/API.md` z opisem wszystkich interfejsów. (write → verify)

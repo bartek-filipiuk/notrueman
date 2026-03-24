@@ -9,6 +9,7 @@ export class HUD {
   private moodText: Phaser.GameObjects.Text;
   private timeText: Phaser.GameObjects.Text;
   private activityText: Phaser.GameObjects.Text;
+  private lastTimeString = "";
 
   constructor(scene: Phaser.Scene) {
     const style: Phaser.Types.GameObjects.Text.TextStyle = {
@@ -43,15 +44,22 @@ export class HUD {
     this.moodText.setText(`Mood: ${mood}`);
   }
 
-  /** Update the time display (real 24h clock) */
+  /** Update the time display (real 24h clock). Caches to avoid redundant updates. */
   updateTime(time?: string): void {
     if (time) {
-      this.timeText.setText(time);
+      if (time !== this.lastTimeString) {
+        this.lastTimeString = time;
+        this.timeText.setText(time);
+      }
     } else {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, "0");
       const m = String(now.getMinutes()).padStart(2, "0");
-      this.timeText.setText(`${h}:${m}`);
+      const timeStr = `${h}:${m}`;
+      if (timeStr !== this.lastTimeString) {
+        this.lastTimeString = timeStr;
+        this.timeText.setText(timeStr);
+      }
     }
   }
 

@@ -336,17 +336,17 @@ export class CognitiveLoop {
     this.state.currentActivity = fallbackActivity;
   }
 
-  /** Update recent activities list (keep last 20) */
+  /** Update recent activities list (keep last 20). Mutates in place to avoid GC. */
   private updateRecentActivities(activity: ActivityType): void {
-    this.state.recentActivities = this.state.recentActivities.map((a) => ({
-      ...a,
-      completedSecondsAgo: a.completedSecondsAgo + this.config.tickIntervalMs / 1000,
-    }));
+    const tickSeconds = this.config.tickIntervalMs / 1000;
+    for (const a of this.state.recentActivities) {
+      a.completedSecondsAgo += tickSeconds;
+    }
 
     this.state.recentActivities.unshift({ activity, completedSecondsAgo: 0 });
 
     if (this.state.recentActivities.length > 20) {
-      this.state.recentActivities = this.state.recentActivities.slice(0, 20);
+      this.state.recentActivities.length = 20;
     }
   }
 }
