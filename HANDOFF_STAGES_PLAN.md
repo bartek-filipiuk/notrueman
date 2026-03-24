@@ -176,7 +176,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T4.5: Energy/hunger/tiredness model — Proste fizyczne stany wpływające na wybór aktywności. Jedzenie obniża hunger, sen obniża tiredness, ćwiczenia obniżają energy. Drift naturalny. (test → implement → verify)
 - [x] T4.6: Graceful error handling — LLM failure: retry 3x z exponential backoff → fallback do losowej aktywności z neutralnym dymkiem. Memory failure: kontynuuj bez kontekstu. Renderer failure: skip tick. Żaden błąd nie crashuje main loop. (test each failure → implement → verify)
 - [x] T4.7: Health endpoint — Fastify server na `localhost:3001/health` (JSON: status, uptime, last tick, memory count, current activity). `/metrics` z prom-client (Prometheus format). (test → implement → verify)
-- [ ] T4.8: Config hot-reload — `config/truman-config.json` przeładowywany bez restartu (file watcher lub endpoint). Zmiana tick rate, failure rate, emotion params w locie. (implement → test → verify)
+- [x] T4.8: Config hot-reload — `config/truman-config.json` przeładowywany bez restartu (file watcher lub endpoint). Zmiana tick rate, failure rate, emotion params w locie. (implement → test → verify)
 - [ ] T4.9: Endurance test — Uruchomić system na 8+ godzin. Monitorować: pamięć procesu, liczbę obiektów Phaser, rozmiar DB, koszty LLM. Zidentyfikować i naprawić memory leaks. (run → monitor → fix → re-run)
 
 ### Security (MANDATORY):

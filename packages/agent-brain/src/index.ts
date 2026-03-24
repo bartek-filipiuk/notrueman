@@ -44,3 +44,5 @@ export type { DayNightConfig, DayPhase, DayNightState } from "./day-night-cycle.
 export { PhysicalStateEngine } from "./physical-state.js";
 export { createHealthServer } from "./health-server.js";
 export type { HealthStatus, HealthServerDeps, HealthServerOptions } from "./health-server.js";
+export { ConfigWatcher } from "./config-watcher.js";
+export type { ConfigWatcherOptions } from "./config-watcher.js";
