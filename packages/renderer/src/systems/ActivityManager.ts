@@ -80,6 +80,8 @@ export class ActivityManager {
     this.state = "performing";
     this.notifyChange();
     this.activityRenderer.playActivity(type);
+    // Switch to activity pose sprite
+    this.truman.setActivityPose(type);
   }
 
   /** Register a callback for activity changes */
@@ -99,6 +101,7 @@ export class ActivityManager {
           // After performing, schedule end
           this.activityTimer = this.scene.time.delayedCall(ACTIVITY_DURATION_MS, () => {
             this.activityRenderer.stopActivity();
+            this.truman.setActivityPose(null); // revert to idle sprite
             this.truman.playIdle();
             this.state = "idle";
             this.currentActivity = null;
@@ -109,6 +112,7 @@ export class ActivityManager {
         .catch(() => {
           // Graceful recovery: reset to idle and continue loop
           this.activityRenderer.stopActivity();
+          this.truman.setActivityPose(null);
           this.truman.playIdle();
           this.state = "idle";
           this.currentActivity = null;

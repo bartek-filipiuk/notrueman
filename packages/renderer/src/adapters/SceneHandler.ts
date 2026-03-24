@@ -21,6 +21,8 @@ export class SceneHandler implements RendererHandler {
   playActivity(activity: string): void {
     const activityRenderer = this.scene.getActivityRenderer();
     activityRenderer.playActivity(activity as any);
+    // Switch Truman to activity pose sprite
+    this.scene.getTruman().setActivityPose(activity);
   }
 
   showThought(text: string, mood: string): void {

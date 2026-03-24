@@ -103,6 +103,30 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     this.playIdle();
   }
 
+  /** Switch to activity pose sprite (sleep, computer, eat, read, etc.) */
+  setActivityPose(activity: string | null): void {
+    if (!this.usePNG || !this.pngSprite) return;
+
+    if (activity) {
+      const poseKey = `truman_pose_${activity}`;
+      if (this.scene.textures.exists(poseKey)) {
+        this.pngSprite.setTexture(poseKey);
+        this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+        this.pngSprite.setFlipX(this.facing === "left");
+        this.stopAnim(); // freeze during activity pose
+        return;
+      }
+    }
+    // No pose available or null activity → revert to idle/mood
+    const moodKey = this.currentMood === "neutral" ? "truman_idle" : `truman_mood_${this.currentMood}`;
+    if (this.scene.textures.exists(moodKey)) {
+      this.pngSprite.setTexture(moodKey);
+    } else {
+      this.pngSprite.setTexture("truman_idle");
+    }
+    this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+  }
+
   setMood(mood: string): void {
     this.currentMood = mood;
 

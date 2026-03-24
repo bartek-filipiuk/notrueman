@@ -23,6 +23,11 @@ export class BootScene extends Phaser.Scene {
     }
     // Truman mood sprites
     const moods = ["idle", "mood_happy", "mood_curious", "mood_anxious", "mood_frustrated", "mood_excited", "mood_content", "mood_contemplative", "mood_bored"];
+    // Activity pose sprites
+    const poses = ["sleep", "computer", "eat", "read", "exercise", "think", "cook", "draw"];
+    for (const pose of poses) {
+      this.load.image(`truman_pose_${pose}`, `sprites/truman/pose_${pose}.png`);
+    }
     for (const mood of moods) {
       this.load.image(`truman_${mood}`, `sprites/truman/${mood}.png`);
     }
