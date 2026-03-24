@@ -33,6 +33,9 @@ export interface RendererHandler {
  * Bridge between brain and renderer.
  * Translates high-level brain decisions into renderer commands.
  */
+/** Max commands to keep in log to prevent unbounded memory growth */
+const MAX_COMMAND_LOG_SIZE = 500;
+
 export class RendererBridge {
   private handler: RendererHandler;
   private commandLog: RendererCommand[] = [];
@@ -46,6 +49,10 @@ export class RendererBridge {
     command: RendererCommand<T>,
   ): Promise<void> {
     this.commandLog.push(command as RendererCommand);
+    // Cap log to prevent unbounded memory growth in long-running sessions
+    if (this.commandLog.length > MAX_COMMAND_LOG_SIZE) {
+      this.commandLog = this.commandLog.slice(-MAX_COMMAND_LOG_SIZE);
+    }
 
     switch (command.type) {
       case "move_to": {

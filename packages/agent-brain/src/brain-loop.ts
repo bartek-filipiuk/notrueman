@@ -5,6 +5,7 @@ import type { RendererBridge } from "./renderer-bridge.js";
 import { planNextAction } from "./action-planner.js";
 import { generateThought } from "./thought-generator.js";
 import { checkActivityFailure } from "./failure-mechanic.js";
+import { getTimeOfDay, sleep } from "./utils.js";
 
 export interface BrainLoopConfig {
   tickIntervalMs: number;   // 30000-60000 ms
@@ -217,15 +218,3 @@ export class BrainLoop {
   }
 }
 
-/** Get human-readable time of day */
-function getTimeOfDay(): string {
-  const hour = new Date().getHours();
-  if (hour < 6) return "night";
-  if (hour < 12) return "morning";
-  if (hour < 18) return "afternoon";
-  return "evening";
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

@@ -94,9 +94,20 @@ export class ActivityManager {
 
     // Start the activity after a small idle pause
     this.activityTimer = this.scene.time.delayedCall(MOVE_TO_IDLE_MS, () => {
-      this.doActivity(activity).then(() => {
-        // After performing, schedule end
-        this.activityTimer = this.scene.time.delayedCall(ACTIVITY_DURATION_MS, () => {
+      this.doActivity(activity)
+        .then(() => {
+          // After performing, schedule end
+          this.activityTimer = this.scene.time.delayedCall(ACTIVITY_DURATION_MS, () => {
+            this.activityRenderer.stopActivity();
+            this.truman.playIdle();
+            this.state = "idle";
+            this.currentActivity = null;
+            this.notifyChange();
+            this.scheduleNextActivity();
+          });
+        })
+        .catch(() => {
+          // Graceful recovery: reset to idle and continue loop
           this.activityRenderer.stopActivity();
           this.truman.playIdle();
           this.state = "idle";
@@ -104,7 +115,6 @@ export class ActivityManager {
           this.notifyChange();
           this.scheduleNextActivity();
         });
-      });
     });
   }
 

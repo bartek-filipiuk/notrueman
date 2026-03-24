@@ -8,6 +8,7 @@ import { generateThought } from "./thought-generator.js";
 import { checkActivityFailure } from "./failure-mechanic.js";
 import { scoreImportance } from "./importance-scorer.js";
 import { EmotionEngine } from "./emotion-engine.js";
+import { getTimeOfDay, sleep } from "./utils.js";
 
 type LogFn = (level: "info" | "warn" | "error", message: string) => void;
 
@@ -350,14 +351,3 @@ export class CognitiveLoop {
   }
 }
 
-function getTimeOfDay(): string {
-  const hour = new Date().getHours();
-  if (hour < 6) return "night";
-  if (hour < 12) return "morning";
-  if (hour < 18) return "afternoon";
-  return "evening";
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

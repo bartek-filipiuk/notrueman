@@ -46,6 +46,7 @@ export class ThoughtBubble {
   private displayedChars = 0;
   private typewriterTimer?: Phaser.Time.TimerEvent;
   private fadeTimer?: Phaser.Time.TimerEvent;
+  private fadeTween?: Phaser.Tweens.Tween;
   private isVisible = false;
 
   constructor(scene: Phaser.Scene) {
@@ -116,12 +117,13 @@ export class ThoughtBubble {
 
           // Start fade out after display duration
           this.fadeTimer = this.scene.time.delayedCall(BUBBLE_DISPLAY_MS, () => {
-            this.scene.tweens.add({
+            this.fadeTween = this.scene.tweens.add({
               targets: this.container,
               alpha: 0,
               duration: BUBBLE_FADE_MS,
               onComplete: () => {
                 this.isVisible = false;
+                this.fadeTween = undefined;
               },
             });
           });
@@ -130,12 +132,14 @@ export class ThoughtBubble {
     });
   }
 
-  /** Immediately hide the bubble */
+  /** Immediately hide the bubble and clean up all timers/tweens */
   hide(): void {
     this.typewriterTimer?.destroy();
     this.typewriterTimer = undefined;
     this.fadeTimer?.destroy();
     this.fadeTimer = undefined;
+    this.fadeTween?.destroy();
+    this.fadeTween = undefined;
     this.container.setAlpha(0);
     this.isVisible = false;
     this.bg.clear();

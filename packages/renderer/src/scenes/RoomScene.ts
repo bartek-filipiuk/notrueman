@@ -54,6 +54,13 @@ export class RoomScene extends Phaser.Scene {
     this.hud.updateTime();
   }
 
+  /** Clean up all timers and tweens when scene shuts down */
+  shutdown(): void {
+    this.activityManager.stopLoop();
+    this.activityRenderer.stopActivity();
+    this.thoughtBubble.hide();
+  }
+
   private createTruman(): void {
     this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 400);
     this.movement = new MovementSystem(this, this.truman);
