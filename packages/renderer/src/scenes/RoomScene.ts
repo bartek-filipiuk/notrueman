@@ -12,6 +12,8 @@ import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
 import { ParticleManager } from "../systems/ParticleManager";
 import { AudioMixer } from "../systems/AudioMixer";
+import { AmbientManager } from "../systems/AmbientManager";
+import { generateAllAmbientSounds } from "../systems/ProceduralAudio";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
@@ -43,6 +45,7 @@ export class RoomScene extends Phaser.Scene {
   private lighting!: LightingSystem;
   private windowView!: WindowView;
   private audioMixer!: AudioMixer;
+  private ambientManager!: AmbientManager;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -120,7 +123,7 @@ export class RoomScene extends Phaser.Scene {
         emitZone: {
           type: "random",
           source: new Phaser.Geom.Rectangle(-30, 0, 60, 80),
-        },
+        } as Phaser.Types.GameObjects.Particles.ParticleEmitterRandomZoneConfig,
       },
     );
     emitter.setDepth(3);
@@ -198,6 +201,7 @@ export class RoomScene extends Phaser.Scene {
     this.activityManager.stopLoop();
     this.activityRenderer.stopActivity();
     this.thoughtBubble.hide();
+    this.ambientManager.destroy();
     this.audioMixer.destroy();
   }
 
@@ -209,9 +213,6 @@ export class RoomScene extends Phaser.Scene {
 
     this.hud = new HUD(this);
     this.thoughtBubble = new ThoughtBubble(this);
-    this.activityManager.setOnActivityChange((activity, state) => {
-      this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
-    });
 
     this.windowView = new WindowView(this);
     this.lighting = new LightingSystem(this);
@@ -219,6 +220,18 @@ export class RoomScene extends Phaser.Scene {
     // Audio mixer with three channels (voice, ambient, music)
     this.audioMixer = new AudioMixer(this);
     this.hud.setAudioMixer(this.audioMixer);
+
+    // Generate procedural ambient sounds and start ambient system
+    generateAllAmbientSounds(this);
+    this.ambientManager = new AmbientManager(this, this.audioMixer);
+    this.ambientManager.start();
+
+    // Wire activity changes to ambient manager
+    this.activityManager.setOnActivityChange((activity, state) => {
+      this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
+      // Only play ambient when performing, stop when idle/moving
+      this.ambientManager.onActivityChange(state === "performing" ? activity : null);
+    });
 
     // Keyboard shortcut: M toggles master mute
     this.input.keyboard?.on("keydown-M", () => {

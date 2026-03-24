@@ -123,7 +123,7 @@ Stage 9 (Streaming & Deployment)
 ### Taski:
 
 - [x] T8.1: WebAudio mixer — Phaser Sound Manager z trzema kanałami: voice (TTS), ambient (loops), music (background). Volumen configurable per channel. Mute/unmute via HUD. (implement → verify)
-- [ ] T8.2: Ambient sounds — Zegar tykający (loop, 10% vol), aktywność-specyficzne: klawiatura (typing), gotowanie (sizzle), strony (page turn), ćwiczenia (breathing). Royalty-free samples z freesound.org. Auto-play wg aktywności. (source audio → implement → verify)
+- [x] T8.2: Ambient sounds — Zegar tykający (loop, 10% vol), aktywność-specyficzne: klawiatura (typing), gotowanie (sizzle), strony (page turn), ćwiczenia (breathing). Royalty-free samples z freesound.org. Auto-play wg aktywności. (source audio → implement → verify)
 - [ ] T8.3: TTS integration — OpenAI gpt-4o-mini-tts. Speech bubbles (nie thought bubbles) generują audio. Format: PCM → Web Audio API playback. Kolejkowanie wypowiedzi (max 1 na raz). Configurable: on/off, voice selection. (implement → test → verify sync)
 - [ ] T8.4: Background music — Lo-fi ambient tracks (royalty-free). Cichy (15-20% vol). Zmiana nastroju: happy = upbeat lo-fi, sad = piano, curious = quirky. Crossfade między trackami (2s). (source music → implement → verify)
 - [ ] T8.5: Audio-visual sync — Dymek speech typu "mówienie" synchronizowany z playback TTS. Usta Trumana animowane podczas mówienia (prosty open/close overlay). (implement → verify)

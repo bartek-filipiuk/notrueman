@@ -80,7 +80,7 @@ export class LightingSystem {
           this.colorMatrix.brightness(-0.02);
           break;
         case "evening":
-          this.colorMatrix.desaturate();
+          this.colorMatrix.saturate(-0.15);
           this.colorMatrix.brightness(-0.06);
           break;
         case "night":
