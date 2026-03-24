@@ -1,24 +1,13 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
-import type { InteractiveObjectId, RoomZone } from "@nts/shared";
+import type { InteractiveObjectId } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 import { MovementSystem } from "../systems/MovementSystem";
 import { ActivityRenderer } from "../systems/ActivityRenderer";
 import { ActivityManager } from "../systems/ActivityManager";
 import { HUD } from "../ui/HUD";
 import { ThoughtBubble } from "../ui/ThoughtBubble";
-
-/** Zone-based color palette for placeholder objects */
-const ZONE_COLORS: Record<RoomZone, number> = {
-  sleep: 0x3949ab,    // indigo
-  kitchen: 0xef6c00,  // orange
-  work: 0x558b2f,     // green
-  creative: 0xad1457,  // pink
-  exercise: 0x00838f, // cyan
-  reading: 0x6a1b9a,  // purple
-  window: 0xfdd835,   // yellow
-  door: 0x795548,     // brown
-};
+import { generateAllTextures } from "../sprites/RoomObjectSprites";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -39,7 +28,7 @@ const FLOOR_Y = 460;
 export const WINDOW_GLOW_COLOR = 0xfdd835;
 
 export class RoomScene extends Phaser.Scene {
-  private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Rectangle>();
+  private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle>();
   private truman!: TrumanSprite;
   private movement!: MovementSystem;
   private activityRenderer!: ActivityRenderer;
@@ -52,9 +41,11 @@ export class RoomScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Generate pixel art textures for room objects
+    generateAllTextures(this);
+
     this.createBackground();
     this.createRoomObjects();
-    this.createObjectLabels();
     this.createTruman();
   }
 
@@ -254,30 +245,36 @@ export class RoomScene extends Phaser.Scene {
 
   private createRoomObjects(): void {
     for (const obj of ROOM_OBJECTS) {
-      const color = ZONE_COLORS[obj.zone];
-      const rect = this.add
-        .rectangle(obj.x, obj.y, obj.width, obj.height, color, 0.8)
-        .setOrigin(0, 0)
-        .setStrokeStyle(1, 0xffffff, 0.3);
+      const textureKey = `obj_${obj.id}`;
 
-      this.roomObjects.set(obj.id, rect);
+      if (this.textures.exists(textureKey)) {
+        // Use pixel art sprite
+        const img = this.add.image(obj.x, obj.y, textureKey).setOrigin(0, 0);
+        // Add subtle shadow under furniture
+        if (obj.zone !== "window" && obj.id !== "clock" && obj.id !== "poster") {
+          this.add
+            .ellipse(
+              obj.x + obj.width / 2,
+              obj.y + obj.height + 2,
+              obj.width * 0.8,
+              6,
+              0x000000,
+              0.12,
+            )
+            .setDepth(0);
+        }
+        this.roomObjects.set(obj.id, img as any);
+      } else {
+        // Fallback: colored rectangle (safety net)
+        const rect = this.add
+          .rectangle(obj.x, obj.y, obj.width, obj.height, 0x888888, 0.6)
+          .setOrigin(0, 0);
+        this.roomObjects.set(obj.id, rect);
+      }
     }
   }
 
-  private createObjectLabels(): void {
-    for (const obj of ROOM_OBJECTS) {
-      this.add
-        .text(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.label, {
-          fontSize: "9px",
-          color: "#ffffff",
-          fontFamily: "monospace",
-          align: "center",
-        })
-        .setOrigin(0.5);
-    }
-  }
-
-  getRoomObject(id: InteractiveObjectId): Phaser.GameObjects.Rectangle | undefined {
+  getRoomObject(id: InteractiveObjectId): Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | undefined {
     return this.roomObjects.get(id);
   }
 }
