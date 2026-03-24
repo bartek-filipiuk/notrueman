@@ -83,46 +83,67 @@ describe("action planner (T2.4)", () => {
   });
 });
 
-describe("variety scoring", () => {
+describe("variety scoring (T4.4)", () => {
   it("returns 1.0 for activities with no recent history", () => {
     const scores = calculateVarietyScores([]);
     expect(scores["read"]).toBe(1.0);
     expect(scores["sleep"]).toBe(1.0);
   });
 
-  it("penalizes very recent activities (< 30 min) with 0.2", () => {
+  it("heavy penalty (0.2) for activities done <2h ago", () => {
     const scores = calculateVarietyScores([
-      { activity: "eat", completedSecondsAgo: 600 }, // 10 min ago
+      { activity: "eat", completedSecondsAgo: 3600 }, // 1h ago
     ]);
     expect(scores["eat"]).toBe(0.2);
   });
 
-  it("gives medium penalty for activities 30-90 min ago", () => {
+  it("moderate penalty (0.5) for activities done 2-6h ago", () => {
     const scores = calculateVarietyScores([
-      { activity: "read", completedSecondsAgo: 3600 }, // 60 min ago
+      { activity: "read", completedSecondsAgo: 14400 }, // 4h ago
     ]);
     expect(scores["read"]).toBe(0.5);
   });
 
-  it("gives light penalty for activities 1.5-3h ago", () => {
+  it("light penalty (0.8) for activities done 6-12h ago", () => {
     const scores = calculateVarietyScores([
-      { activity: "exercise", completedSecondsAgo: 7200 }, // 2h ago
+      { activity: "exercise", completedSecondsAgo: 28800 }, // 8h ago
     ]);
     expect(scores["exercise"]).toBe(0.8);
   });
 
-  it("no penalty for activities over 3h ago", () => {
+  it("no penalty (1.0) for activities done 12-24h ago", () => {
     const scores = calculateVarietyScores([
-      { activity: "think", completedSecondsAgo: 14400 }, // 4h ago
+      { activity: "think", completedSecondsAgo: 50400 }, // 14h ago
     ]);
     expect(scores["think"]).toBe(1.0);
   });
 
+  it("novelty bonus (1.2) for activities not done in 24h+", () => {
+    const scores = calculateVarietyScores([
+      { activity: "draw", completedSecondsAgo: 100800 }, // 28h ago
+    ]);
+    expect(scores["draw"]).toBe(1.2);
+  });
+
   it("takes lowest score for duplicate activities", () => {
     const scores = calculateVarietyScores([
-      { activity: "cook", completedSecondsAgo: 600 },   // 10 min: 0.2
-      { activity: "cook", completedSecondsAgo: 7200 },  // 2h: 0.8
+      { activity: "cook", completedSecondsAgo: 1800 },   // 0.5h: 0.2
+      { activity: "cook", completedSecondsAgo: 28800 },  // 8h: 0.8
     ]);
     expect(scores["cook"]).toBe(0.2);
+  });
+
+  it("boundary: exactly 2h → moderate penalty", () => {
+    const scores = calculateVarietyScores([
+      { activity: "eat", completedSecondsAgo: 7200 }, // exactly 2h
+    ]);
+    expect(scores["eat"]).toBe(0.5);
+  });
+
+  it("boundary: exactly 24h → novelty bonus", () => {
+    const scores = calculateVarietyScores([
+      { activity: "read", completedSecondsAgo: 86400 }, // exactly 24h
+    ]);
+    expect(scores["read"]).toBe(1.2);
   });
 });

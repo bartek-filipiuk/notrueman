@@ -9,8 +9,9 @@ export interface ActionPlannerState {
 }
 
 /**
- * Calculate variety scores for activities based on recency.
+ * Calculate variety scores for activities based on recency (T4.4).
  * Penalizes recently performed activities to encourage variety.
+ * Thresholds per spec: <2h=0.2, <6h=0.5, <12h=0.8, 12-24h=1.0, >24h=1.2 (bonus).
  */
 export function calculateVarietyScores(
   recentActivities: Array<{ activity: ActivityType; completedSecondsAgo: number }>,
@@ -23,20 +24,26 @@ export function calculateVarietyScores(
 
   for (const recent of recentActivities) {
     const hoursAgo = recent.completedSecondsAgo / 3600;
-    let penalty: number;
+    let score: number;
 
-    if (hoursAgo < 0.5) {
-      penalty = 0.2; // very recent: heavy penalty
-    } else if (hoursAgo < 1.5) {
-      penalty = 0.5;
-    } else if (hoursAgo < 3) {
-      penalty = 0.8;
+    if (hoursAgo < 2) {
+      score = 0.2;   // heavy penalty
+    } else if (hoursAgo < 6) {
+      score = 0.5;   // moderate penalty
+    } else if (hoursAgo < 12) {
+      score = 0.8;   // light penalty
+    } else if (hoursAgo < 24) {
+      score = 1.0;   // no penalty
     } else {
-      penalty = 1.0; // old enough: no penalty
+      score = 1.2;   // novelty bonus
     }
 
-    // Take the lowest score if activity appears multiple times
-    scores[recent.activity] = Math.min(scores[recent.activity], penalty);
+    // For bonus (1.2), use max to apply it; for penalties, use min
+    if (score > 1.0) {
+      scores[recent.activity] = Math.max(scores[recent.activity], score);
+    } else {
+      scores[recent.activity] = Math.min(scores[recent.activity], score);
+    }
   }
 
   return scores;
