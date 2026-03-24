@@ -1,50 +1,101 @@
 import Phaser from "phaser";
 import { GAME_WIDTH } from "@nts/shared";
 
+// Mood emoji characters for pixel feel
+const MOOD_ICONS: Record<string, string> = {
+  happy: "\u263A",        // ☺
+  curious: "?",
+  anxious: "~",
+  excited: "!",
+  frustrated: "#",
+  content: "\u2665",      // ♥
+  contemplative: "\u2026", // …
+  bored: "-",
+  neutral: "\u25CB",      // ○
+};
+
+const MOOD_COLORS: Record<string, string> = {
+  happy: "#ffd93d",
+  curious: "#6ec6ff",
+  anxious: "#ce93d8",
+  excited: "#ff8a65",
+  frustrated: "#ef5350",
+  content: "#81c784",
+  contemplative: "#b0bec5",
+  bored: "#90a4ae",
+  neutral: "#e0e0e0",
+};
+
 /**
- * HUD overlay: time (top-right), mood icon (top-left), activity label (top-right, below time).
- * Subtle, ~80% opacity per visual-spec.md S6.
+ * Styled HUD overlay with mood icon, time, activity.
+ * Semi-transparent dark bar at top for contrast.
+ * Style: warm, readable, pixel-friendly.
  */
 export class HUD {
-  private moodText: Phaser.GameObjects.Text;
+  private moodIcon: Phaser.GameObjects.Text;
+  private moodLabel: Phaser.GameObjects.Text;
   private timeText: Phaser.GameObjects.Text;
   private activityText: Phaser.GameObjects.Text;
+  private bgBar: Phaser.GameObjects.Rectangle;
   private lastTimeString = "";
 
   constructor(scene: Phaser.Scene) {
-    const style: Phaser.Types.GameObjects.Text.TextStyle = {
-      fontSize: "12px",
-      fontFamily: "monospace",
-      color: "#ffffff",
-    };
+    // Semi-transparent top bar for HUD readability
+    this.bgBar = scene.add
+      .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 36, 0x000000, 0.35)
+      .setOrigin(0.5, 0)
+      .setDepth(99);
 
-    // Mood icon — top-left
-    this.moodText = scene.add
-      .text(12, 10, "Mood: neutral", { ...style })
-      .setAlpha(0.8)
+    // Mood icon (large, colored)
+    this.moodIcon = scene.add
+      .text(12, 6, MOOD_ICONS.neutral, {
+        fontSize: "18px",
+        fontFamily: "monospace",
+        color: MOOD_COLORS.neutral,
+      })
       .setDepth(100);
 
-    // Time — top-right
+    // Mood label (beside icon)
+    this.moodLabel = scene.add
+      .text(34, 10, "neutral", {
+        fontSize: "11px",
+        fontFamily: "'Press Start 2P', monospace",
+        color: "#e0e0e0",
+      })
+      .setDepth(100);
+
+    // Time (top-right, larger)
     this.timeText = scene.add
-      .text(GAME_WIDTH - 12, 10, "00:00", { ...style, align: "right" })
+      .text(GAME_WIDTH - 10, 6, "00:00", {
+        fontSize: "14px",
+        fontFamily: "'Press Start 2P', monospace",
+        color: "#ffd93d",
+        align: "right",
+      })
       .setOrigin(1, 0)
-      .setAlpha(0.8)
       .setDepth(100);
 
-    // Activity label — top-right, below time
+    // Activity label (below time)
     this.activityText = scene.add
-      .text(GAME_WIDTH - 12, 28, "Idle", { ...style, align: "right", fontSize: "10px" })
+      .text(GAME_WIDTH - 10, 24, "Idle", {
+        fontSize: "9px",
+        fontFamily: "'Press Start 2P', monospace",
+        color: "#b0bec5",
+        align: "right",
+      })
       .setOrigin(1, 0)
-      .setAlpha(0.8)
       .setDepth(100);
   }
 
-  /** Update the mood display */
   updateMood(mood: string): void {
-    this.moodText.setText(`Mood: ${mood}`);
+    const icon = MOOD_ICONS[mood] || MOOD_ICONS.neutral;
+    const color = MOOD_COLORS[mood] || MOOD_COLORS.neutral;
+    this.moodIcon.setText(icon);
+    this.moodIcon.setColor(color);
+    this.moodLabel.setText(mood);
+    this.moodLabel.setColor(color);
   }
 
-  /** Update the time display (real 24h clock). Caches to avoid redundant updates. */
   updateTime(time?: string): void {
     if (time) {
       if (time !== this.lastTimeString) {
@@ -63,7 +114,6 @@ export class HUD {
     }
   }
 
-  /** Update the activity label */
   updateActivity(activity: string): void {
     this.activityText.setText(activity);
   }
