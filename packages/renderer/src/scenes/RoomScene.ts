@@ -12,6 +12,7 @@ import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
 import { ParticleManager } from "../systems/ParticleManager";
 import { AudioMixer } from "../systems/AudioMixer";
+import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -48,6 +49,9 @@ export class RoomScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Initialize visual FX config (respects ?fx=off URL param)
+    initVisualConfig();
+
     // Generate pixel art textures for room objects and particles
     generateAllTextures(this);
     ParticleManager.generateTextures(this);
@@ -58,6 +62,22 @@ export class RoomScene extends Phaser.Scene {
     this.createBackground();
     this.createRoomObjects();
     this.createTruman();
+
+    // Apply camera PostFX (WebGL only)
+    this.applyCameraFX();
+  }
+
+  /** Apply pro-level camera PostFX effects */
+  private applyCameraFX(): void {
+    const fx = getVisualConfig();
+    const cam = this.cameras.main;
+
+    if (fx.vignette && cam.postFX) {
+      cam.postFX.addVignette(0.5, 0.5, 0.88, 0.35);
+    }
+    if (fx.bloom && cam.postFX) {
+      cam.postFX.addBloom(0xffffff, 0.8, 0.8, 0.4, 1.1, 4);
+    }
   }
 
   update(time: number, delta: number): void {
