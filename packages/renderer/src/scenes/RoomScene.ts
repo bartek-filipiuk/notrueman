@@ -101,6 +101,10 @@ export class RoomScene extends Phaser.Scene {
     return this.thoughtBubble;
   }
 
+  getHUD(): HUD {
+    return this.hud;
+  }
+
   private createBackground(): void {
     // Wall
     this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y / 2, GAME_WIDTH, FLOOR_Y, WALL_COLOR).setOrigin(0.5);

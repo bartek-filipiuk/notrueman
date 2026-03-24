@@ -15,13 +15,31 @@ A 24/7 AI agent living in a pixel art room, rendered with Phaser 3 in the browse
 # Install dependencies
 npm install
 
+# Start the renderer (demo mode — no AI, hardcoded activity loop)
+npx turbo dev --filter=@nts/renderer
+# Open http://localhost:5173 in your browser
+```
+
+### AI Mode (LLM-powered Truman)
+
+To have Truman think for himself, add your OpenRouter API key to the URL:
+
+```
+http://localhost:5173/?apiKey=sk-or-YOUR_KEY_HERE
+```
+
+Get a key at https://openrouter.ai/keys. Uses DeepSeek Chat (~$0.28/1M tokens) + Mistral Small 3 (~$0.05/1M tokens). Cost: ~$0.01-0.03 per hour of Truman thinking.
+
+Press `~` (tilde) to open the debug panel showing brain state, emotions, and recent activities.
+
+### With Database (optional — for memory persistence)
+
+```bash
 # Start dev services (PostgreSQL, Redis, Ollama)
 docker compose up -d
 
-# Start the dev server
-npm run dev
-
-# Open http://localhost:5173 in your browser
+# Start the renderer
+npx turbo dev --filter=@nts/renderer
 ```
 
 ### Build & Test

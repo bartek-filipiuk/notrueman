@@ -31,6 +31,18 @@ interface RendererHandler {
 3. Play activity animation
 4. Show thought bubble (if thought is non-empty)
 
+## SceneHandler (Browser Adapter)
+
+`packages/renderer/src/adapters/SceneHandler.ts` — implements `RendererHandler` by wrapping `RoomScene`. Used by BrainLoop in browser AI mode.
+
+## Browser Brain Integration
+
+`packages/renderer/src/main.ts` — dual mode:
+- **Demo mode** (no API key): hardcoded activity loop
+- **AI mode** (`?apiKey=sk-or-...`): BrainLoop → RendererBridge → SceneHandler → RoomScene
+
+Press `~` for ConfigPanel debug overlay.
+
 ## CognitiveLoop
 
 The main agent loop. Configurable via `CognitiveLoopConfig`.

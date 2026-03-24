@@ -1,5 +1,22 @@
 # Changelog
 
+## [Stage 6 — Post-MVP Integration] - 2026-03-24
+
+### Added
+- Brain ↔ Renderer integration: LLM (DeepSeek via OpenRouter) controls Truman's decisions in real-time
+- `SceneHandler` adapter: bridges RoomScene to RendererHandler interface (`packages/renderer/src/adapters/SceneHandler.ts`)
+- Browser-safe agent-brain entry point (`packages/agent-brain/src/browser.ts`) — excludes Node-only deps
+- Dual mode: AI mode (with `?apiKey=` URL param) or demo mode (hardcoded activity loop)
+- EmotionEngine integration: 7-dim emotions update after each tick, drive HUD mood and bubble colors
+- Activity-specific emotion deltas (read→curiosity, exercise→happiness, failure→frustration)
+- ConfigPanel debug overlay (toggle with `~` key): shows brain state, emotions, recent activities
+- `@nts/shared/browser.ts` entry point: excludes BullMQ/ioredis for browser compatibility
+
+### Changed
+- `packages/renderer/src/main.ts` — complete rewrite: initializes BrainLoop + RendererBridge + EmotionEngine
+- `packages/renderer/vite.config.ts` — Vite aliases for browser-safe @nts/shared and @nts/agent-brain
+- `RoomScene` — added `getHUD()` method for SceneHandler access
+
 ## [Stage 5] - 2026-03-24
 
 ### Added
