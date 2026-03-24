@@ -244,49 +244,26 @@ export const ACTIVITY_LIST: readonly ActivityType[] = [
 ] as const;
 
 /** Room objects with positions (visual-spec.md S3.1, S4.1) */
-// FLOOR_Y matches the AI background floor line (~60% of 540 = 324).
-// Objects scaled up to fill room naturally. Spread across full width.
-// Wall area: y=60-280. Floor area: y=280-500. Character walks at ~380.
-export const FLOOR_LINE_Y = 324;
+// Background is ONE AI-generated image with all furniture baked in.
+// ROOM_OBJECTS are now INTERACTION POINTS — where Truman walks to
+// perform activities. No separate sprites needed.
+// Positions match furniture in the AI background image (384x216 → 960x540).
+export const FLOOR_LINE_Y = 400;
 
 export const ROOM_OBJECTS: readonly RoomObject[] = [
-  // === LEFT SIDE ===
-  // Bed (large, against left wall)
-  { id: "bed", x: 110, y: 330, width: 180, height: 90, label: "Bed", zone: "sleep" },
-  // Easel (next to bed, against wall)
-  { id: "easel", x: 120, y: 220, width: 60, height: 110, label: "Easel", zone: "creative" },
-
-  // === CENTER-LEFT ===
-  // Fridge + Stove (kitchen area)
-  { id: "fridge", x: 310, y: 320, width: 60, height: 110, label: "Fridge", zone: "kitchen" },
-  { id: "stove", x: 375, y: 360, width: 60, height: 68, label: "Stove", zone: "kitchen" },
-
-  // === CENTER ===
-  // Desk + Computer (work area)
-  { id: "desk", x: 450, y: 350, width: 120, height: 80, label: "Desk", zone: "work" },
-  { id: "computer", x: 480, y: 300, width: 80, height: 56, label: "Computer", zone: "work" },
-
-  // === CENTER-RIGHT ===
-  // Table & Chair (dining/thinking)
-  { id: "table_chair", x: 600, y: 360, width: 110, height: 72, label: "Table & Chair", zone: "kitchen" },
-  // Bookshelf (tall, against back wall)
-  { id: "bookshelf", x: 580, y: 180, width: 80, height: 180, label: "Bookshelf", zone: "reading" },
-
-  // === RIGHT SIDE ===
-  // Plant (on floor near window)
-  { id: "plant", x: 730, y: 370, width: 40, height: 60, label: "Plant", zone: "window" },
-  // Door (right wall, tall)
-  { id: "door", x: 830, y: 210, width: 70, height: 180, label: "Door", zone: "door" },
-
-  // === FLOOR ITEMS ===
-  // Exercise mat (on floor, center-left)
-  { id: "exercise_mat", x: 200, y: 405, width: 110, height: 30, label: "Exercise Mat", zone: "exercise" },
-
-  // === WALL OBJECTS ===
-  // Window (right wall, high — matches AI background window position)
-  { id: "window", x: 780, y: 80, width: 100, height: 120, label: "Window", zone: "window" },
-  // Clock (center wall, high)
-  { id: "clock", x: 480, y: 100, width: 40, height: 40, label: "Clock", zone: "window" },
-  // Poster (left wall, high)
-  { id: "poster", x: 200, y: 100, width: 70, height: 70, label: "Poster", zone: "creative" },
+  // Positions = where Truman stands to interact (center-bottom of furniture)
+  { id: "bed",          x: 180, y: 430, width: 1, height: 1, label: "Bed", zone: "sleep" },
+  { id: "bookshelf",    x: 80,  y: 350, width: 1, height: 1, label: "Bookshelf", zone: "reading" },
+  { id: "desk",         x: 260, y: 370, width: 1, height: 1, label: "Desk", zone: "work" },
+  { id: "computer",     x: 280, y: 360, width: 1, height: 1, label: "Computer", zone: "work" },
+  { id: "window",       x: 480, y: 330, width: 1, height: 1, label: "Window", zone: "window" },
+  { id: "fridge",       x: 620, y: 360, width: 1, height: 1, label: "Fridge", zone: "kitchen" },
+  { id: "stove",        x: 620, y: 400, width: 1, height: 1, label: "Stove", zone: "kitchen" },
+  { id: "plant",        x: 700, y: 380, width: 1, height: 1, label: "Plant", zone: "window" },
+  { id: "easel",        x: 800, y: 380, width: 1, height: 1, label: "Easel", zone: "creative" },
+  { id: "table_chair",  x: 450, y: 440, width: 1, height: 1, label: "Table & Chair", zone: "kitchen" },
+  { id: "exercise_mat", x: 830, y: 450, width: 1, height: 1, label: "Exercise Mat", zone: "exercise" },
+  { id: "clock",        x: 480, y: 300, width: 1, height: 1, label: "Clock", zone: "window" },
+  { id: "poster",       x: 180, y: 280, width: 1, height: 1, label: "Poster", zone: "creative" },
+  { id: "door",         x: 900, y: 380, width: 1, height: 1, label: "Door", zone: "door" },
 ] as const;
