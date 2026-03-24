@@ -1,5 +1,22 @@
 # Changelog
 
+## [Stage 7 — Visual Overhaul] - 2026-03-24
+
+### Added
+- 14 pixel art room objects (generateTexture): bed, desk, monitor, bookshelf, fridge, stove, table, easel, mat, window, clock, plant, poster, door
+- Truman head-heavy sprite with 9 mood face variants, hair highlights, clothing detail
+- HUD redesign: mood icons, dark top bar, pixel font
+- Boot splash: fade-in title, tips, fade-out transition
+- Lighting system: 5 day/night presets, corner shadows
+- Window view: dynamic sky, clouds, sunset, stars, moon
+- ParticleManager: Phaser emitters for activity effects (steam, sweat, sparkles, zzz)
+- Camera breathing, scene fade-in
+
+### Changed
+- Warm beige walls with wallpaper pattern replacing cold purple
+- Wooden plank floor with grain pattern
+- Objects recognizable without text labels (labels removed)
+
 ## [Stage 6 — Post-MVP Integration] - 2026-03-24
 
 ### Added

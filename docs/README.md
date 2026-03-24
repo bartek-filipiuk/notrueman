@@ -58,6 +58,16 @@ npm run typecheck
 npx turbo typecheck build test
 ```
 
+## Art Assets
+
+All sprites are generated programmatically via `Phaser.GameObjects.Graphics` + `generateTexture()`. No external image files needed.
+
+- **Room objects:** `packages/renderer/src/sprites/RoomObjectSprites.ts` — 14 objects
+- **Truman:** `packages/renderer/src/entities/TrumanSprite.ts` — Graphics API with mood faces
+- **Particles:** `packages/renderer/src/systems/ParticleManager.ts` — Phaser emitters
+
+To modify an object's appearance, edit the corresponding `generate*()` function and reload. Palette constants at the top of each file.
+
 ## Architecture
 
 ```
