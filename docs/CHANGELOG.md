@@ -1,5 +1,22 @@
 # Changelog
 
+## [Stage 4] - 2026-03-24
+
+### Added
+- BullMQ queue infrastructure: agent:think, agent:action, renderer:command, log:event
+- Zod job payload schemas for all queues (AgentThinkJob, AgentActionJob, RendererCommandJob, LogEventJob)
+- Redis connection factory with maxRetriesPerRequest: null (24/7 critical)
+- CognitiveLoop: full Observe → Retrieve → Plan → Act → Speak → Store cycle
+- Day/night cycle with configurable sleep duration (4-6h), wake hour, HUD label
+- Variety scoring updated: <2h=0.2x, <6h=0.5x, <12h=0.8x, >24h=1.2x bonus
+- PhysicalStateEngine: energy, hunger, tiredness with activity effects and time drift
+- Graceful error handling: LLM retry+fallback, memory/embedding failure tolerance
+- Fastify health server: /health (JSON) and /metrics (Prometheus format)
+- Config hot-reload: ConfigWatcher with fs.watch, invalid config rejected gracefully
+- CostTracker: daily cost cap with 80% warning and 100% hard stop
+- Endurance simulation tests (100 rapid ticks, mixed failure scenarios)
+- 50+ new tests in agent-brain, 21 new queue tests in shared
+
 ## [Stage 3] - 2026-03-24
 
 ### Added

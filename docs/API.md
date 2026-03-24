@@ -73,6 +73,51 @@ interface StatePersistence {
 }
 ```
 
-## External API
+## HTTP Endpoints
 
-HTTP endpoints will be documented as they are implemented in Stage 4 (health endpoint, metrics).
+### GET /health
+
+Returns JSON with agent status. Available on `localhost:3001`.
+
+```json
+{
+  "status": "ok",
+  "uptime": 12345,
+  "lastTickAt": "2026-03-24T12:00:00Z",
+  "tickCount": 42,
+  "currentActivity": "read",
+  "currentMood": "curious",
+  "memoryCount": 150
+}
+```
+
+**Security:** No API keys, DB credentials, or secrets are exposed.
+
+### GET /metrics
+
+Returns Prometheus-formatted metrics for scraping.
+
+```
+# HELP nts_tick_count Total number of cognitive loop ticks
+# TYPE nts_tick_count gauge
+nts_tick_count 42
+
+# HELP nts_uptime_seconds Agent uptime in seconds
+# TYPE nts_uptime_seconds gauge
+nts_uptime_seconds 12345
+
+# HELP nts_memory_count Number of stored memories
+# TYPE nts_memory_count gauge
+nts_memory_count 150
+```
+
+## BullMQ Queues
+
+| Queue | Job Schema | Description |
+|---|---|---|
+| `agent:think` | `AgentThinkJobSchema` | Triggers cognitive loop tick |
+| `agent:action` | `AgentActionJobSchema` | Brain action decision output |
+| `renderer:command` | `RendererCommandJobSchema` | Commands to renderer |
+| `log:event` | `LogEventJobSchema` | Structured event logging |
+
+All queues use `concurrency: 1`, `removeOnComplete: { count: 1000 }`, `removeOnFail: { count: 5000 }`.

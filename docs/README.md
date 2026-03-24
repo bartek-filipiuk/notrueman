@@ -68,18 +68,27 @@ Key variables:
 
 ### Agent Config
 
-`config/truman-config.json` controls the brain loop:
+`config/truman-config.json` controls the brain loop (hot-reloadable without restart):
 - `tickIntervalMs` — How often the brain thinks (default: 45000ms)
 - `models.think` / `models.classify` — LLM model IDs via OpenRouter
 - `failureRate` — Probability of activity failure (default: 0.25)
+- `maxRetries` — LLM retry count with exponential backoff
 - `emotions` — Default emotion values (7 dimensions)
 
 `config/truman-personality.md` contains Truman's personality prompt (editable without rebuild).
+
+### Health & Monitoring
+
+When the agent is running, health and metrics are available:
+- `http://localhost:3001/health` — JSON agent status
+- `http://localhost:3001/metrics` — Prometheus-compatible metrics
 
 ## Tech Stack
 
 - **Frontend:** Phaser 3 (CANVAS, pixelArt), Vite, TypeScript
 - **AI:** Vercel AI SDK 6, OpenRouter (DeepSeek V3.2 + Mistral Small 3)
 - **Backend:** Node.js, PostgreSQL 17 + pgvector, Redis 7, Ollama
+- **Queues:** BullMQ + Redis (agent:think, agent:action, renderer:command, log:event)
+- **Monitoring:** Fastify + prom-client (Prometheus metrics)
 - **Build:** Turborepo, npm workspaces
 - **Testing:** Vitest

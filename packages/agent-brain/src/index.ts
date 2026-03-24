@@ -46,3 +46,5 @@ export { createHealthServer } from "./health-server.js";
 export type { HealthStatus, HealthServerDeps, HealthServerOptions } from "./health-server.js";
 export { ConfigWatcher } from "./config-watcher.js";
 export type { ConfigWatcherOptions } from "./config-watcher.js";
+export { CostTracker } from "./cost-tracker.js";
+export type { CostTrackerConfig } from "./cost-tracker.js";
