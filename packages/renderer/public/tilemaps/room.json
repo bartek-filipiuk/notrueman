@@ -1,0 +1,375 @@
+{
+  "compressionlevel": -1,
+  "height": 17,
+  "width": 30,
+  "tileheight": 32,
+  "tilewidth": 32,
+  "infinite": false,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.10.0",
+  "type": "map",
+  "version": "1.10",
+  "layers": [
+    {
+      "id": 1,
+      "name": "background",
+      "type": "imagelayer",
+      "image": "../sprites/room_background.png",
+      "offsetx": 0,
+      "offsety": 0,
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 2,
+      "name": "furniture",
+      "type": "objectgroup",
+      "objects": [
+        {
+          "id": 1,
+          "name": "bed",
+          "type": "sleep",
+          "x": 100,
+          "y": 330,
+          "width": 190,
+          "height": 95,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "sleep"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "easel",
+          "type": "creative",
+          "x": 90,
+          "y": 330,
+          "width": 55,
+          "height": 120,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "creative"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "fridge",
+          "type": "kitchen",
+          "x": 310,
+          "y": 330,
+          "width": 55,
+          "height": 115,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "kitchen"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "stove",
+          "type": "kitchen",
+          "x": 375,
+          "y": 330,
+          "width": 55,
+          "height": 65,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "kitchen"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "desk",
+          "type": "work",
+          "x": 460,
+          "y": 330,
+          "width": 130,
+          "height": 80,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "work"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "computer",
+          "type": "work",
+          "x": 485,
+          "y": 255,
+          "width": 75,
+          "height": 55,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "work"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "table_chair",
+          "type": "kitchen",
+          "x": 620,
+          "y": 330,
+          "width": 115,
+          "height": 75,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "kitchen"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "bookshelf",
+          "type": "reading",
+          "x": 570,
+          "y": 330,
+          "width": 85,
+          "height": 190,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "reading"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "plant",
+          "type": "window",
+          "x": 740,
+          "y": 330,
+          "width": 40,
+          "height": 60,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "window"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "door",
+          "type": "door",
+          "x": 840,
+          "y": 330,
+          "width": 75,
+          "height": 185,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "door"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "name": "exercise_mat",
+          "type": "exercise",
+          "x": 200,
+          "y": 400,
+          "width": 115,
+          "height": 28,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "exercise"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "window",
+          "type": "window",
+          "x": 790,
+          "y": 185,
+          "width": 110,
+          "height": 130,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "window"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "clock",
+          "type": "window",
+          "x": 490,
+          "y": 136,
+          "width": 42,
+          "height": 42,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "window"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "name": "poster",
+          "type": "creative",
+          "x": 195,
+          "y": 167.5,
+          "width": 75,
+          "height": 75,
+          "rotation": 0,
+          "visible": true,
+          "properties": [
+            {
+              "name": "zone",
+              "type": "string",
+              "value": "creative"
+            },
+            {
+              "name": "isWall",
+              "type": "bool",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "name": "truman_spawn",
+          "type": "character",
+          "x": 480,
+          "y": 380,
+          "width": 64,
+          "height": 96,
+          "rotation": 0,
+          "visible": true,
+          "properties": []
+        }
+      ],
+      "opacity": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "draworder": "topdown"
+    }
+  ],
+  "nextlayerid": 3,
+  "nextobjectid": 16
+}

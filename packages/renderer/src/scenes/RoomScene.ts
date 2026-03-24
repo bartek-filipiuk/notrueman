@@ -48,6 +48,8 @@ export class RoomScene extends Phaser.Scene {
   private audioMixer!: AudioMixer;
   private ambientManager!: AmbientManager;
   private ttsManager: TTSManager | null = null;
+  private trumanSpawnX = GAME_WIDTH / 2;
+  private trumanSpawnY = 380;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -218,7 +220,7 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createTruman(): void {
-    this.truman = new TrumanSprite(this, GAME_WIDTH / 2, 420);
+    this.truman = new TrumanSprite(this, this.trumanSpawnX, this.trumanSpawnY);
     this.movement = new MovementSystem(this, this.truman);
     this.activityRenderer = new ActivityRenderer(this, this.truman);
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
@@ -453,39 +455,90 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createRoomObjects(): void {
+    // Try to load positions from Tiled JSON tilemap
+    const useTiled = this.cache.tilemap.has("room-map");
+
+    if (useTiled) {
+      this.createRoomObjectsFromTiled();
+    } else {
+      this.createRoomObjectsFromConstants();
+    }
+  }
+
+  /** Load object positions from Tiled JSON (preferred) */
+  private createRoomObjectsFromTiled(): void {
+    const map = this.make.tilemap({ key: "room-map" });
+    const objectLayer = map.getObjectLayer("furniture");
+    if (!objectLayer) {
+      console.warn("[RoomScene] Tiled map has no 'furniture' layer, falling back to constants");
+      this.createRoomObjectsFromConstants();
+      return;
+    }
+
+    for (const tiledObj of objectLayer.objects) {
+      if (!tiledObj.name || tiledObj.name === "truman_spawn") continue;
+
+      const id = tiledObj.name as InteractiveObjectId;
+      const w = tiledObj.width || 64;
+      const h = tiledObj.height || 64;
+      // Tiled bottom-left origin → Phaser top-left: subtract height
+      const x = tiledObj.x || 0;
+      const y = (tiledObj.y || 0) - h;
+
+      const isWall = tiledObj.properties?.find((p: any) => p.name === "isWall")?.value === true;
+
+      // Texture priority: AI PNG > programmatic > gray fallback
+      const pngKey = `png_${id}`;
+      const progKey = `obj_${id}`;
+      const textureKey = this.textures.exists(pngKey) ? pngKey : progKey;
+
+      if (this.textures.exists(textureKey)) {
+        const img = this.add.image(x + w / 2, y + h / 2, textureKey);
+        img.setDisplaySize(w, h);
+        img.setDepth(y + h);
+
+        // Grounding shadows
+        if (isWall) {
+          this.add.ellipse(x + w / 2, y + h + 3, w * 0.5, 4, 0x000000, 0.06).setDepth(y + h - 1);
+        } else {
+          this.add.ellipse(x + w / 2, y + h + 2, w * 0.85, 8, 0x000000, 0.15).setDepth(y + h - 1);
+        }
+        this.roomObjects.set(id, img as any);
+      } else {
+        const rect = this.add.rectangle(x, y, w, h, 0x888888, 0.6).setOrigin(0, 0);
+        this.roomObjects.set(id, rect);
+      }
+    }
+
+    // Truman spawn point from Tiled
+    const spawn = objectLayer.objects.find((o: any) => o.name === "truman_spawn");
+    if (spawn) {
+      this.trumanSpawnX = spawn.x || GAME_WIDTH / 2;
+      this.trumanSpawnY = (spawn.y || 380) - (spawn.height || 96);
+    }
+  }
+
+  /** Fallback: load positions from hardcoded ROOM_OBJECTS constants */
+  private createRoomObjectsFromConstants(): void {
     for (const obj of ROOM_OBJECTS) {
-      // Priority: AI-generated PNG > programmatic texture > gray fallback
       const pngKey = `png_${obj.id}`;
       const progKey = `obj_${obj.id}`;
       const textureKey = this.textures.exists(pngKey) ? pngKey : progKey;
 
       if (this.textures.exists(textureKey)) {
         const img = this.add.image(obj.x, obj.y, textureKey).setOrigin(0, 0);
-        // Scale AI PNG to match expected object dimensions
-        if (textureKey === pngKey) {
-          img.setDisplaySize(obj.width, obj.height);
-        }
+        if (textureKey === pngKey) img.setDisplaySize(obj.width, obj.height);
         img.setDepth(obj.y + obj.height);
 
-        // Grounding shadows — different for floor vs wall objects
-        const isWallObject = obj.id === "poster" || obj.id === "clock" || obj.id === "window";
-        if (isWallObject) {
-          // Wall objects: tiny drop shadow (looks "mounted")
-          this.add
-            .ellipse(obj.x + obj.width / 2, obj.y + obj.height + 3, obj.width * 0.5, 4, 0x000000, 0.06)
-            .setDepth(obj.y + obj.height - 1);
+        const isWall = obj.id === "poster" || obj.id === "clock" || obj.id === "window";
+        if (isWall) {
+          this.add.ellipse(obj.x + obj.width / 2, obj.y + obj.height + 3, obj.width * 0.5, 4, 0x000000, 0.06).setDepth(obj.y + obj.height - 1);
         } else {
-          // Floor/bridging objects: ground contact shadow
-          this.add
-            .ellipse(obj.x + obj.width / 2, obj.y + obj.height + 2, obj.width * 0.85, 8, 0x000000, 0.15)
-            .setDepth(obj.y + obj.height - 1);
+          this.add.ellipse(obj.x + obj.width / 2, obj.y + obj.height + 2, obj.width * 0.85, 8, 0x000000, 0.15).setDepth(obj.y + obj.height - 1);
         }
         this.roomObjects.set(obj.id, img as any);
       } else {
-        // Fallback: colored rectangle (safety net)
-        const rect = this.add
-          .rectangle(obj.x, obj.y, obj.width, obj.height, 0x888888, 0.6)
-          .setOrigin(0, 0);
+        const rect = this.add.rectangle(obj.x, obj.y, obj.width, obj.height, 0x888888, 0.6).setOrigin(0, 0);
         this.roomObjects.set(obj.id, rect);
       }
     }

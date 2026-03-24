@@ -28,6 +28,8 @@ export class BootScene extends Phaser.Scene {
     }
     // Room background
     this.load.image("room_background", "sprites/room_background.png");
+    // Tiled room layout (object positions)
+    this.load.tilemapTiledJSON("room-map", "tilemaps/room.json");
     // Tiles
     this.load.image("tile_floor", "sprites/tiles/floor.png");
     this.load.image("tile_wall", "sprites/tiles/wall.png");

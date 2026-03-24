@@ -59,7 +59,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // Shadow ellipse (below character)
-    this.shadow = scene.add.ellipse(0, 24, 22, 6, 0x000000, SHADOW_ALPHA);
+    this.shadow = scene.add.ellipse(0, 36, 36, 8, 0x000000, SHADOW_ALPHA);
     this.add(this.shadow);
 
     // Check if AI-generated PNG sprites are available
@@ -67,8 +67,8 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
     if (this.usePNG) {
       // Use AI-generated PNG sprite (mood-switchable)
-      this.pngSprite = scene.add.image(0, -4, "truman_idle");
-      this.pngSprite.setDisplaySize(SPRITE_WIDTH + 8, SPRITE_HEIGHT + 8);
+      this.pngSprite = scene.add.image(0, -8, "truman_idle");
+      this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
       this.add(this.pngSprite);
 
       // Apply glow to PNG sprite
