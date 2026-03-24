@@ -15,6 +15,9 @@ vi.mock("phaser", () => ({
         HexStringToColor: () => ({ color: 0 }),
       },
     },
+    BlendModes: {
+      ADD: 1,
+    },
     CANVAS: 1,
   },
 }));
@@ -83,6 +86,44 @@ describe("T5.1: Visual polish smoke tests", () => {
       const { WINDOW_GLOW_COLOR } = await import("../scenes/RoomScene");
       expect(WINDOW_GLOW_COLOR).toBeDefined();
       expect(typeof WINDOW_GLOW_COLOR).toBe("number");
+    });
+  });
+
+  describe("T7.8: Particle system", () => {
+    it("PARTICLE_ACTIVITIES includes cook, computer, sleep, exercise, read, draw", async () => {
+      const { PARTICLE_ACTIVITIES } = await import("../systems/ActivityRenderer");
+      expect(PARTICLE_ACTIVITIES.has("cook")).toBe(true);
+      expect(PARTICLE_ACTIVITIES.has("computer")).toBe(true);
+      expect(PARTICLE_ACTIVITIES.has("sleep")).toBe(true);
+      expect(PARTICLE_ACTIVITIES.has("exercise")).toBe(true);
+      expect(PARTICLE_ACTIVITIES.has("read")).toBe(true);
+      expect(PARTICLE_ACTIVITIES.has("draw")).toBe(true);
+    });
+
+    it("PARTICLE_ACTIVITIES does NOT include eat and think (Graphics-only)", async () => {
+      const { PARTICLE_ACTIVITIES } = await import("../systems/ActivityRenderer");
+      expect(PARTICLE_ACTIVITIES.has("eat")).toBe(false);
+      expect(PARTICLE_ACTIVITIES.has("think")).toBe(false);
+    });
+
+    it("PARTICLE_TEXTURE_KEYS has all required texture keys", async () => {
+      const { PARTICLE_TEXTURE_KEYS } = await import("../systems/ParticleManager");
+      expect(PARTICLE_TEXTURE_KEYS.STEAM).toBe("particle_steam");
+      expect(PARTICLE_TEXTURE_KEYS.SPARK_GREEN).toBe("particle_spark_green");
+      expect(PARTICLE_TEXTURE_KEYS.SPARK_BLUE).toBe("particle_spark_blue");
+      expect(PARTICLE_TEXTURE_KEYS.ZZZ).toBe("particle_zzz");
+      expect(PARTICLE_TEXTURE_KEYS.SWEAT).toBe("particle_sweat");
+      expect(PARTICLE_TEXTURE_KEYS.DUST).toBe("particle_dust");
+      expect(PARTICLE_TEXTURE_KEYS.PAINT_RED).toBe("particle_paint_red");
+      expect(PARTICLE_TEXTURE_KEYS.PAINT_CYAN).toBe("particle_paint_cyan");
+      expect(PARTICLE_TEXTURE_KEYS.PAINT_PINK).toBe("particle_paint_pink");
+    });
+
+    it("has 9 distinct particle texture keys", async () => {
+      const { PARTICLE_TEXTURE_KEYS } = await import("../systems/ParticleManager");
+      const keys = Object.values(PARTICLE_TEXTURE_KEYS);
+      expect(keys.length).toBe(9);
+      expect(new Set(keys).size).toBe(9);
     });
   });
 });

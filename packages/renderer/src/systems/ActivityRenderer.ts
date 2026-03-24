@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { ActivityType } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
+import { ParticleManager } from "./ParticleManager";
 
 /** Activity overlay colors and effects — exported for tests */
 export const ACTIVITY_EFFECT_COLORS: Record<ActivityType, number> = {
@@ -14,12 +15,23 @@ export const ACTIVITY_EFFECT_COLORS: Record<ActivityType, number> = {
   draw: 0xad1457,
 };
 
+/** Activities that use Phaser particle emitters instead of Graphics API */
+export const PARTICLE_ACTIVITIES: ReadonlySet<ActivityType> = new Set([
+  "cook",
+  "computer",
+  "sleep",
+  "exercise",
+  "read",
+  "draw",
+]);
+
 /** Transition duration for fade in/out between activities */
 export const TRANSITION_DURATION_MS = 400;
 
 /**
  * Renders activity-specific visual effects near Truman.
- * Each activity has a simple 2-3 frame animation cycle with smooth fade transitions.
+ * Uses Phaser Particle Emitters for cook, computer, sleep, exercise, read, draw.
+ * Keeps Graphics API for eat and think (which have static prop visuals).
  */
 export class ActivityRenderer {
   private scene: Phaser.Scene;
@@ -30,11 +42,13 @@ export class ActivityRenderer {
   private frameIndex = 0;
   private effectAlpha = 1;
   private fadeTween?: Phaser.Tweens.Tween;
+  private particles: ParticleManager;
 
   constructor(scene: Phaser.Scene, truman: TrumanSprite) {
     this.scene = scene;
     this.truman = truman;
     this.activityGfx = scene.add.graphics();
+    this.particles = new ParticleManager(scene);
   }
 
   /** Start playing an activity animation with fade-in */
@@ -44,7 +58,7 @@ export class ActivityRenderer {
     this.frameIndex = 0;
     this.effectAlpha = 0;
 
-    // Fade in the activity effect
+    // Fade in the activity effect (for Graphics-based effects)
     this.fadeTween = this.scene.tweens.addCounter({
       from: 0,
       to: 1,
@@ -54,6 +68,12 @@ export class ActivityRenderer {
       },
     });
 
+    // Start particle emitter for particle-based activities
+    if (PARTICLE_ACTIVITIES.has(type)) {
+      this.particles.startEffect(type, this.truman.x, this.truman.y);
+    }
+
+    // Timer for frame-based animations (Graphics API effects)
     this.activityTimer = this.scene.time.addEvent({
       delay: 400,
       loop: true,
@@ -76,6 +96,7 @@ export class ActivityRenderer {
       this.activityTimer.destroy();
       this.activityTimer = undefined;
     }
+    this.particles.stopAll();
     this.currentActivity = null;
     this.effectAlpha = 1;
     this.activityGfx.clear();
@@ -92,42 +113,40 @@ export class ActivityRenderer {
 
     switch (type) {
       case "sleep":
-        this.drawSleep(x, y, frame, a);
+        // Particles handle Zzz — keep subtle glow via Graphics
+        this.drawSleepGlow(x, y, a);
         break;
       case "eat":
         this.drawEat(x, y, frame, color, a);
         break;
       case "read":
-        this.drawRead(x, y, frame, color, a);
+        // Particles handle golden dust — keep book graphic
+        this.drawReadBook(x, y, frame, color, a);
         break;
       case "computer":
-        this.drawComputer(x, y, frame, color, a);
+        // Particles handle sparks — keep screen glow + scan line
+        this.drawComputerGlow(x, y, frame, color, a);
         break;
       case "exercise":
-        this.drawExercise(x, y, frame, a);
+        // Particles handle sweat drops — keep effort lines
+        this.drawExerciseLines(x, y, frame, a);
         break;
       case "think":
         this.drawThink(x, y, frame, a);
         break;
       case "cook":
-        this.drawCook(x, y, frame, a);
+        // Particles handle steam — keep pan glow
+        this.drawCookGlow(x, y, a);
         break;
       case "draw":
-        this.drawDraw(x, y, frame, color, a);
+        // Particles handle paint splatter — keep brush stroke
+        this.drawDrawStroke(x, y, frame, color, a);
         break;
     }
   }
 
-  private drawSleep(x: number, y: number, frame: number, a: number): void {
-    // Zzz floating letters with ascending fade
-    const offsets = [0, -10, -22];
-    const sizes = [5, 7, 9];
-    const alphas = [0.8, 0.6, 0.4];
-    for (let i = 0; i <= frame; i++) {
-      this.activityGfx.fillStyle(0xaaaaff, alphas[i] * a);
-      this.activityGfx.fillRect(x + 15 + i * 10, y - 30 + offsets[i], sizes[i], sizes[i]);
-    }
-    // Subtle glow under Zzz
+  /** Subtle glow underneath Zzz particles */
+  private drawSleepGlow(x: number, y: number, a: number): void {
     this.activityGfx.fillStyle(0x3949ab, 0.15 * a);
     this.activityGfx.fillCircle(x + 20, y - 30, 12);
   }
@@ -151,7 +170,8 @@ export class ActivityRenderer {
     }
   }
 
-  private drawRead(x: number, y: number, frame: number, color: number, a: number): void {
+  /** Book graphic (particles handle the golden dust sparkles) */
+  private drawReadBook(x: number, y: number, frame: number, color: number, a: number): void {
     // Open book with spine
     this.activityGfx.fillStyle(color, 0.7 * a);
     this.activityGfx.fillRect(x + 10, y - 10, 14, 10);
@@ -163,15 +183,10 @@ export class ActivityRenderer {
     for (let i = 0; i < 3; i++) {
       this.activityGfx.fillRect(x + 12, y - 8 + i * 3, 4, 1);
     }
-    // Page turn sparkle on frame 2
-    if (frame === 2) {
-      this.activityGfx.fillStyle(0xffffcc, 0.6 * a);
-      this.activityGfx.fillCircle(x + 22, y - 12, 2);
-    }
   }
 
-  private drawComputer(x: number, y: number, frame: number, color: number, a: number): void {
-    // Screen glow with pulsing effect
+  /** Screen glow + scan line (particles handle green/blue sparks) */
+  private drawComputerGlow(x: number, y: number, frame: number, color: number, a: number): void {
     const glowAlpha = (0.25 + frame * 0.1) * a;
     this.activityGfx.fillStyle(color, glowAlpha);
     this.activityGfx.fillRect(x - 20, y - 30, 40, 25);
@@ -184,22 +199,8 @@ export class ActivityRenderer {
     this.activityGfx.fillRect(x - 15, y - 3, 30, 4);
   }
 
-  private drawExercise(x: number, y: number, frame: number, a: number): void {
-    // Sweat drops with gravity animation
-    if (frame >= 1) {
-      // Right drop — falling down
-      this.activityGfx.fillStyle(0x88ccff, 0.7 * a);
-      this.activityGfx.fillCircle(x + 12, y - 20 + frame * 2, 2);
-      // Drop trail
-      this.activityGfx.fillStyle(0x88ccff, 0.3 * a);
-      this.activityGfx.fillCircle(x + 12, y - 22 + frame * 2, 1);
-    }
-    if (frame >= 2) {
-      // Left drop
-      this.activityGfx.fillStyle(0x88ccff, 0.6 * a);
-      this.activityGfx.fillCircle(x - 10, y - 16, 2);
-    }
-    // Effort lines near arms
+  /** Effort lines near arms (particles handle sweat drops) */
+  private drawExerciseLines(x: number, y: number, frame: number, a: number): void {
     this.activityGfx.lineStyle(1, 0xffcc88, 0.4 * a);
     if (frame === 0) {
       this.activityGfx.lineBetween(x - 16, y - 8, x - 20, y - 10);
@@ -221,37 +222,14 @@ export class ActivityRenderer {
     }
   }
 
-  private drawCook(x: number, y: number, frame: number, a: number): void {
-    // Rising steam particles with varying sizes and fade
-    const steamPositions = [
-      { dx: -3, dy: -25, r: 3 },
-      { dx: 3, dy: -32, r: 4 },
-      { dx: -1, dy: -40, r: 3 },
-    ];
-    for (let i = 0; i <= frame; i++) {
-      const p = steamPositions[i];
-      const fadeUp = 0.5 - i * 0.12;
-      this.activityGfx.fillStyle(0xdddddd, fadeUp * a);
-      this.activityGfx.fillCircle(x + p.dx, y + p.dy, p.r);
-    }
-    // Pan glow
+  /** Pan glow (particles handle rising steam) */
+  private drawCookGlow(x: number, y: number, a: number): void {
     this.activityGfx.fillStyle(0xff6600, 0.15 * a);
     this.activityGfx.fillCircle(x, y - 18, 6);
   }
 
-  private drawDraw(x: number, y: number, frame: number, color: number, a: number): void {
-    // Paint splatters with varied colors
-    const colors = [color, 0xff6b6b, 0x48dbfb];
-    const positions = [
-      { dx: 16, dy: -15, r: 3 },
-      { dx: 22, dy: -10, r: 2 },
-      { dx: 13, dy: -8, r: 4 },
-    ];
-    for (let i = 0; i <= frame; i++) {
-      this.activityGfx.fillStyle(colors[i % colors.length], 0.6 * a);
-      this.activityGfx.fillCircle(x + positions[i].dx, y + positions[i].dy, positions[i].r);
-    }
-    // Brush stroke line on frame 1+
+  /** Brush stroke line (particles handle paint splatters) */
+  private drawDrawStroke(x: number, y: number, frame: number, color: number, a: number): void {
     if (frame >= 1) {
       this.activityGfx.lineStyle(1, color, 0.4 * a);
       this.activityGfx.lineBetween(x + 14, y - 14, x + 22, y - 9);
@@ -263,10 +241,13 @@ export class ActivityRenderer {
     return this.currentActivity;
   }
 
-  /** Update graphics position to follow Truman */
+  /** Update graphics position to follow Truman + particle positions */
   update(): void {
     if (this.currentActivity) {
       this.drawActivityFrame(this.currentActivity, this.frameIndex);
+      if (PARTICLE_ACTIVITIES.has(this.currentActivity)) {
+        this.particles.updatePosition(this.truman.x, this.truman.y);
+      }
     }
   }
 }

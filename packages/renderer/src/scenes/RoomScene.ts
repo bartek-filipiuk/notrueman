@@ -10,6 +10,7 @@ import { ThoughtBubble } from "../ui/ThoughtBubble";
 import { LightingSystem } from "../systems/LightingSystem";
 import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
+import { ParticleManager } from "../systems/ParticleManager";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -45,8 +46,9 @@ export class RoomScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Generate pixel art textures for room objects
+    // Generate pixel art textures for room objects and particles
     generateAllTextures(this);
+    ParticleManager.generateTextures(this);
 
     // Fade in from black (coming from BootScene)
     this.cameras.main.fadeIn(800, 10, 10, 26);
