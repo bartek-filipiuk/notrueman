@@ -11,6 +11,26 @@ const BUBBLE_PADDING = 10;
 const BUBBLE_OFFSET_Y = -50;
 const TAIL_SIZE = 6;
 
+/** Get border radius based on mood border style — exported for tests */
+export function getBubbleBorderRadius(borderStyle: string): number {
+  switch (borderStyle) {
+    case "rounded":
+      return 8;
+    case "angular":
+      return 3;
+    case "wobbly":
+      return 6;
+    case "bouncy":
+      return 10;
+    case "sharp":
+      return 0;
+    case "minimal":
+      return 4;
+    default:
+      return 8;
+  }
+}
+
 /**
  * Thought bubble system: renders a cloud-shaped bubble above Truman with typewriter effect.
  * Color based on mood (visual-spec.md S7.3). Max 1 bubble at a time. Fade out after 8-10s.
@@ -72,8 +92,9 @@ export class ThoughtBubble {
     const bubbleY = anchorY + BUBBLE_OFFSET_Y;
     this.container.setPosition(bubbleX, bubbleY);
 
-    // Draw background
-    this.drawBubbleBg(style.bubbleColor, text);
+    // Draw background with mood-specific border radius
+    const borderRadius = getBubbleBorderRadius(style.border);
+    this.drawBubbleBg(style.bubbleColor, text, borderRadius, style.border);
 
     // Draw tail dots (leading to Truman's head)
     this.drawTail(style.bubbleColor, anchorY + BUBBLE_OFFSET_Y + 20, anchorY - 10);
@@ -127,7 +148,7 @@ export class ThoughtBubble {
     return this.isVisible;
   }
 
-  private drawBubbleBg(colorHex: string, text: string): void {
+  private drawBubbleBg(colorHex: string, text: string, borderRadius: number, borderStyle: string): void {
     this.bg.clear();
     const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
 
@@ -142,11 +163,22 @@ export class ThoughtBubble {
     const w = textWidth + BUBBLE_PADDING * 2;
     const h = textHeight + BUBBLE_PADDING * 2;
 
-    // Rounded rectangle bubble
-    this.bg.fillStyle(color, 0.9);
-    this.bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-    this.bg.lineStyle(1, 0xcccccc, 0.5);
-    this.bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+    // Bubble fill
+    this.bg.fillStyle(color, 0.92);
+    this.bg.fillRoundedRect(-w / 2, -h / 2, w, h, borderRadius);
+
+    // Border style varies by mood
+    const borderColor = borderStyle === "sharp" ? 0xff6666 : 0xcccccc;
+    const borderAlpha = borderStyle === "minimal" ? 0.2 : 0.5;
+    const borderWidth = borderStyle === "bouncy" ? 2 : 1;
+    this.bg.lineStyle(borderWidth, borderColor, borderAlpha);
+    this.bg.strokeRoundedRect(-w / 2, -h / 2, w, h, borderRadius);
+
+    // Inner highlight for non-sharp styles (subtle depth)
+    if (borderStyle !== "sharp" && borderStyle !== "minimal") {
+      this.bg.fillStyle(0xffffff, 0.08);
+      this.bg.fillRoundedRect(-w / 2 + 2, -h / 2 + 2, w - 4, 4, Math.max(borderRadius - 2, 0));
+    }
   }
 
   private drawTail(colorHex: string, bubbleBottom: number, trumanHead: number): void {

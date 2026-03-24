@@ -25,6 +25,9 @@ const WALL_COLOR = 0x2c2c54;
 const FLOOR_COLOR = 0x474787;
 const FLOOR_Y = 460;
 
+/** Window glow color for ambient lighting — exported for tests */
+export const WINDOW_GLOW_COLOR = 0xfdd835;
+
 export class RoomScene extends Phaser.Scene {
   private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Rectangle>();
   private truman!: TrumanSprite;
@@ -95,15 +98,37 @@ export class RoomScene extends Phaser.Scene {
     // Wall
     this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y / 2, GAME_WIDTH, FLOOR_Y, WALL_COLOR).setOrigin(0.5);
 
+    // Subtle wall shading (darker at top for depth)
+    this.add.rectangle(GAME_WIDTH / 2, 20, GAME_WIDTH, 40, 0x1a1a3e).setOrigin(0.5).setAlpha(0.3);
+
     // Floor
     this.add
       .rectangle(GAME_WIDTH / 2, FLOOR_Y + (GAME_HEIGHT - FLOOR_Y) / 2, GAME_WIDTH, GAME_HEIGHT - FLOOR_Y, FLOOR_COLOR)
       .setOrigin(0.5);
 
+    // Floor highlight (subtle lighter stripe for depth)
+    this.add
+      .rectangle(GAME_WIDTH / 2, FLOOR_Y + 8, GAME_WIDTH, 4, 0x5a57a0)
+      .setOrigin(0.5)
+      .setAlpha(0.4);
+
     // Floor line
     this.add
       .line(0, 0, 0, FLOOR_Y, GAME_WIDTH, FLOOR_Y, 0x706fd3)
       .setOrigin(0);
+
+    // Window ambient glow (soft light spilling from window into room)
+    const windowObj = ROOM_OBJECTS.find((o) => o.id === "window");
+    if (windowObj) {
+      const glow = this.add.graphics();
+      glow.fillStyle(WINDOW_GLOW_COLOR, 0.06);
+      glow.fillTriangle(
+        windowObj.x + windowObj.width / 2, windowObj.y + windowObj.height,
+        windowObj.x - 40, FLOOR_Y,
+        windowObj.x + windowObj.width + 40, FLOOR_Y,
+      );
+      glow.setDepth(0);
+    }
   }
 
   private createRoomObjects(): void {

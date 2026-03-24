@@ -4,9 +4,13 @@ const SPRITE_WIDTH = 32;
 const SPRITE_HEIGHT = 48;
 const SCALE = 1;
 
+/** Drop shadow opacity — exported for tests */
+export const SHADOW_ALPHA = 0.25;
+
 /**
  * Truman placeholder sprite — simple pixel humanoid drawn with graphics.
  * Uses a container with body/head graphics that can be animated.
+ * Includes a subtle drop shadow for visual depth.
  */
 export class TrumanSprite extends Phaser.GameObjects.Container {
   private gfx: Phaser.GameObjects.Graphics;
@@ -32,14 +36,27 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
   private drawFrame(yOffset: number): void {
     this.gfx.clear();
 
+    // Drop shadow (ellipse under feet)
+    this.gfx.fillStyle(0x000000, SHADOW_ALPHA);
+    this.gfx.fillEllipse(0, 24, 20, 6);
+
     // Body (shirt - blue)
     this.gfx.fillStyle(0x4a90d9, 1);
     this.gfx.fillRect(-8, -8 + yOffset, 16, 18);
+
+    // Shirt detail (collar)
+    this.gfx.fillStyle(0x3a7bc8, 1);
+    this.gfx.fillRect(-6, -8 + yOffset, 12, 3);
 
     // Legs (dark)
     this.gfx.fillStyle(0x333366, 1);
     this.gfx.fillRect(-7, 10 + yOffset, 6, 14);
     this.gfx.fillRect(1, 10 + yOffset, 6, 14);
+
+    // Shoes (darker)
+    this.gfx.fillStyle(0x222244, 1);
+    this.gfx.fillRect(-7, 21 + yOffset, 6, 3);
+    this.gfx.fillRect(1, 21 + yOffset, 6, 3);
 
     // Head (skin)
     this.gfx.fillStyle(0xffcc99, 1);
@@ -58,6 +75,10 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       this.gfx.fillRect(-5, -17 + yOffset, 2, 2);
       this.gfx.fillRect(0, -17 + yOffset, 2, 2);
     }
+
+    // Mouth (subtle smile)
+    this.gfx.fillStyle(0xcc9977, 1);
+    this.gfx.fillRect(-1, -13 + yOffset, 3, 1);
 
     // Arms
     this.gfx.fillStyle(0xffcc99, 1);
