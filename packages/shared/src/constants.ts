@@ -197,12 +197,12 @@ export const BUBBLE_FADE_MS = 1_000;
 
 /** BullMQ queue names (tech-stack.md S7) */
 export const QUEUE_NAMES = {
-  AGENT_SPEAK: "agent:speak",
+  AGENT_THINK: "agent:think",
   AGENT_ACTION: "agent:action",
   RENDERER_COMMAND: "renderer:command",
+  LOG_EVENT: "log:event",
   TTS_GENERATE: "tts:generate",
   CHAT_EVENT: "chat:event",
-  LOG_EVENT: "log:event",
 } as const;
 
 /** Cost checkpoint interval (observability-spec.md S2.2) */

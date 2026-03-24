@@ -96,3 +96,22 @@ export {
   createDefaultEmotions,
   calculateOverallMood,
 } from "./utils/emotions.js";
+
+// Queue infrastructure
+export {
+  AgentThinkJobSchema,
+  AgentActionJobSchema,
+  RendererCommandJobSchema,
+  LogEventJobSchema,
+  QueueConnectionConfigSchema,
+  createConnectionConfig,
+  createQueue,
+  createWorker,
+} from "./queue/index.js";
+export type {
+  AgentThinkJob,
+  AgentActionJob,
+  RendererCommandJob,
+  LogEventJob,
+  QueueConnectionConfig,
+} from "./queue/index.js";
