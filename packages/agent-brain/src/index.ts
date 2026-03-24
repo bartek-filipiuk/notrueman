@@ -26,3 +26,7 @@ export type { TrumanConfig } from "./config.js";
 export { RateLimiter } from "./rate-limiter.js";
 export { scoreImportance } from "./importance-scorer.js";
 export { EmotionEngine } from "./emotion-engine.js";
+export { generateReflections } from "./reflection-generator.js";
+export type { ReflectionResult } from "./reflection-generator.js";
+export { planWithMemoryContext } from "./memory-context.js";
+export type { MemoryContextState } from "./memory-context.js";

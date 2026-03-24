@@ -1,5 +1,21 @@
 # Changelog
 
+## [Stage 3] - 2026-03-24
+
+### Added
+- Drizzle ORM schema: memories, reflection_sources, agent_state_snapshots tables
+- Memory CRUD repository (createMemory, getMemory, updateLastAccessed, getRecentMemories)
+- Embedding client with Ollama adapter (nomic-embed-text, 768 dims) and dev fallback
+- Park et al. memory retrieval: score = recency * importance * relevance
+- Importance scoring via classify model (1-10 scale, Zod validated)
+- EmotionEngine: 7 dimensions, delta updates, time drift, mood computation
+- Emotion-to-visual integration: all 9 mood types mapped to bubble styles
+- Reflection generation: LLM synthesizes 1-3 insights from recent observations
+- Memory-informed decisions: memories included as context in planning prompts
+- Agent state persistence: save/load to PostgreSQL for restart recovery
+- Added "bored" and "neutral" bubble styles
+- 30+ tests in memory-service, 93 tests in agent-brain
+
 ## [Stage 2] - 2026-03-23
 
 ### Added

@@ -134,29 +134,29 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T3.4: Park et al. retrieval — `retrieveMemories(query, k, types)` z `score = recency × importance × relevance`. SQL: cosine similarity + exponential decay (0.995^hours) + normalized importance. `last_accessed_at` update przy retrieval. (test scoring math → test SQL → implement → verify <100ms for 1000 memories)
 - [x] T3.5: Importance scoring — LLM (Mistral Small 3) ocenia importance 1-10 przy tworzeniu obserwacji. Zod schema `ImportanceSchema`. (test → implement → verify)
 - [x] T3.6: Emotion system — `EmotionEngine` w shared lub agent-brain. 7 wymiarów z defaults, floors, ceilings. `updateEmotion(delta: EmotionDelta)`. Time decay: drift do defaults w 2-3h. `overallMood` computed. Mood-to-behavior mapping. (test clamping → test decay → implement → verify)
-- [ ] T3.7: Emotion → visual integration — Emocja wpływa na: kolor dymka (7 mood-based colors z visual-spec), wyraz twarzy sprite'a (overlay), wybór aktywności w brain. Renderer przyjmuje `updateEmotion(state)`. (implement → verify in browser)
-- [ ] T3.8: Reflection generation — Co 30 minut: pobierz 20 ostatnich obserwacji → LLM syntezuje 1-3 refleksje → zapisz z linkami do source obserwacji. (test → implement → verify stored reflections)
-- [ ] T3.9: Memory-informed decisions — Brain pobiera relevantne wspomnienia jako kontekst do promptu planowania. Truman "pamięta" co robił. (implement → test that memories appear in decisions → verify)
-- [ ] T3.10: Agent state persistence — `AgentState` (emocje, personality, current activity, preferencje) zapisywany do PostgreSQL co tick. Recovery po restart: załaduj ostatni stan. (test → implement → verify restart recovery)
+- [x] T3.7: Emotion → visual integration — Emocja wpływa na: kolor dymka (7 mood-based colors z visual-spec), wyraz twarzy sprite'a (overlay), wybór aktywności w brain. Renderer przyjmuje `updateEmotion(state)`. (implement → verify in browser)
+- [x] T3.8: Reflection generation — Co 30 minut: pobierz 20 ostatnich obserwacji → LLM syntezuje 1-3 refleksje → zapisz z linkami do source obserwacji. (test → implement → verify stored reflections)
+- [x] T3.9: Memory-informed decisions — Brain pobiera relevantne wspomnienia jako kontekst do promptu planowania. Truman "pamięta" co robił. (implement → test that memories appear in decisions → verify)
+- [x] T3.10: Agent state persistence — `AgentState` (emocje, personality, current activity, preferencje) zapisywany do PostgreSQL co tick. Recovery po restart: załaduj ostatni stan. (test → implement → verify restart recovery)
 
 ### Security (MANDATORY):
 
-- [ ] S3.1: SQL injection prevention — Zweryfikować że WSZYSTKIE query w memory-service używają Drizzle ORM (parametryzowane). Zero surowego SQL z dynamicznymi wartościami. (audit → test negative case)
-- [ ] S3.2: LLM output validation (importance, reflections) — Zod schemas na każdym structured LLM output. (test invalid output → verify rejection)
-- [ ] S3.3: Database credentials w env — `DATABASE_URL` tylko w `.env`. Connection string z env var, nie hardcoded. (verify)
+- [x] S3.1: SQL injection prevention — Zweryfikować że WSZYSTKIE query w memory-service używają Drizzle ORM (parametryzowane). Zero surowego SQL z dynamicznymi wartościami. (audit → test negative case)
+- [x] S3.2: LLM output validation (importance, reflections) — Zod schemas na każdym structured LLM output. (test invalid output → verify rejection)
+- [x] S3.3: Database credentials w env — `DATABASE_URL` tylko w `.env`. Connection string z env var, nie hardcoded. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] D3.1: Update `docs/CHANGELOG.md` — wpis Stage 3
-- [ ] D3.2: Update `docs/API.md` — memory-service interface (CRUD, retrieval)
-- [ ] D3.3: Update `docs/README.md` — dodać setup PostgreSQL + Ollama do Quick Start
+- [x] D3.1: Update `docs/CHANGELOG.md` — wpis Stage 3
+- [x] D3.2: Update `docs/API.md` — memory-service interface (CRUD, retrieval)
+- [x] D3.3: Update `docs/README.md` — dodać setup PostgreSQL + Ollama do Quick Start
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC3.1: Self-check — US-7, US-8 pokryte
-- [ ] SC3.2: Self-check — brak hardcoded secrets
-- [ ] SC3.3: Self-check — testy zielone (unit + integration)
-- [ ] SC3.4: Zaktualizuj HANDOFF → [x]
+- [x] SC3.1: Self-check — US-7, US-8 pokryte
+- [x] SC3.2: Self-check — brak hardcoded secrets
+- [x] SC3.3: Self-check — testy zielone (unit + integration)
+- [x] SC3.4: Zaktualizuj HANDOFF → [x]
 
 **Stage 3 DoD:** Truman ma emocje widoczne w dymkach i twarzy. Pamięta co robił (sprawdzalne: po restarcie kontynuuje logicznie). Refleksje pojawiają się co 30 min. Emocje driftują naturalnie. Działa 1h+ stabilnie.
 

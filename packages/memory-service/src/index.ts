@@ -29,3 +29,6 @@ export {
   normalizeImportance,
 } from "./memory-retrieval.js";
 export type { ScoredMemoryResult } from "./memory-retrieval.js";
+
+export { createStatePersistence } from "./state-persistence.js";
+export type { StatePersistence } from "./state-persistence.js";

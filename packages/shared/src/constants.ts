@@ -176,6 +176,16 @@ export const MOOD_BUBBLE_STYLES: Record<string, BubbleStyle> = {
     textColor: "#212121",
     border: "minimal",
   },
+  bored: {
+    bubbleColor: "#ECEFF1",
+    textColor: "#455A64",
+    border: "minimal",
+  },
+  neutral: {
+    bubbleColor: "#FAFAFA",
+    textColor: "#424242",
+    border: "rounded",
+  },
 };
 
 /** Typewriter effect speed (visual-spec.md S7.2) */
