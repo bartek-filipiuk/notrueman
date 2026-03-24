@@ -42,3 +42,5 @@ export type { MemoryContextState } from "./memory-context.js";
 export { DayNightCycle } from "./day-night-cycle.js";
 export type { DayNightConfig, DayPhase, DayNightState } from "./day-night-cycle.js";
 export { PhysicalStateEngine } from "./physical-state.js";
+export { createHealthServer } from "./health-server.js";
+export type { HealthStatus, HealthServerDeps, HealthServerOptions } from "./health-server.js";
