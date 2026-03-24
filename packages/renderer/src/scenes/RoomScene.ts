@@ -70,6 +70,25 @@ export class RoomScene extends Phaser.Scene {
     if (getVisualConfig().ambientParticles) {
       this.createAmbientDust();
     }
+
+    // CRT scanlines (optional retro vibe, off by default)
+    if (getVisualConfig().crtScanlines) {
+      this.createCRTScanlines();
+    }
+  }
+
+  /** CRT scanline overlay — alternating dark lines for retro TV feel */
+  private createCRTScanlines(): void {
+    const g = this.add.graphics();
+    for (let y = 0; y < GAME_HEIGHT; y += 2) {
+      g.fillStyle(0x000000, 0.07);
+      g.fillRect(0, y, GAME_WIDTH, 1);
+    }
+    g.generateTexture("crt_scanlines", GAME_WIDTH, GAME_HEIGHT);
+    g.destroy();
+    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "crt_scanlines")
+      .setDepth(98)
+      .setScrollFactor(0);
   }
 
   /** Floating dust motes in sunlight from window */

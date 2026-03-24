@@ -246,7 +246,7 @@ Stage 9 (Streaming & Deployment)
 - [ ] T10.7: Truman sprite FX — Zamienić Graphics Container na generateTexture() → Image z preFX. Subtle white glow outline. Cache klatek jako tekstury (regeneruj tylko przy zmianie animacji). (refactor → implement → verify glow + no performance hit)
 - [ ] T10.8: BitmapText — Zamienić Phaser Text na BitmapText w HUD, ThoughtBubble, BootScene. Pixel-perfect tekst bez antyaliasingu. Runtime generation lub pre-built z SnowB BMF. (implement → verify crisp text everywhere)
 - [x] T10.9: Ambient dust particles — Pływające pyłki w świetle z okna (warm-gold, ADD blend). ~10 particles max, 800ms frequency. Guard z fxConfig. (implement → verify atmospheric feel)
-- [ ] T10.10: CRT scanlines + testy — Opcjonalny CRT overlay (co 2. linia, alpha 0.08, OFF domyślnie). Testy: VisualFXConfig schema, Phaser WEBGL, antialias, roundPixels. (implement → test → verify)
+- [x] T10.10: CRT scanlines + testy — Opcjonalny CRT overlay (co 2. linia, alpha 0.08, OFF domyślnie). Testy: VisualFXConfig schema, Phaser WEBGL, antialias, roundPixels. (implement → test → verify)
 
 ### Security (MANDATORY):
 
