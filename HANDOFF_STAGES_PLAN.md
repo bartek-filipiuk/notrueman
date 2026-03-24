@@ -171,7 +171,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 - [x] T4.1: BullMQ setup — Queue definitions: `agent:think`, `agent:action`, `renderer:command`, `log:event`. Connection factory. Job payload types (Zod). Worker setup. Bull Board UI (opcjonalnie). (test queue → implement → verify)
 - [x] T4.2: Full cognitive loop — Observe → Retrieve memories → Plan → Act → Generate thought → Store observation. Sekwencyjny processing (concurrency: 1). Configurable tick interval. (test loop → implement → verify)
-- [ ] T4.3: Day/night cycle — Truman śpi 4-6h (konfigurowalny), budzi się, planuje dzień. Podczas snu: idle animacja w łóżku, brak LLM ticków (koszt $0). HUD pokazuje "Sleeping...". Timer do budzenia. (implement → verify cycle)
+- [x] T4.3: Day/night cycle — Truman śpi 4-6h (konfigurowalny), budzi się, planuje dzień. Podczas snu: idle animacja w łóżku, brak LLM ticków (koszt $0). HUD pokazuje "Sleeping...". Timer do budzenia. (implement → verify cycle)
 - [ ] T4.4: Variety scoring — Penalizacja niedawno wykonanych aktywności: <2h = 0.2x, <6h = 0.5x, <12h = 0.8x, >24h = 1.2x bonus. Wpływa na decyzję planera. (test scoring → implement → verify no repetition)
 - [ ] T4.5: Energy/hunger/tiredness model — Proste fizyczne stany wpływające na wybór aktywności. Jedzenie obniża hunger, sen obniża tiredness, ćwiczenia obniżają energy. Drift naturalny. (test → implement → verify)
 - [ ] T4.6: Graceful error handling — LLM failure: retry 3x z exponential backoff → fallback do losowej aktywności z neutralnym dymkiem. Memory failure: kontynuuj bez kontekstu. Renderer failure: skip tick. Żaden błąd nie crashuje main loop. (test each failure → implement → verify)

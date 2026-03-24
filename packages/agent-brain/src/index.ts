@@ -39,3 +39,5 @@ export { generateReflections } from "./reflection-generator.js";
 export type { ReflectionResult } from "./reflection-generator.js";
 export { planWithMemoryContext } from "./memory-context.js";
 export type { MemoryContextState } from "./memory-context.js";
+export { DayNightCycle } from "./day-night-cycle.js";
+export type { DayNightConfig, DayPhase, DayNightState } from "./day-night-cycle.js";
