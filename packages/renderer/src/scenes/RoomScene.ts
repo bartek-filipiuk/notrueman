@@ -8,6 +8,7 @@ import { ActivityManager } from "../systems/ActivityManager";
 import { HUD } from "../ui/HUD";
 import { ThoughtBubble } from "../ui/ThoughtBubble";
 import { LightingSystem } from "../systems/LightingSystem";
+import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
@@ -37,6 +38,7 @@ export class RoomScene extends Phaser.Scene {
   private hud!: HUD;
   private thoughtBubble!: ThoughtBubble;
   private lighting!: LightingSystem;
+  private windowView!: WindowView;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -56,6 +58,7 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.update();
     this.hud.updateTime();
     this.lighting.update();
+    this.windowView.update();
   }
 
   /** Clean up all timers and tweens when scene shuts down */
@@ -77,6 +80,7 @@ export class RoomScene extends Phaser.Scene {
       this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
     });
 
+    this.windowView = new WindowView(this);
     this.lighting = new LightingSystem(this);
 
     this.activityManager.startLoop();
