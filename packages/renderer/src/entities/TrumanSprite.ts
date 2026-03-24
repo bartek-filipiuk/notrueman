@@ -46,12 +46,14 @@ const MOOD_EYES: Record<string, { brow: number; mouthW: number; mouthH: number; 
  */
 export class TrumanSprite extends Phaser.GameObjects.Container {
   private rt: Phaser.GameObjects.RenderTexture;
+  private pngSprite: Phaser.GameObjects.Image | null = null;
   private shadow: Phaser.GameObjects.Ellipse;
   private facing: "left" | "right" = "right";
   private animTimer?: Phaser.Time.TimerEvent;
   private currentAnim: string = "idle";
   private frameIndex = 0;
   private currentMood: string = "neutral";
+  private usePNG = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -60,19 +62,38 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     this.shadow = scene.add.ellipse(0, 24, 22, 6, 0x000000, SHADOW_ALPHA);
     this.add(this.shadow);
 
-    // RenderTexture for character — supports preFX/postFX
-    this.rt = scene.add.renderTexture(0, 0, TEX_W, TEX_H);
-    this.rt.setOrigin(0.5, 0.5);
-    this.add(this.rt);
+    // Check if AI-generated PNG sprites are available
+    this.usePNG = scene.textures.exists("truman_idle");
 
-    // Apply glow PreFX if enabled (subtle white outline)
-    try {
-      const fxConfig = getVisualConfig();
-      if (fxConfig.trumanGlow && this.rt.preFX) {
-        this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
-      }
-    } catch {
-      // VisualConfig not initialized yet — skip glow
+    if (this.usePNG) {
+      // Use AI-generated PNG sprite (mood-switchable)
+      this.pngSprite = scene.add.image(0, -4, "truman_idle");
+      this.pngSprite.setDisplaySize(SPRITE_WIDTH + 8, SPRITE_HEIGHT + 8);
+      this.add(this.pngSprite);
+
+      // Apply glow to PNG sprite
+      try {
+        const fxConfig = getVisualConfig();
+        if (fxConfig.trumanGlow && this.pngSprite.preFX) {
+          this.pngSprite.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
+        }
+      } catch { /* skip */ }
+
+      // RenderTexture hidden but kept for compatibility
+      this.rt = scene.add.renderTexture(0, 0, 1, 1);
+      this.rt.setVisible(false);
+    } else {
+      // Fallback: programmatic RenderTexture
+      this.rt = scene.add.renderTexture(0, 0, TEX_W, TEX_H);
+      this.rt.setOrigin(0.5, 0.5);
+      this.add(this.rt);
+
+      try {
+        const fxConfig = getVisualConfig();
+        if (fxConfig.trumanGlow && this.rt.preFX) {
+          this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
+        }
+      } catch { /* skip */ }
     }
 
     this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
@@ -84,7 +105,20 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
   setMood(mood: string): void {
     this.currentMood = mood;
-    this.renderFrame(0, 0);
+
+    if (this.usePNG && this.pngSprite) {
+      // Switch PNG texture based on mood
+      const moodKey = mood === "neutral" ? "truman_idle" : `truman_mood_${mood}`;
+      if (this.scene.textures.exists(moodKey)) {
+        this.pngSprite.setTexture(moodKey);
+      } else {
+        this.pngSprite.setTexture("truman_idle");
+      }
+      // Flip for facing direction
+      this.pngSprite.setFlipX(this.facing === "left");
+    } else {
+      this.renderFrame(0, 0);
+    }
   }
 
   /** Render character to RenderTexture using offscreen Graphics */
@@ -199,15 +233,28 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     this.currentAnim = "idle";
     this.frameIndex = 0;
 
-    this.animTimer = this.scene.time.addEvent({
-      delay: 600,
-      loop: true,
-      callback: () => {
-        this.frameIndex = (this.frameIndex + 1) % 4;
-        const yOffset = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
-        this.renderFrame(yOffset, 0);
-      },
-    });
+    if (this.usePNG && this.pngSprite) {
+      // PNG mode: gentle bob animation on the sprite
+      this.animTimer = this.scene.time.addEvent({
+        delay: 600,
+        loop: true,
+        callback: () => {
+          this.frameIndex = (this.frameIndex + 1) % 4;
+          const yOff = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
+          this.pngSprite!.setY(-4 + yOff);
+        },
+      });
+    } else {
+      this.animTimer = this.scene.time.addEvent({
+        delay: 600,
+        loop: true,
+        callback: () => {
+          this.frameIndex = (this.frameIndex + 1) % 4;
+          const yOffset = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
+          this.renderFrame(yOffset, 0);
+        },
+      });
+    }
   }
 
   playWalk(direction: "left" | "right"): void {
@@ -216,15 +263,29 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     this.currentAnim = "walk";
     this.frameIndex = 0;
 
-    this.animTimer = this.scene.time.addEvent({
-      delay: 140,
-      loop: true,
-      callback: () => {
-        this.frameIndex = (this.frameIndex + 1) % 6;
-        const yOffset = this.frameIndex % 3 === 0 ? 0 : -1;
-        this.renderFrame(yOffset, this.frameIndex);
-      },
-    });
+    if (this.usePNG && this.pngSprite) {
+      this.pngSprite.setFlipX(direction === "left");
+      // PNG mode: bob + slight tilt for walk feel
+      this.animTimer = this.scene.time.addEvent({
+        delay: 140,
+        loop: true,
+        callback: () => {
+          this.frameIndex = (this.frameIndex + 1) % 6;
+          const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
+          this.pngSprite!.setY(-4 + yOff);
+        },
+      });
+    } else {
+      this.animTimer = this.scene.time.addEvent({
+        delay: 140,
+        loop: true,
+        callback: () => {
+          this.frameIndex = (this.frameIndex + 1) % 6;
+          const yOffset = this.frameIndex % 3 === 0 ? 0 : -1;
+          this.renderFrame(yOffset, this.frameIndex);
+        },
+      });
+    }
   }
 
   stopAnim(): void {
@@ -244,6 +305,10 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
   setFacing(dir: "left" | "right"): void {
     this.facing = dir;
-    this.renderFrame(0, 0);
+    if (this.usePNG && this.pngSprite) {
+      this.pngSprite.setFlipX(dir === "left");
+    } else {
+      this.renderFrame(0, 0);
+    }
   }
 }
