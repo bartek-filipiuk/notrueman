@@ -327,12 +327,12 @@ Stage 9 (Streaming & Deployment)
 
 ### Taski:
 
-- [ ] T12.1: Asset generation pipeline — Skrypt Node.js z Replicate API (`replicate` npm). Config `config/asset-prompts.json` definiuje: id, prompt, model, width, height. Batch generation z retry. Output: `packages/renderer/public/sprites/`. Cost tracking w console. (implement → test with 1 asset → verify)
-- [ ] T12.2: Generate room objects (14 szt) — Uruchomić pipeline z prompts dla 14 obiektów. Retro Diffusion rd-plus, transparent background. Post-process: quantize to 16-32 colors. Output: `public/sprites/objects/`. (run → verify quality → iterate prompts if needed)
+- [x] T12.1: Asset generation pipeline — Skrypt Node.js z Replicate API (`replicate` npm). Config `config/asset-prompts.json` definiuje: id, prompt, model, width, height. Batch generation z retry. Output: `packages/renderer/public/sprites/`. Cost tracking w console. (implement → test with 1 asset → verify)
+- [x] T12.2: Generate room objects (14 szt) — Uruchomić pipeline z prompts dla 14 obiektów. Retro Diffusion rd-plus, transparent background. Post-process: quantize to 16-32 colors. Output: `public/sprites/objects/`. (run → verify quality → iterate prompts if needed)
 - [ ] T12.3: Generate Truman character — Walk + idle via rd-animation. 8 activity poses via rd-plus (static). Aseprite CLI lub PIL do assembly spritesheetu. Output: `public/sprites/truman/`. (run → verify → assemble atlas)
 - [ ] T12.4: Generate tilesets — Floor + wall via rd-tile z `tile_x: true, tile_y: true`. Seamless verification. Output: `public/sprites/tiles/`. (run → verify tiling → iterate)
 - [ ] T12.5: Normal map generation — Zainstalować Laigter lub użyć programmatic Sobel. Batch process ALL sprites → `_n.png` suffix. (install/implement → batch run → verify)
-- [ ] T12.6: Phaser asset loader — Zastąpić `generateAllTextures()` na `this.load.image()` w BootScene preload. Load z `public/sprites/`. Normal maps via array: `['sprite.png', 'sprite_n.png']`. Fallback do programmatic jeśli PNG brak. (implement → verify objects render from PNG)
+- [x] T12.6: Phaser asset loader — Zastąpić `generateAllTextures()` na `this.load.image()` w BootScene preload. Load z `public/sprites/`. Normal maps via array: `['sprite.png', 'sprite_n.png']`. Fallback do programmatic jeśli PNG brak. (implement → verify objects render from PNG)
 - [ ] T12.7: Truman PNG sprite — Zastąpić RenderTexture TrumanSprite na Phaser Sprite z atlas. Animacje z JSON atlas config. Zachować mood face overlay (tint lub swap frames). (refactor → implement → verify animations)
 
 ### Security (MANDATORY):

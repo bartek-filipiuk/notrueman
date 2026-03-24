@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT } from "@nts/shared";
+import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
 
 const TIPS = [
   "Truman doesn't know you're watching.",
@@ -13,6 +13,27 @@ const TIPS = [
 export class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: "BootScene" });
+  }
+
+  preload(): void {
+    // Try to load AI-generated PNG sprites. If files don't exist, Phaser
+    // silently fails and RoomScene falls back to programmatic sprites.
+    for (const obj of ROOM_OBJECTS) {
+      this.load.image(`png_${obj.id}`, `sprites/objects/${obj.id}.png`);
+    }
+    // Truman mood sprites
+    const moods = ["idle", "mood_happy", "mood_curious", "mood_anxious", "mood_frustrated", "mood_excited", "mood_content", "mood_contemplative", "mood_bored"];
+    for (const mood of moods) {
+      this.load.image(`truman_${mood}`, `sprites/truman/${mood}.png`);
+    }
+    // Tiles
+    this.load.image("tile_floor", "sprites/tiles/floor.png");
+    this.load.image("tile_wall", "sprites/tiles/wall.png");
+
+    // Suppress load errors for missing files (graceful fallback)
+    this.load.on("loaderror", (file: Phaser.Loader.File) => {
+      // Silently ignore — programmatic sprites will be used
+    });
   }
 
   create(): void {

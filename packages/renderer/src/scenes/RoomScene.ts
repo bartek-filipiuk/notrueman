@@ -436,11 +436,17 @@ export class RoomScene extends Phaser.Scene {
 
   private createRoomObjects(): void {
     for (const obj of ROOM_OBJECTS) {
-      const textureKey = `obj_${obj.id}`;
+      // Priority: AI-generated PNG > programmatic texture > gray fallback
+      const pngKey = `png_${obj.id}`;
+      const progKey = `obj_${obj.id}`;
+      const textureKey = this.textures.exists(pngKey) ? pngKey : progKey;
 
       if (this.textures.exists(textureKey)) {
-        // Use pixel art sprite with depth based on bottom edge (Y sorting)
         const img = this.add.image(obj.x, obj.y, textureKey).setOrigin(0, 0);
+        // Scale AI PNG to match expected object dimensions
+        if (textureKey === pngKey) {
+          img.setDisplaySize(obj.width, obj.height);
+        }
         img.setDepth(obj.y + obj.height);
         // Add subtle shadow under furniture
         if (obj.zone !== "window" && obj.id !== "clock" && obj.id !== "poster") {
