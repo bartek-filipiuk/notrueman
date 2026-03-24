@@ -1,5 +1,33 @@
 # Changelog
 
+## [Stage 5] - 2026-03-24
+
+### Added
+- Security audit report (docs/SECURITY.md) with threat model and implemented controls
+- Security negative-case tests: LLM failure, DB down, embedding unavailable, bad config
+- Edge case tests: emotion extremes, memory retrieval, cosine similarity, time boundaries
+- Visual polish: smooth fade transitions, enhanced particle effects, sprite detail (shadow, shoes, collar)
+- Mood-specific thought bubble styling (border radius, color, width per mood type)
+- Smoke test suite for system health verification
+
+### Changed
+- HUD time display caches string to avoid redundant Phaser setText calls
+- CognitiveLoop.updateRecentActivities() mutates in-place instead of creating new arrays
+- Zod activity enums now derive from ACTIVITY_LIST (single source of truth)
+- ThoughtBubble tracks fadeTween to prevent memory leaks on rapid show/hide
+- ActivityManager catches unhandled promise rejections gracefully
+- RendererBridge caps commandLog at 500 entries to prevent unbounded growth
+
+### Fixed
+- Extracted shared getTimeOfDay() and sleep() utilities to eliminate duplication
+- RoomScene adds shutdown() for proper scene lifecycle cleanup
+
+### Documentation
+- Finalized README.md with architecture, extending guide, full doc index
+- Updated CHANGELOG.md with Stage 5 entries
+- Updated API.md with CognitiveLoop, EmotionEngine, and config interfaces
+- Created SECURITY.md with full audit results
+
 ## [Stage 4] - 2026-03-24
 
 ### Added

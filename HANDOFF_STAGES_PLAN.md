@@ -216,7 +216,7 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T5.4: Performance audit — Profilować: Phaser object count, Node.js heap, PostgreSQL query times, LLM call latency P50/P95/P99. Naprawić bottlenecki. (profile → fix → re-profile)
 - [x] T5.5: Security final audit — Przeskanować kod pod kątem: hardcoded secrets, SQL injection, XSS, unvalidated LLM output, exposed stack traces. Napisać `docs/SECURITY.md`. (audit → fix → document)
 - [x] T5.6: Agent-friendliness review — Czy kolejny agent (lub developer) może łatwo: dodać nową aktywność? zmienić model LLM? zmodyfikować emocje? Jeśli nie — uprościć interfejsy. (review → simplify → verify)
-- [ ] T5.7: Dokumentacja finalna — `docs/README.md` kompletny (Quick Start, Architecture, Config, Development). `docs/CHANGELOG.md` aktualny. `docs/API.md` z opisem wszystkich interfejsów. (write → verify)
+- [x] T5.7: Dokumentacja finalna — `docs/README.md` kompletny (Quick Start, Architecture, Config, Development). `docs/CHANGELOG.md` aktualny. `docs/API.md` z opisem wszystkich interfejsów. (write → verify)
 - [ ] T5.8: Smoke test suite — Zautomatyzowany smoke test: start system → verify health → verify Truman działa (activity changes in 5 min) → stop. (implement → run → verify)
 
 ### Security (MANDATORY):
@@ -226,9 +226,9 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 
 ### Docs (MANDATORY):
 
-- [ ] D5.1: Update `docs/CHANGELOG.md` — wpis Stage 5 (final)
-- [ ] D5.2: Finalize `docs/README.md`
-- [ ] D5.3: Finalize `docs/API.md`
+- [x] D5.1: Update `docs/CHANGELOG.md` — wpis Stage 5 (final)
+- [x] D5.2: Finalize `docs/README.md`
+- [x] D5.3: Finalize `docs/API.md`
 - [x] D5.4: Utworzyć `docs/SECURITY.md` — threat model, wdrożone zabezpieczenia, znane ograniczenia
 
 ### Stage Completion (MANDATORY):
