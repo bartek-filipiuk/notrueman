@@ -30,7 +30,7 @@ const config: Phaser.Types.Core.GameConfig = {
   pixelArt: true,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: "#1a1a2e",
+  backgroundColor: "#3a2a1a",
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -87,22 +87,14 @@ function initBrain(): void {
 
   // Wrap the SceneHandler to inject emotion updates after each action
   const handler = new SceneHandler(roomScene);
-  const emotionAwareHandler: typeof handler = {
-    async moveTo(objectId) {
-      return handler.moveTo(objectId);
+  const emotionAwareHandler: SceneHandler = Object.create(handler, {
+    updateHUD: {
+      value(update: { mood?: string; activity?: string; time?: string }) {
+        const currentMood = emotions.getOverallMood();
+        handler.updateHUD({ ...update, mood: currentMood });
+      },
     },
-    playActivity(activity) {
-      handler.playActivity(activity);
-    },
-    showThought(text, mood) {
-      handler.showThought(text, mood);
-    },
-    updateHUD(update) {
-      // Override mood with emotion engine's computed mood
-      const currentMood = emotions.getOverallMood();
-      handler.updateHUD({ ...update, mood: currentMood });
-    },
-  };
+  });
 
   // Create renderer bridge
   const bridge = new RendererBridge(emotionAwareHandler);

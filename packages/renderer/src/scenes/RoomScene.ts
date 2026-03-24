@@ -20,9 +20,19 @@ const ZONE_COLORS: Record<RoomZone, number> = {
   door: 0x795548,     // brown
 };
 
-/** Floor and wall colors */
-const WALL_COLOR = 0x2c2c54;
-const FLOOR_COLOR = 0x474787;
+/** Warm room color palette (SNES / Stardew Valley warmth) */
+const WALL_BASE = 0xd4c5a9;        // warm beige wall
+const WALL_PATTERN = 0xc9b898;     // subtle darker beige for wallpaper pattern
+const WALL_TOP_SHADE = 0xbfb08a;   // slightly darker at ceiling
+const CEILING_COLOR = 0xe8dcc8;    // light cream ceiling strip
+const CEILING_FRIEZE = 0x8b7355;   // dark wood trim at ceiling
+const BASEBOARD_COLOR = 0x6b4e2e;  // dark wood baseboard
+const BASEBOARD_TOP = 0x7d5f3f;    // baseboard highlight
+const FLOOR_PLANK_BASE = 0x9e7e56; // medium warm wood
+const FLOOR_PLANK_DARK = 0x8b6d45; // darker plank variation
+const FLOOR_PLANK_LIGHT = 0xb08f65;// lighter plank variation
+const FLOOR_GRAIN = 0x906e48;      // wood grain lines
+const FLOOR_GAP = 0x5c3d1e;        // gap between planks
 const FLOOR_Y = 460;
 
 /** Window glow color for ambient lighting — exported for tests */
@@ -106,40 +116,140 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    // Wall
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y / 2, GAME_WIDTH, FLOOR_Y, WALL_COLOR).setOrigin(0.5);
+    const bg = this.add.graphics();
+    bg.setDepth(0);
 
-    // Subtle wall shading (darker at top for depth)
-    this.add.rectangle(GAME_WIDTH / 2, 20, GAME_WIDTH, 40, 0x1a1a3e).setOrigin(0.5).setAlpha(0.3);
+    // === CEILING ===
+    // Thin cream ceiling strip
+    bg.fillStyle(CEILING_COLOR);
+    bg.fillRect(0, 0, GAME_WIDTH, 12);
+    // Ceiling frieze (thin decorative wood trim)
+    bg.fillStyle(CEILING_FRIEZE);
+    bg.fillRect(0, 12, GAME_WIDTH, 3);
+    // Frieze highlight
+    bg.fillStyle(BASEBOARD_TOP, 0.5);
+    bg.fillRect(0, 12, GAME_WIDTH, 1);
 
-    // Floor
-    this.add
-      .rectangle(GAME_WIDTH / 2, FLOOR_Y + (GAME_HEIGHT - FLOOR_Y) / 2, GAME_WIDTH, GAME_HEIGHT - FLOOR_Y, FLOOR_COLOR)
-      .setOrigin(0.5);
+    // === WALL ===
+    // Base wall color — warm beige
+    bg.fillStyle(WALL_BASE);
+    bg.fillRect(0, 15, GAME_WIDTH, FLOOR_Y - 15);
 
-    // Floor highlight (subtle lighter stripe for depth)
-    this.add
-      .rectangle(GAME_WIDTH / 2, FLOOR_Y + 8, GAME_WIDTH, 4, 0x5a57a0)
-      .setOrigin(0.5)
-      .setAlpha(0.4);
+    // Subtle top shading (darker near ceiling for depth)
+    bg.fillStyle(WALL_TOP_SHADE, 0.3);
+    bg.fillRect(0, 15, GAME_WIDTH, 30);
 
-    // Floor line
-    this.add
-      .line(0, 0, 0, FLOOR_Y, GAME_WIDTH, FLOOR_Y, 0x706fd3)
-      .setOrigin(0);
+    // Wallpaper pattern — subtle diamond grid
+    this.drawWallpaperPattern(bg);
 
-    // Window ambient glow (soft light spilling from window into room)
+    // Corner shadow — left (darker in corners)
+    bg.fillStyle(0x000000, 0.06);
+    bg.fillRect(0, 15, 60, FLOOR_Y - 15);
+    bg.fillStyle(0x000000, 0.03);
+    bg.fillRect(60, 15, 40, FLOOR_Y - 15);
+
+    // Corner shadow — right
+    bg.fillStyle(0x000000, 0.06);
+    bg.fillRect(GAME_WIDTH - 50, 15, 50, FLOOR_Y - 15);
+    bg.fillStyle(0x000000, 0.03);
+    bg.fillRect(GAME_WIDTH - 90, 15, 40, FLOOR_Y - 15);
+
+    // === BASEBOARD ===
+    // Main baseboard
+    bg.fillStyle(BASEBOARD_COLOR);
+    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 8);
+    // Baseboard top edge highlight
+    bg.fillStyle(BASEBOARD_TOP);
+    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 2);
+    // Baseboard bottom shadow
+    bg.fillStyle(0x4a3520);
+    bg.fillRect(0, FLOOR_Y - 1, GAME_WIDTH, 1);
+
+    // === WOODEN FLOOR ===
+    this.drawWoodenFloor(bg);
+
+    // === WINDOW AMBIENT GLOW ===
     const windowObj = ROOM_OBJECTS.find((o) => o.id === "window");
     if (windowObj) {
       const glow = this.add.graphics();
+      glow.setDepth(0);
+      // Warm sunlight trapezoid from window to floor
       glow.fillStyle(WINDOW_GLOW_COLOR, 0.06);
       glow.fillTriangle(
         windowObj.x + windowObj.width / 2, windowObj.y + windowObj.height,
-        windowObj.x - 40, FLOOR_Y,
-        windowObj.x + windowObj.width + 40, FLOOR_Y,
+        windowObj.x - 50, FLOOR_Y,
+        windowObj.x + windowObj.width + 50, FLOOR_Y,
       );
-      glow.setDepth(0);
+      // Lighter patch on wall near window
+      glow.fillStyle(0xfff8e1, 0.08);
+      glow.fillRect(windowObj.x - 20, windowObj.y - 10, windowObj.width + 40, windowObj.height + 20);
+      // Sunlight on floor below window
+      glow.fillStyle(WINDOW_GLOW_COLOR, 0.05);
+      glow.fillRect(windowObj.x - 30, FLOOR_Y, windowObj.width + 60, GAME_HEIGHT - FLOOR_Y);
     }
+  }
+
+  /** Draw subtle diamond wallpaper pattern on the wall */
+  private drawWallpaperPattern(g: Phaser.GameObjects.Graphics): void {
+    g.fillStyle(WALL_PATTERN, 0.25);
+    const spacing = 24;
+    const dotSize = 2;
+    for (let y = 30; y < FLOOR_Y - 10; y += spacing) {
+      const offset = ((y - 30) / spacing) % 2 === 0 ? 0 : spacing / 2;
+      for (let x = offset + 12; x < GAME_WIDTH - 10; x += spacing) {
+        // Small diamond dot
+        g.fillRect(x - dotSize / 2, y - dotSize / 2, dotSize, dotSize);
+      }
+    }
+    // Subtle horizontal wainscoting line at ~60% wall height
+    const wainscotY = 15 + (FLOOR_Y - 15) * 0.62;
+    g.fillStyle(BASEBOARD_TOP, 0.2);
+    g.fillRect(0, wainscotY, GAME_WIDTH, 2);
+    g.fillStyle(CEILING_COLOR, 0.15);
+    g.fillRect(0, wainscotY - 1, GAME_WIDTH, 1);
+  }
+
+  /** Draw wooden plank floor with grain pattern */
+  private drawWoodenFloor(g: Phaser.GameObjects.Graphics): void {
+    const floorHeight = GAME_HEIGHT - FLOOR_Y;
+    const plankWidth = 64;
+    const plankHeight = floorHeight;
+    const plankColors = [FLOOR_PLANK_BASE, FLOOR_PLANK_DARK, FLOOR_PLANK_LIGHT, FLOOR_PLANK_BASE, FLOOR_PLANK_DARK];
+
+    // Draw planks left to right
+    for (let i = 0; i * plankWidth < GAME_WIDTH; i++) {
+      const x = i * plankWidth;
+      const color = plankColors[i % plankColors.length];
+
+      // Plank base
+      g.fillStyle(color);
+      g.fillRect(x, FLOOR_Y, plankWidth, plankHeight);
+
+      // Gap line between planks
+      if (i > 0) {
+        g.fillStyle(FLOOR_GAP);
+        g.fillRect(x, FLOOR_Y, 1, plankHeight);
+      }
+
+      // Wood grain lines (subtle horizontal dashes)
+      g.fillStyle(FLOOR_GRAIN, 0.25);
+      const grainOffset = (i * 7) % 5; // vary grain per plank
+      for (let gy = FLOOR_Y + 4 + grainOffset; gy < GAME_HEIGHT; gy += 8) {
+        const grainX = x + 3 + ((gy * 3 + i * 11) % 7);
+        const grainLen = 12 + ((gy * 5 + i * 3) % 20);
+        g.fillRect(grainX, gy, Math.min(grainLen, plankWidth - 6), 1);
+      }
+
+      // Subtle plank highlight at top edge
+      g.fillStyle(0xffffff, 0.06);
+      g.fillRect(x + 1, FLOOR_Y + 1, plankWidth - 2, 1);
+    }
+
+    // Perspective depth — floor gets slightly darker toward bottom
+    g.fillStyle(0x000000, 0.08);
+    g.fillRect(0, GAME_HEIGHT - 12, GAME_WIDTH, 12);
+    g.fillStyle(0x000000, 0.04);
+    g.fillRect(0, GAME_HEIGHT - 24, GAME_WIDTH, 12);
   }
 
   private createRoomObjects(): void {
