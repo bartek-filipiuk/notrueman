@@ -21,6 +21,15 @@ export { RendererBridge } from "./renderer-bridge.js";
 export type { RendererHandler } from "./renderer-bridge.js";
 export { BrainLoop } from "./brain-loop.js";
 export type { BrainLoopConfig, BrainLoopState } from "./brain-loop.js";
+export { CognitiveLoop } from "./cognitive-loop.js";
+export type {
+  CognitiveLoopConfig,
+  CognitiveLoopDeps,
+  CognitiveLoopState,
+  MemoryAdapter,
+  EmbeddingAdapter,
+  RetrievalAdapter,
+} from "./cognitive-loop.js";
 export { loadConfig, TrumanConfigSchema } from "./config.js";
 export type { TrumanConfig } from "./config.js";
 export { RateLimiter } from "./rate-limiter.js";
