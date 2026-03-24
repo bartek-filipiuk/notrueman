@@ -48,6 +48,9 @@ export class RoomScene extends Phaser.Scene {
     // Generate pixel art textures for room objects
     generateAllTextures(this);
 
+    // Fade in from black (coming from BootScene)
+    this.cameras.main.fadeIn(800, 10, 10, 26);
+
     this.createBackground();
     this.createRoomObjects();
     this.createTruman();
@@ -59,6 +62,10 @@ export class RoomScene extends Phaser.Scene {
     this.hud.updateTime();
     this.lighting.update();
     this.windowView.update();
+
+    // Subtle camera breathing — very gentle sine wave zoom
+    const breathe = Math.sin(time * 0.0005) * 0.002;
+    this.cameras.main.setZoom(1 + breathe);
   }
 
   /** Clean up all timers and tweens when scene shuts down */

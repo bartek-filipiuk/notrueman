@@ -90,7 +90,7 @@ Stage 9 (Streaming & Deployment)
 - [x] T7.6: Lighting system — Cieniowanie pokoju: jaśniej przy oknie (naturalny gradient), ciemniej w kątach. Pora dnia (z zegara real-time): dzień = ciepłe żółte światło, wieczór = pomarańczowe, noc = niebieskie/ciemne. Zmiana palety via color tint na background/objects. Cienie pod meblami (proste ellipsy, 15% opacity). (implement → verify day/night cycle)
 - [x] T7.7: Window view — Widok za oknem: pixel art niebo z chmurami/gwiazdami (zależy od pory dnia). Efekty pogodowe: słońce (promienie), deszcz (animated krople na szybie), noc (gwiazdy migoczące, księżyc). Pogoda losowa lub viewer-controlled (przygotować interface). (create art → implement → verify)
 - [ ] T7.8: Particle system upgrade — Zamienić Graphics API effects na Phaser Particle Emitters. Para z gotowania (białe particles unoszące się). Iskry/glow z komputera (zielone/niebieskie particles). "Zzz" z sprite texture zamiast rectangles. Pot z ćwiczeń (blue droplets z gravity). Kurz z książki (złote particles). (implement → verify per activity)
-- [ ] T7.9: Polish & transitions — Smooth camera transitions między aktywnościami. Delikatny screenshake przy failures. Fade-in obiektów aktywności (np. jedzenie pojawia się na stole). Parallax scrolling na tle (delikatny, 1-2px). Easter eggs w obiektach (tekst na ekranie komputera, tytuły książek na regale). (implement → verify)
+- [x] T7.9: Polish & transitions — Smooth camera transitions między aktywnościami. Delikatny screenshake przy failures. Fade-in obiektów aktywności (np. jedzenie pojawia się na stole). Parallax scrolling na tle (delikatny, 1-2px). Easter eggs w obiektach (tekst na ekranie komputera, tytuły książek na regale). (implement → verify)
 
 ### Security (MANDATORY):
 
