@@ -214,22 +214,22 @@ Każdy stage buduje na poprzednim. Brak równoległości — to vertical slice.
 - [x] T5.2: Code review — Przejrzeć wszystkie pakiety: czytelność, modularnośc, brak duplikacji, jasne kontrakty API. Refactor gdzie potrzeba. (review → refactor → verify tests still pass)
 - [x] T5.3: Test coverage review — Zidentyfikować brakujące testy. Dodać edge case testy: emotion extremes, memory retrieval z pustą bazą, LLM timeout, invalid Zod parse. (identify gaps → write tests → verify)
 - [x] T5.4: Performance audit — Profilować: Phaser object count, Node.js heap, PostgreSQL query times, LLM call latency P50/P95/P99. Naprawić bottlenecki. (profile → fix → re-profile)
-- [ ] T5.5: Security final audit — Przeskanować kod pod kątem: hardcoded secrets, SQL injection, XSS, unvalidated LLM output, exposed stack traces. Napisać `docs/SECURITY.md`. (audit → fix → document)
+- [x] T5.5: Security final audit — Przeskanować kod pod kątem: hardcoded secrets, SQL injection, XSS, unvalidated LLM output, exposed stack traces. Napisać `docs/SECURITY.md`. (audit → fix → document)
 - [ ] T5.6: Agent-friendliness review — Czy kolejny agent (lub developer) może łatwo: dodać nową aktywność? zmienić model LLM? zmodyfikować emocje? Jeśli nie — uprościć interfejsy. (review → simplify → verify)
 - [ ] T5.7: Dokumentacja finalna — `docs/README.md` kompletny (Quick Start, Architecture, Config, Development). `docs/CHANGELOG.md` aktualny. `docs/API.md` z opisem wszystkich interfejsów. (write → verify)
 - [ ] T5.8: Smoke test suite — Zautomatyzowany smoke test: start system → verify health → verify Truman działa (activity changes in 5 min) → stop. (implement → run → verify)
 
 ### Security (MANDATORY):
 
-- [ ] S5.1: Full security scan — `grep -r` po hardcoded secrets, review CORS config, review all LLM output handling, verify `.env` patterns. Raport w `docs/SECURITY.md`.
-- [ ] S5.2: Smoke test security — Negative case: co się dzieje gdy LLM zwraca invalid JSON? Co gdy DB jest down? Co gdy API key jest zły? (test → verify graceful handling)
+- [x] S5.1: Full security scan — `grep -r` po hardcoded secrets, review CORS config, review all LLM output handling, verify `.env` patterns. Raport w `docs/SECURITY.md`.
+- [x] S5.2: Smoke test security — Negative case: co się dzieje gdy LLM zwraca invalid JSON? Co gdy DB jest down? Co gdy API key jest zły? (test → verify graceful handling)
 
 ### Docs (MANDATORY):
 
 - [ ] D5.1: Update `docs/CHANGELOG.md` — wpis Stage 5 (final)
 - [ ] D5.2: Finalize `docs/README.md`
 - [ ] D5.3: Finalize `docs/API.md`
-- [ ] D5.4: Utworzyć `docs/SECURITY.md` — threat model, wdrożone zabezpieczenia, znane ograniczenia
+- [x] D5.4: Utworzyć `docs/SECURITY.md` — threat model, wdrożone zabezpieczenia, znane ograniczenia
 
 ### Stage Completion (MANDATORY):
 
