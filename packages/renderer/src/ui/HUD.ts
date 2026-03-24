@@ -45,7 +45,7 @@ export class HUD {
   constructor(scene: Phaser.Scene) {
     // Semi-transparent top bar for HUD readability
     this.bgBar = scene.add
-      .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 36, 0x000000, 0.35)
+      .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 36, 0x1a1008, 0.45)
       .setOrigin(0.5, 0)
       .setDepth(99);
 

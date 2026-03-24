@@ -1,5 +1,19 @@
 # Changelog
 
+## [Stage 13 — Room Layout PRO] - 2026-03-24
+
+### Added
+- AI-generated room background (384x216, Retro Diffusion, scaled to 960x540)
+- Foreground depth gradient (dark edge at bottom for depth perception)
+- Proper grounding shadows: floor objects get large ellipses, wall objects get tiny drop shadows
+- Object position overhaul: floor items aligned to FLOOR_Y, wall items at y=100-200, bridging items span both
+
+### Changed
+- RoomScene.createBackground() uses AI PNG when available, programmatic fallback
+- ROOM_OBJECTS positions reworked for dollhouse cutaway layout
+- HUD bar color changed from cold black to warm dark brown (0x1a1008)
+- Truman walks at y=420 (on the floor, not floating)
+
 ## [Stage 8 — Audio & Voice: T8.3 TTS] - 2026-03-24
 
 ### Added

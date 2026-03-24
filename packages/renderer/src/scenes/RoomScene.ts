@@ -80,6 +80,15 @@ export class RoomScene extends Phaser.Scene {
     if (getVisualConfig().crtScanlines) {
       this.createCRTScanlines();
     }
+
+    // Foreground depth gradient — dark edge at bottom for "looking into room" feel
+    const fgGrad = this.add.graphics();
+    fgGrad.fillStyle(0x000000, 0.12);
+    fgGrad.fillRect(0, GAME_HEIGHT - 20, GAME_WIDTH, 20);
+    fgGrad.fillStyle(0x000000, 0.06);
+    fgGrad.fillRect(0, GAME_HEIGHT - 40, GAME_WIDTH, 20);
+    fgGrad.setDepth(97);
+    fgGrad.setScrollFactor(0);
   }
 
   /** CRT scanline overlay — alternating dark lines for retro TV feel */
@@ -457,17 +466,18 @@ export class RoomScene extends Phaser.Scene {
           img.setDisplaySize(obj.width, obj.height);
         }
         img.setDepth(obj.y + obj.height);
-        // Add subtle shadow under furniture
-        if (obj.zone !== "window" && obj.id !== "clock" && obj.id !== "poster") {
+
+        // Grounding shadows — different for floor vs wall objects
+        const isWallObject = obj.id === "poster" || obj.id === "clock" || obj.id === "window";
+        if (isWallObject) {
+          // Wall objects: tiny drop shadow (looks "mounted")
           this.add
-            .ellipse(
-              obj.x + obj.width / 2,
-              obj.y + obj.height + 2,
-              obj.width * 0.8,
-              6,
-              0x000000,
-              0.12,
-            )
+            .ellipse(obj.x + obj.width / 2, obj.y + obj.height + 3, obj.width * 0.5, 4, 0x000000, 0.06)
+            .setDepth(obj.y + obj.height - 1);
+        } else {
+          // Floor/bridging objects: ground contact shadow
+          this.add
+            .ellipse(obj.x + obj.width / 2, obj.y + obj.height + 2, obj.width * 0.85, 8, 0x000000, 0.15)
             .setDepth(obj.y + obj.height - 1);
         }
         this.roomObjects.set(obj.id, img as any);
