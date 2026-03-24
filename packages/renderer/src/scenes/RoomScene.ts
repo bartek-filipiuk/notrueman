@@ -135,7 +135,7 @@ export class RoomScene extends Phaser.Scene {
     const cam = this.cameras.main;
 
     if (fx.vignette && cam.postFX) {
-      cam.postFX.addVignette(0.5, 0.5, 0.88, 0.35);
+      cam.postFX.addVignette(0.5, 0.5, 0.92, 0.18);
     }
     if (fx.bloom && cam.postFX) {
       cam.postFX.addBloom(0xffffff, 0.8, 0.8, 0.4, 1.1, 4);

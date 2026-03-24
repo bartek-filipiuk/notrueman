@@ -80,12 +80,11 @@ export class LightingSystem {
           this.colorMatrix.brightness(-0.02);
           break;
         case "evening":
-          this.colorMatrix.saturate(-0.15);
-          this.colorMatrix.brightness(-0.06);
+          this.colorMatrix.saturate(-0.04);
           break;
         case "night":
-          this.colorMatrix.night(0.25);
-          this.colorMatrix.brightness(-0.08);
+          // Very subtle — room must always be clearly visible
+          this.colorMatrix.saturate(-0.06);
           break;
       }
     }
