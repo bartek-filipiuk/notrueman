@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { ACTIVITY_LIST } from "../constants.js";
+import type { ActivityType } from "../types/agent-state.js";
+
+/** ACTIVITY_LIST cast to a tuple type that z.enum() accepts while preserving ActivityType */
+const ACTIVITY_ENUM = ACTIVITY_LIST as unknown as readonly [ActivityType, ...ActivityType[]];
 
 /**
  * Job payload schema for `agent:think` queue.
@@ -20,16 +25,7 @@ export type AgentThinkJob = z.infer<typeof AgentThinkJobSchema>;
  */
 export const AgentActionJobSchema = z.object({
   tickId: z.string().min(1),
-  activity: z.enum([
-    "sleep",
-    "eat",
-    "read",
-    "computer",
-    "exercise",
-    "think",
-    "cook",
-    "draw",
-  ]),
+  activity: z.enum(ACTIVITY_ENUM),
   durationSeconds: z.number().min(1).max(600),
   thought: z.string().max(500),
   mood: z.string(),

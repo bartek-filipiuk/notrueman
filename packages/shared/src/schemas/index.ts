@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { ACTIVITY_LIST } from "../constants.js";
+import type { ActivityType } from "../types/agent-state.js";
+
+/** ACTIVITY_LIST cast to a tuple type that z.enum() accepts while preserving ActivityType */
+const ACTIVITY_ENUM = ACTIVITY_LIST as unknown as readonly [ActivityType, ...ActivityType[]];
 
 /** Importance score from LLM (brain-algorithm.md S3.3 step 1) */
 export const ImportanceScoreSchema = z.object({
@@ -79,7 +84,7 @@ export type ReflectionQuestions = z.infer<typeof ReflectionQuestionsSchema>;
 
 /** Action command from LLM (brain-algorithm.md S3.3 step 5) */
 export const ActionCommandSchema = z.object({
-  activity: z.enum(["sleep", "eat", "read", "computer", "exercise", "think", "cook", "draw"]),
+  activity: z.enum(ACTIVITY_ENUM),
   durationSeconds: z.number().min(10).max(600),
   thought: z.string().max(200),
   reason: z.string().max(100),

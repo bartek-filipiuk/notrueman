@@ -219,7 +219,19 @@ export const GAME_FPS = 30;
 export const STREAM_WIDTH = 1920;
 export const STREAM_HEIGHT = 1080;
 
-/** All activity types as array (design-spec.md S5.2) */
+/**
+ * All activity types as array (design-spec.md S5.2).
+ * SINGLE SOURCE OF TRUTH for activities. Zod schemas derive from this list.
+ *
+ * To add a new activity:
+ * 1. Add type literal to ActivityType union (types/agent-state.ts)
+ * 2. Add entry here in ACTIVITY_LIST
+ * 3. Add entry in ACTIVITY_FAILURE_RATES (below)
+ * 4. Add color in renderer ActivityRenderer.ACTIVITY_EFFECT_COLORS
+ * 5. Add draw method in ActivityRenderer.drawActivityFrame()
+ * 6. Add room mapping in ActivityManager.ACTIVITY_OBJECTS
+ * 7. Add physical effects in agent-brain PhysicalStateEngine.ACTIVITY_EFFECTS
+ */
 export const ACTIVITY_LIST: readonly ActivityType[] = [
   "sleep",
   "eat",
