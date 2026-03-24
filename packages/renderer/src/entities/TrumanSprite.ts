@@ -1,7 +1,12 @@
 import Phaser from "phaser";
+import { getVisualConfig } from "../config/VisualConfig";
 
 const SPRITE_WIDTH = 32;
 const SPRITE_HEIGHT = 48;
+// Extra padding for glow FX overflow
+const PAD = 8;
+const TEX_W = SPRITE_WIDTH + PAD * 2;
+const TEX_H = SPRITE_HEIGHT + PAD * 2;
 
 /** Drop shadow opacity — exported for tests */
 export const SHADOW_ALPHA = 0.25;
@@ -22,7 +27,6 @@ const EYE_PUPIL = 0x1a1a2e;
 const MOUTH = 0xcc8866;
 const BLUSH = 0xffaa88;
 
-// Mood eye styles
 const MOOD_EYES: Record<string, { brow: number; mouthW: number; mouthH: number; blush: boolean }> = {
   happy:         { brow: 0,  mouthW: 4, mouthH: 2, blush: true },
   curious:       { brow: -1, mouthW: 2, mouthH: 1, blush: false },
@@ -36,12 +40,13 @@ const MOOD_EYES: Record<string, { brow: number; mouthW: number; mouthH: number; 
 };
 
 /**
- * Truman pixel art sprite — head-heavy proportions for readability.
- * Drawn with Graphics API. Supports mood-based facial expressions.
- * Head is ~40% of total height for that charming pixel art look.
+ * Truman pixel art sprite using RenderTexture for WebGL FX support.
+ * Container holds: RenderTexture (character with glow PreFX) + shadow ellipse.
+ * Head-heavy proportions (~40% head) for pixel art charm.
  */
 export class TrumanSprite extends Phaser.GameObjects.Container {
-  private gfx: Phaser.GameObjects.Graphics;
+  private rt: Phaser.GameObjects.RenderTexture;
+  private shadow: Phaser.GameObjects.Ellipse;
   private facing: "left" | "right" = "right";
   private animTimer?: Phaser.Time.TimerEvent;
   private currentAnim: string = "idle";
@@ -51,139 +56,144 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    this.gfx = scene.add.graphics();
-    this.add(this.gfx);
-    this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
+    // Shadow ellipse (below character)
+    this.shadow = scene.add.ellipse(0, 24, 22, 6, 0x000000, SHADOW_ALPHA);
+    this.add(this.shadow);
 
+    // RenderTexture for character — supports preFX/postFX
+    this.rt = scene.add.renderTexture(0, 0, TEX_W, TEX_H);
+    this.rt.setOrigin(0.5, 0.5);
+    this.add(this.rt);
+
+    // Apply glow PreFX if enabled (subtle white outline)
+    try {
+      const fxConfig = getVisualConfig();
+      if (fxConfig.trumanGlow && this.rt.preFX) {
+        this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
+      }
+    } catch {
+      // VisualConfig not initialized yet — skip glow
+    }
+
+    this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
     scene.add.existing(this as Phaser.GameObjects.GameObject);
 
-    this.drawFrame(0, 0);
+    this.renderFrame(0, 0);
     this.playIdle();
   }
 
-  /** Set mood for facial expression */
   setMood(mood: string): void {
     this.currentMood = mood;
-    this.drawFrame(0, 0);
+    this.renderFrame(0, 0);
   }
 
-  /** Draw the full character at given offsets */
-  private drawFrame(yOffset: number, legFrame: number): void {
-    this.gfx.clear();
+  /** Render character to RenderTexture using offscreen Graphics */
+  private renderFrame(yOffset: number, legFrame: number): void {
+    const gfx = this.scene.make.graphics({ add: false });
+    // Draw centered in texture (offset by PAD + half sprite)
+    const cx = TEX_W / 2;
+    const cy = TEX_H / 2;
+    this.drawCharacter(gfx, cx, cy, yOffset, legFrame);
+
+    this.rt.clear();
+    this.rt.draw(gfx, 0, 0);
+    gfx.destroy();
+  }
+
+  /** Draw the pixel character at (cx, cy) offset */
+  private drawCharacter(g: Phaser.GameObjects.Graphics, cx: number, cy: number, yOffset: number, legFrame: number): void {
     const f = this.facing;
     const mood = MOOD_EYES[this.currentMood] || MOOD_EYES.neutral;
     const fDir = f === "right" ? 1 : -1;
 
-    // Drop shadow
-    this.gfx.fillStyle(0x000000, SHADOW_ALPHA);
-    this.gfx.fillEllipse(0, 24, 22, 6);
-
     // === LEGS ===
     const legSpread = legFrame % 2 === 0 ? 0 : 2;
-    // Left leg
-    this.gfx.fillStyle(PANTS);
-    this.gfx.fillRect(-6, 8 + yOffset, 5, 12 + legSpread);
-    this.gfx.fillStyle(PANTS_DARK);
-    this.gfx.fillRect(-6, 8 + yOffset, 1, 12 + legSpread);
-    // Right leg
-    this.gfx.fillStyle(PANTS);
-    this.gfx.fillRect(1, 8 + yOffset, 5, 12 - legSpread);
-    this.gfx.fillStyle(PANTS_DARK);
-    this.gfx.fillRect(5, 8 + yOffset, 1, 12 - legSpread);
+    g.fillStyle(PANTS);
+    g.fillRect(cx - 6, cy + 8 + yOffset, 5, 12 + legSpread);
+    g.fillStyle(PANTS_DARK);
+    g.fillRect(cx - 6, cy + 8 + yOffset, 1, 12 + legSpread);
+    g.fillStyle(PANTS);
+    g.fillRect(cx + 1, cy + 8 + yOffset, 5, 12 - legSpread);
+    g.fillStyle(PANTS_DARK);
+    g.fillRect(cx + 5, cy + 8 + yOffset, 1, 12 - legSpread);
 
     // Shoes
-    this.gfx.fillStyle(SHOES);
-    this.gfx.fillRect(-7, 19 + yOffset + legSpread, 6, 4);
-    this.gfx.fillRect(1, 19 + yOffset - legSpread + 2, 6, 4);
-    // Shoe highlight
-    this.gfx.fillStyle(0x3d3d5c);
-    this.gfx.fillRect(-7, 19 + yOffset + legSpread, 6, 1);
-    this.gfx.fillRect(1, 19 + yOffset - legSpread + 2, 6, 1);
+    g.fillStyle(SHOES);
+    g.fillRect(cx - 7, cy + 19 + yOffset + legSpread, 6, 4);
+    g.fillRect(cx + 1, cy + 19 + yOffset - legSpread + 2, 6, 4);
+    g.fillStyle(0x3d3d5c);
+    g.fillRect(cx - 7, cy + 19 + yOffset + legSpread, 6, 1);
+    g.fillRect(cx + 1, cy + 19 + yOffset - legSpread + 2, 6, 1);
 
-    // === BODY (shirt) ===
-    this.gfx.fillStyle(SHIRT);
-    this.gfx.fillRect(-8, -6 + yOffset, 16, 15);
-    // Shirt shading
-    this.gfx.fillStyle(SHIRT_DARK);
-    this.gfx.fillRect(-8, -6 + yOffset, 2, 15); // left edge shadow
-    this.gfx.fillRect(6, -6 + yOffset, 2, 15);  // right edge shadow
-    // Collar
-    this.gfx.fillStyle(SHIRT_COLLAR);
-    this.gfx.fillRect(-5, -6 + yOffset, 10, 3);
-    // Shirt button
-    this.gfx.fillStyle(EYE_WHITE, 0.5);
-    this.gfx.fillRect(0, 0 + yOffset, 1, 1);
-    this.gfx.fillRect(0, 3 + yOffset, 1, 1);
+    // === BODY ===
+    g.fillStyle(SHIRT);
+    g.fillRect(cx - 8, cy - 6 + yOffset, 16, 15);
+    g.fillStyle(SHIRT_DARK);
+    g.fillRect(cx - 8, cy - 6 + yOffset, 2, 15);
+    g.fillRect(cx + 6, cy - 6 + yOffset, 2, 15);
+    g.fillStyle(SHIRT_COLLAR);
+    g.fillRect(cx - 5, cy - 6 + yOffset, 10, 3);
+    g.fillStyle(EYE_WHITE, 0.5);
+    g.fillRect(cx, cy + yOffset, 1, 1);
+    g.fillRect(cx, cy + 3 + yOffset, 1, 1);
 
     // === ARMS ===
-    // Back arm
-    this.gfx.fillStyle(SHIRT_DARK);
-    this.gfx.fillRect(f === "right" ? -11 : 7, -4 + yOffset, 4, 10);
-    this.gfx.fillStyle(SKIN_SHADOW);
-    this.gfx.fillRect(f === "right" ? -11 : 7, 6 + yOffset, 4, 4);
-    // Front arm
-    this.gfx.fillStyle(SHIRT);
-    this.gfx.fillRect(f === "right" ? 7 : -11, -4 + yOffset, 4, 10);
-    this.gfx.fillStyle(SKIN);
-    this.gfx.fillRect(f === "right" ? 7 : -11, 6 + yOffset, 4, 4);
+    g.fillStyle(SHIRT_DARK);
+    g.fillRect(f === "right" ? cx - 11 : cx + 7, cy - 4 + yOffset, 4, 10);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(f === "right" ? cx - 11 : cx + 7, cy + 6 + yOffset, 4, 4);
+    g.fillStyle(SHIRT);
+    g.fillRect(f === "right" ? cx + 7 : cx - 11, cy - 4 + yOffset, 4, 10);
+    g.fillStyle(SKIN);
+    g.fillRect(f === "right" ? cx + 7 : cx - 11, cy + 6 + yOffset, 4, 4);
 
     // === HEAD ===
-    // Head base (larger for head-heavy proportions)
-    this.gfx.fillStyle(SKIN);
-    this.gfx.fillRect(-7, -22 + yOffset, 14, 16);
-    // Face shadow (chin/neck)
-    this.gfx.fillStyle(SKIN_SHADOW);
-    this.gfx.fillRect(-5, -8 + yOffset, 10, 2);
-    // Ear (on facing side)
-    this.gfx.fillStyle(SKIN_SHADOW);
-    this.gfx.fillRect(f === "right" ? 6 : -7, -17 + yOffset, 2, 4);
+    g.fillStyle(SKIN);
+    g.fillRect(cx - 7, cy - 22 + yOffset, 14, 16);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(cx - 5, cy - 8 + yOffset, 10, 2);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(f === "right" ? cx + 6 : cx - 7, cy - 17 + yOffset, 2, 4);
 
     // === HAIR ===
-    this.gfx.fillStyle(HAIR);
-    this.gfx.fillRect(-8, -25 + yOffset, 16, 7);
-    // Side hair
-    this.gfx.fillRect(f === "right" ? -8 : 6, -22 + yOffset, 2, 6);
-    this.gfx.fillRect(f === "right" ? 6 : -8, -22 + yOffset, 2, 4);
-    // Hair highlight
-    this.gfx.fillStyle(HAIR_HIGHLIGHT);
-    this.gfx.fillRect(-4, -25 + yOffset, 6, 2);
-    // Fringe detail
-    this.gfx.fillStyle(HAIR);
-    this.gfx.fillRect(-6 + fDir * 2, -19 + yOffset, 4, 2);
+    g.fillStyle(HAIR);
+    g.fillRect(cx - 8, cy - 25 + yOffset, 16, 7);
+    g.fillRect(f === "right" ? cx - 8 : cx + 6, cy - 22 + yOffset, 2, 6);
+    g.fillRect(f === "right" ? cx + 6 : cx - 8, cy - 22 + yOffset, 2, 4);
+    g.fillStyle(HAIR_HIGHLIGHT);
+    g.fillRect(cx - 4, cy - 25 + yOffset, 6, 2);
+    g.fillStyle(HAIR);
+    g.fillRect(cx - 6 + fDir * 2, cy - 19 + yOffset, 4, 2);
 
     // === FACE ===
-    // Eye whites
-    const eyeBaseX = f === "right" ? -3 : -4;
-    this.gfx.fillStyle(EYE_WHITE);
-    this.gfx.fillRect(eyeBaseX, -18 + yOffset + mood.brow, 3, 3);
-    this.gfx.fillRect(eyeBaseX + 5, -18 + yOffset + mood.brow, 3, 3);
-    // Pupils
-    this.gfx.fillStyle(EYE_PUPIL);
-    this.gfx.fillRect(eyeBaseX + (f === "right" ? 1 : 0), -17 + yOffset + mood.brow, 2, 2);
-    this.gfx.fillRect(eyeBaseX + 5 + (f === "right" ? 1 : 0), -17 + yOffset + mood.brow, 2, 2);
-    // Eyebrows (mood-based position)
-    this.gfx.fillStyle(HAIR);
-    this.gfx.fillRect(eyeBaseX - 1, -20 + yOffset + mood.brow, 4, 1);
-    this.gfx.fillRect(eyeBaseX + 4, -20 + yOffset + mood.brow, 4, 1);
+    const eyeBaseX = f === "right" ? cx - 3 : cx - 4;
+    g.fillStyle(EYE_WHITE);
+    g.fillRect(eyeBaseX, cy - 18 + yOffset + mood.brow, 3, 3);
+    g.fillRect(eyeBaseX + 5, cy - 18 + yOffset + mood.brow, 3, 3);
+    g.fillStyle(EYE_PUPIL);
+    g.fillRect(eyeBaseX + (f === "right" ? 1 : 0), cy - 17 + yOffset + mood.brow, 2, 2);
+    g.fillRect(eyeBaseX + 5 + (f === "right" ? 1 : 0), cy - 17 + yOffset + mood.brow, 2, 2);
+    g.fillStyle(HAIR);
+    g.fillRect(eyeBaseX - 1, cy - 20 + yOffset + mood.brow, 4, 1);
+    g.fillRect(eyeBaseX + 4, cy - 20 + yOffset + mood.brow, 4, 1);
 
     // Mouth
-    this.gfx.fillStyle(MOUTH);
-    const mouthX = -Math.floor(mood.mouthW / 2);
-    this.gfx.fillRect(mouthX, -12 + yOffset, mood.mouthW, mood.mouthH);
+    g.fillStyle(MOUTH);
+    const mouthX = cx - Math.floor(mood.mouthW / 2);
+    g.fillRect(mouthX, cy - 12 + yOffset, mood.mouthW, mood.mouthH);
 
-    // Blush (happy/excited)
+    // Blush
     if (mood.blush) {
-      this.gfx.fillStyle(BLUSH, 0.3);
-      this.gfx.fillRect(-6, -14 + yOffset, 3, 2);
-      this.gfx.fillRect(3, -14 + yOffset, 3, 2);
+      g.fillStyle(BLUSH, 0.3);
+      g.fillRect(cx - 6, cy - 14 + yOffset, 3, 2);
+      g.fillRect(cx + 3, cy - 14 + yOffset, 3, 2);
     }
 
-    // Nose (tiny)
-    this.gfx.fillStyle(SKIN_SHADOW);
-    this.gfx.fillRect(fDir > 0 ? 1 : -2, -14 + yOffset, 1, 2);
+    // Nose
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(cx + (fDir > 0 ? 1 : -2), cy - 14 + yOffset, 1, 2);
   }
 
-  /** Play idle animation (gentle bob + blink) */
   playIdle(): void {
     this.stopAnim();
     this.currentAnim = "idle";
@@ -194,14 +204,12 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       loop: true,
       callback: () => {
         this.frameIndex = (this.frameIndex + 1) % 4;
-        // Subtle breathing bob
         const yOffset = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
-        this.drawFrame(yOffset, 0);
+        this.renderFrame(yOffset, 0);
       },
     });
   }
 
-  /** Play walk animation (leg swing + bob) */
   playWalk(direction: "left" | "right"): void {
     this.stopAnim();
     this.facing = direction;
@@ -214,12 +222,11 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       callback: () => {
         this.frameIndex = (this.frameIndex + 1) % 6;
         const yOffset = this.frameIndex % 3 === 0 ? 0 : -1;
-        this.drawFrame(yOffset, this.frameIndex);
+        this.renderFrame(yOffset, this.frameIndex);
       },
     });
   }
 
-  /** Stop current animation */
   stopAnim(): void {
     if (this.animTimer) {
       this.animTimer.destroy();
@@ -227,19 +234,16 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     }
   }
 
-  /** Get the current animation name */
   getCurrentAnim(): string {
     return this.currentAnim;
   }
 
-  /** Get facing direction */
   getFacing(): "left" | "right" {
     return this.facing;
   }
 
-  /** Set facing direction */
   setFacing(dir: "left" | "right"): void {
     this.facing = dir;
-    this.drawFrame(0, 0);
+    this.renderFrame(0, 0);
   }
 }
