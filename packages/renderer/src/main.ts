@@ -33,7 +33,7 @@ const config: Phaser.Types.Core.GameConfig = {
   roundPixels: true,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: "#3a2a1a",
+  backgroundColor: "#d4c0a0",
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

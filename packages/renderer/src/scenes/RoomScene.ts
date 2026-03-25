@@ -142,7 +142,7 @@ export class RoomScene extends Phaser.Scene {
       cam.postFX.addVignette(0.5, 0.5, 0.95, 0.08);
     }
     if (fx.bloom && cam.postFX) {
-      cam.postFX.addBloom(0xffffff, 0.8, 0.8, 0.4, 1.1, 4);
+      cam.postFX.addBloom(0xffffff, 0.5, 0.5, 0.3, 1.0, 2);
     }
   }
 
