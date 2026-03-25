@@ -68,6 +68,9 @@ export class ActivityManager {
     this.currentActivity = null;
   }
 
+  /** Activities that trigger a close-up zoom scene */
+  private static readonly ZOOM_ACTIVITIES: Set<ActivityType> = new Set(["computer"]);
+
   /** Manually trigger a specific activity */
   async doActivity(type: ActivityType): Promise<void> {
     this.state = "moving";
@@ -76,6 +79,12 @@ export class ActivityManager {
 
     // Move to anchor point (where Truman performs the activity)
     await this.movement.moveToAnchor(type);
+
+    // Check if this activity has a close-up scene
+    if (ActivityManager.ZOOM_ACTIVITIES.has(type)) {
+      await this.launchZoomScene(type);
+      return;
+    }
 
     // Position at anchor + apply facing and offset
     const anchor = ACTIVITY_ANCHORS[type];
@@ -89,6 +98,45 @@ export class ActivityManager {
     this.notifyChange();
     this.activityRenderer.playActivity(type);
     this.truman.setActivityPose(type);
+  }
+
+  /** Launch a close-up zoom scene for the activity */
+  private async launchZoomScene(type: ActivityType): Promise<void> {
+    this.state = "performing";
+    this.notifyChange();
+
+    const sceneKey = `${type.charAt(0).toUpperCase() + type.slice(1)}Scene`;
+
+    // Check if scene exists
+    if (!this.scene.scene.get(sceneKey)) {
+      // Fallback to normal activity if scene not registered
+      this.activityRenderer.playActivity(type);
+      this.truman.setActivityPose(type);
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      // Fade out room
+      this.scene.cameras.main.fadeOut(400, 0, 0, 0);
+      this.scene.cameras.main.once("camerafadeoutcomplete", () => {
+        // Sleep room scene (preserves state)
+        this.scene.scene.sleep("RoomScene");
+        // Launch close-up scene
+        this.scene.scene.launch(sceneKey, {
+          duration: ACTIVITY_DURATION_MS,
+          mood: "neutral",
+          onComplete: () => {
+            // Stop close-up scene
+            this.scene.scene.stop(sceneKey);
+            // Wake room scene
+            this.scene.scene.wake("RoomScene");
+            // Fade back in
+            this.scene.cameras.main.fadeIn(400, 0, 0, 0);
+            resolve();
+          },
+        });
+      });
+    });
   }
 
   /** Register a callback for activity changes */

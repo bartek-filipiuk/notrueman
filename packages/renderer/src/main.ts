@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, GAME_FPS } from "@nts/shared";
 import { BootScene } from "./scenes/BootScene";
 import { RoomScene } from "./scenes/RoomScene";
+import { ComputerScene } from "./scenes/ComputerScene";
 import { SceneHandler } from "./adapters/SceneHandler";
 import {
   BrainLoop,
@@ -42,7 +43,7 @@ const config: Phaser.Types.Core.GameConfig = {
     target: GAME_FPS,
     forceSetTimeOut: true,
   },
-  scene: [BootScene, RoomScene],
+  scene: [BootScene, RoomScene, ComputerScene],
 };
 
 const game = new Phaser.Game(config);
