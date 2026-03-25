@@ -319,14 +319,14 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 
 - [x] D12.1: Update `docs/CHANGELOG.md` — wpis Stage 12
 - [x] D12.2: Update `docs/ART_GUIDE.md` — asset pipeline, Retro Diffusion prompts
-- [ ] D12.3: Stworzyć `docs/ASSET_PIPELINE.md` — jak generować nowe assety, prompts, cleanup, koszt
+- [x] D12.3: Stworzyć `docs/ASSET_PIPELINE.md` — jak generować nowe assety, prompts, cleanup, koszt
 
 ### Stage Completion (MANDATORY):
 
 - [x] SC12.1: Self-check — obiekty renderują się z PNG (nie z Graphics API)
 - [x] SC12.3: Self-check — Truman z animowanym spritesheetem
 - [x] SC12.4: Self-check — testy zielone
-- [ ] SC12.5: Zaktualizuj HANDOFF → [x]
+- [x] SC12.5: Zaktualizuj HANDOFF → [x]
 
 **Stage 12 DoD:** Prawdziwe pixel art sprite'y (Retro Diffusion), Truman z PNG spritesheetem. Pokój z FLUX background (Stage 13). Koszt: <$5.
 
