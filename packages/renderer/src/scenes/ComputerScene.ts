@@ -8,13 +8,13 @@ interface ComputerSceneData {
 }
 
 /**
- * Close-up scene: Truman at desk, typing on computer.
- * Layered approach:
- * - Layer 0: Desk background (static, FLUX generated)
- * - Layer 1: Truman body (sprite, breathing tween)
- * - Layer 2: Truman head (sprite, typing head-bob tween)
- * - Layer 3: Hands on keyboard (sprite, typing tween)
- * - Layer 4: Screen content (animated text), particles, overlays
+ * Close-up coding scene. Single FLUX image with Truman baked in.
+ * Animated overlays bring the scene to life:
+ * - Scrolling code on monitors
+ * - Blinking cursor
+ * - Coffee steam particles
+ * - Monitor glow pulse
+ * - Thought bubble after delay
  */
 export class ComputerScene extends Phaser.Scene {
   private duration = 12000;
@@ -31,128 +31,15 @@ export class ComputerScene extends Phaser.Scene {
   }
 
   create(): void {
-    // === LAYER 0: Background (desk, monitors, room) ===
+    // === ONE BACKGROUND IMAGE (Truman baked in) ===
     if (this.textures.exists("scene_computer_bg")) {
-      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "scene_computer_bg");
-      bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-      bg.setDepth(0);
+      this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "scene_computer_bg")
+        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
     } else {
       this.cameras.main.setBackgroundColor("#1a1a2e");
     }
 
-    // === LAYER 1: Truman body (sitting, breathing bob) ===
-    if (this.textures.exists("scene_computer_body")) {
-      const body = this.add.image(380, 320, "scene_computer_body");
-      body.setDisplaySize(280, 280);
-      body.setDepth(10);
-
-      // Breathing — subtle vertical bob
-      this.tweens.add({
-        targets: body,
-        y: { from: 320, to: 317 },
-        duration: 2000,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-    }
-
-    // === LAYER 2: Head (typing head-bob, faster than breathing) ===
-    if (this.textures.exists("scene_computer_head")) {
-      const head = this.add.image(390, 195, "scene_computer_head");
-      head.setDisplaySize(90, 90);
-      head.setDepth(15);
-
-      // Head bob — quick nod rhythm following typing
-      this.tweens.add({
-        targets: head,
-        y: { from: 195, to: 192 },
-        duration: 400,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-
-      // Occasional deeper nod (every 3 seconds)
-      this.time.addEvent({
-        delay: 3000,
-        loop: true,
-        callback: () => {
-          this.tweens.add({
-            targets: head,
-            y: { from: head.y, to: head.y + 4 },
-            duration: 200,
-            yoyo: true,
-            ease: "Quad.easeOut",
-          });
-        },
-      });
-    }
-
-    // === LAYER 3: Hands on keyboard (typing motion) ===
-    if (this.textures.exists("scene_computer_hands")) {
-      const hands = this.add.image(430, 380, "scene_computer_hands");
-      hands.setDisplaySize(80, 40);
-      hands.setDepth(20);
-
-      // Typing motion — hands shift left/right alternating
-      this.tweens.add({
-        targets: hands,
-        x: { from: 428, to: 435 },
-        duration: 250,
-        yoyo: true,
-        repeat: -1,
-        ease: "Stepped",
-        // Stepped ease = instant snap between positions (pixel art feel)
-      });
-
-      // Slight vertical tap
-      this.tweens.add({
-        targets: hands,
-        y: { from: 380, to: 382 },
-        duration: 150,
-        yoyo: true,
-        repeat: -1,
-        delay: 100,
-      });
-    }
-
-    // === LAYER 4: Screen overlays ===
-
-    // Monitor glow (pulsing)
-    const glow1 = this.add.rectangle(620, 230, 160, 120, 0x55efc4, 0.05);
-    glow1.setBlendMode(Phaser.BlendModes.ADD).setDepth(5);
-    this.tweens.add({
-      targets: glow1,
-      alpha: { from: 0.03, to: 0.08 },
-      duration: 1500,
-      yoyo: true,
-      repeat: -1,
-    });
-
-    const glow2 = this.add.rectangle(170, 220, 130, 110, 0x55efc4, 0.04);
-    glow2.setBlendMode(Phaser.BlendModes.ADD).setDepth(5);
-    this.tweens.add({
-      targets: glow2,
-      alpha: { from: 0.02, to: 0.06 },
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      delay: 700,
-    });
-
-    // Typing cursor blink
-    const cursor = this.add.rectangle(660, 270, 6, 10, 0x55efc4, 0.8);
-    cursor.setDepth(6);
-    this.tweens.add({
-      targets: cursor,
-      alpha: { from: 0.8, to: 0 },
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-    });
-
-    // Scrolling code text on monitor (creates "living screen" effect)
+    // === SCROLLING CODE on right monitor ===
     const codeLines = [
       "function think() {",
       "  const mood = getMood();",
@@ -162,56 +49,118 @@ export class ComputerScene extends Phaser.Scene {
       "  return reflect();",
       "}",
       "",
-      "// What am I doing here?",
-      "const life = observe();",
+      "// I wonder what's",
+      "// beyond that door...",
+      "",
+      "async function live() {",
+      "  while (true) {",
+      "    await decide();",
+      "    act();",
+      "    remember();",
+      "  }",
+      "}",
     ];
     let lineIdx = 0;
-    const codeText = this.add.text(580, 200, "", {
-      fontSize: "7px",
+    const codeText = this.add.text(540, 160, "", {
+      fontSize: "6px",
       fontFamily: "'Press Start 2P', monospace",
-      color: "#55efc4",
-      lineSpacing: 4,
-    }).setDepth(6).setAlpha(0.6);
+      color: "#44dd88",
+      lineSpacing: 3,
+      wordWrap: { width: 160 },
+    }).setAlpha(0.7);
 
+    // Typewriter effect — add one line at a time
     this.time.addEvent({
-      delay: 800,
+      delay: 600,
       loop: true,
       callback: () => {
-        lineIdx = (lineIdx + 1) % codeLines.length;
-        const visible = codeLines.slice(Math.max(0, lineIdx - 5), lineIdx + 1);
+        lineIdx++;
+        const start = Math.max(0, lineIdx - 8);
+        const visible = codeLines.slice(start, lineIdx % codeLines.length + 1);
         codeText.setText(visible.join("\n"));
+        if (lineIdx >= codeLines.length) lineIdx = 0;
       },
     });
 
-    // Coffee steam particles
+    // === BLINKING CURSOR ===
+    const cursor = this.add.rectangle(605, 240, 5, 8, 0x44dd88, 0.9);
+    this.tweens.add({
+      targets: cursor,
+      alpha: { from: 0.9, to: 0 },
+      duration: 530,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // === MONITOR GLOW (subtle pulse) ===
+    const glow = this.add.rectangle(560, 210, 170, 120, 0x33cc77, 0.03);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0.02, to: 0.06 },
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    // Left monitor glow
+    const glow2 = this.add.rectangle(180, 200, 140, 110, 0x33cc77, 0.02);
+    glow2.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: glow2,
+      alpha: { from: 0.01, to: 0.04 },
+      duration: 2500,
+      yoyo: true,
+      repeat: -1,
+      delay: 800,
+    });
+
+    // === COFFEE STEAM ===
     const g = this.add.graphics();
     g.fillStyle(0xffffff, 0.5);
     g.fillCircle(1, 1, 2);
     g.generateTexture("cs_steam", 4, 4);
     g.destroy();
 
-    this.add.particles(730, 330, "cs_steam", {
-      speed: { min: 3, max: 8 },
-      angle: { min: 250, max: 290 },
-      scale: { start: 0.4, end: 0.1 },
-      alpha: { start: 0.25, end: 0 },
-      lifespan: { min: 1500, max: 3000 },
-      frequency: 500,
+    this.add.particles(170, 350, "cs_steam", {
+      speed: { min: 2, max: 6 },
+      angle: { min: 255, max: 285 },
+      scale: { start: 0.4, end: 0 },
+      alpha: { start: 0.2, end: 0 },
+      lifespan: { min: 2000, max: 4000 },
+      frequency: 600,
       quantity: 1,
       blendMode: Phaser.BlendModes.ADD,
-    }).setDepth(25);
+    });
+
+    // === SCREEN FLICKER (occasional, very subtle) ===
+    this.time.addEvent({
+      delay: 4000 + Math.random() * 3000,
+      loop: true,
+      callback: () => {
+        const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x55efc4, 0.02);
+        flash.setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: flash,
+          alpha: 0,
+          duration: 150,
+          onComplete: () => flash.destroy(),
+        });
+      },
+    });
 
     // === HUD ===
-    this.add.text(GAME_WIDTH - 20, 16, "coding...", {
-      fontSize: "9px",
+    this.add.text(GAME_WIDTH - 16, 12, "coding...", {
+      fontSize: "8px",
       fontFamily: "'Press Start 2P', monospace",
-      color: "#55efc4",
-    }).setOrigin(1, 0).setAlpha(0.5).setDepth(50);
+      color: "#44dd88",
+    }).setOrigin(1, 0).setAlpha(0.4);
 
     // === FADE IN ===
     this.cameras.main.fadeIn(400, 0, 0, 0);
 
-    // === END TIMER ===
+    // === END ===
     this.activityTimer = this.time.delayedCall(this.duration, () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
@@ -221,8 +170,6 @@ export class ComputerScene extends Phaser.Scene {
   }
 
   shutdown(): void {
-    if (this.activityTimer) {
-      this.activityTimer.destroy();
-    }
+    this.activityTimer?.destroy();
   }
 }
