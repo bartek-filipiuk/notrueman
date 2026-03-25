@@ -23,16 +23,24 @@ Agent nocny oznaczył 50/50 tasków MVP jako [x], ale audyt ujawnił:
 ## Dependency Graph
 
 ```
-Stage 6 (Integracja)
+Stage 6 (Integracja) ✅
     |
     v
-Stage 7 (Visual Overhaul)
+Stage 7 (Visual Overhaul) ✅
     |
     v
 Stage 8 (Audio & Voice) [opcjonalny]
     |
     v
 Stage 9 (Streaming & Deployment)
+
+Stage 10 (Visual Pro Upgrade) ✅
+Stage 12 (AI Asset Pipeline) — częściowo ✅
+Stage 13 (Room Layout PRO) ✅
+Stage 14 (Anchor Points + Jasność) ✅
+Stage 15-16 (Close-Up Scenes) ✅ — w HANDOFF_SCENES.md
+
+Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stage 14
 ```
 
 ---
@@ -272,89 +280,55 @@ Stage 9 (Streaming & Deployment)
 
 ---
 
-## Stage 11: Phaser Visual MAX — Shaders & Lighting (bez nowych assetów)
+## ~~Stage 11: Shaders & Lighting~~ — USUNIĘTY
 
-**Cel:** Push Phaser 3 to visual limit — Light2D, custom GLSL shaders (god rays, chromatic aberration), raycaster shadows, Rex CRT, multi-camera. Efekt "ktoś podgląda Trumana przez kamerę".
-**User Stories:** US-1 (pokój), US-2 (Truman) — ultimate visual quality
-
-### Taski:
-
-- [ ] T11.1: Light2D pipeline + programmatic normal maps — Włączyć `this.lights.enable()` w RoomScene. Wygenerować normal maps programatycznie (Sobel filter na alpha) dla istniejących tekstur. Dodać 3 point lights: okno (ciepły, duży radius), ekran komputera (cyan, mały), lampa na biurku (ciepły, średni). Ustawić sprite'y na `setPipeline('Light2D')`. Ambient light na base visibility. (implement → verify dynamic lighting)
-- [ ] T11.2: Custom GLSL — god rays z okna — Custom `PostFXPipeline` z volumetric light rays z pozycji okna. Subtelne, animowane (delikatny sway). Aktywne tylko w dzień (wyłączone w nocy). Guard z VisualConfig. (implement → verify rays visible in browser)
-- [ ] T11.3: Custom GLSL — chromatic aberration — Subtelny RGB channel offset na krawędziach ekranu (1-2px). Efekt "kamera monitoringu". Bardzo subtelny. Guard z VisualConfig. (implement → verify)
-- [ ] T11.4: Rex CRT plugin — Zainstalować `phaser3-rex-plugins`. Użyć Rex CRT shader (barrel distortion + scanlines + vignette w jednym pass). Zastąpić nasz ręczny scanline overlay. Toggle via VisualConfig. (install → implement → verify better CRT)
-- [ ] T11.5: Enhanced weather particles — Deszcz: vertical streak particles na oknie + droplet splash. Noc: firefly particles near plant (warm glow, ADD). Configurable weather state. (implement → verify per weather)
-- [ ] T11.6: Dynamic shadow from window — Zainstalować `phaser-raycaster`. Cast shadow z window light source przez obiekty pokoju. Render shadow polygon jako dark overlay. Kierunek cienia zależy od pory dnia. (install → implement → verify shadows)
-- [ ] T11.7: Multi-camera HUD separation — Druga kamera dla HUD only (bez PostFX). Main camera z FX (bloom, vignette, god rays, CRT). HUD zawsze crisp. (implement → verify HUD unaffected by FX)
-
-### Security (MANDATORY):
-
-- [ ] S11.1: Rex plugins + raycaster — zweryfikować źródło npm packages (trusted, open-source, popularne). No eval/dynamic code. (verify)
-- [ ] S11.2: Test regression — turbo test PASS po Stage 11. (verify)
-
-### Docs (MANDATORY):
-
-- [ ] D11.1: Update `docs/CHANGELOG.md` — wpis Stage 11
-- [ ] D11.2: Update `docs/ART_GUIDE.md` — sekcja Light2D, shaders, normal maps
-
-### Stage Completion (MANDATORY):
-
-- [ ] SC11.1: Self-check — god rays widoczne, Light2D działa, chromatic aberration subtelne
-- [ ] SC11.2: Self-check — 30 FPS stable z wszystkimi efektami
-- [ ] SC11.3: Self-check — testy zielone
-- [ ] SC11.4: Zaktualizuj HANDOFF → [x]
-
-**Stage 11 DoD:** God rays z okna, dynamiczne światło na meblach, cienie, chromatic aberration, CRT barrel distortion, weather particles. 30 FPS stable. Efekt "kamera monitoringu".
+> **Powód:** Stage 14 celowo wyłączył wszystkie PostFX, overlaye i cieniowanie — pokój ma być jasny 24/7. Stage 11 (god rays, chromatic aberration, Light2D, raycaster shadows, CRT barrel distortion) koliduje z tą decyzją. Ponadto podejście "FLUX baked backgrounds" sprawia, że dynamiczne oświetlenie (Light2D + normal maps) daje minimalną wartość — tło to jeden PNG z wbudowanym cieniowaniem. Jeśli w przyszłości wróci dynamiczne oświetlenie, będzie to nowy stage z nowym kontekstem.
 
 ---
 
-## Stage 12: AI Asset Pipeline — Retro Diffusion (happy path: ~26 grafik)
+## Stage 12: AI Asset Pipeline — Retro Diffusion
 
-**Cel:** Zastąpić programatyczne sprite'y AI-generated pixel artem (Retro Diffusion via Replicate). Normal maps via Laigter. Szacunkowy koszt: ~$2-4.
+**Cel:** Zastąpić programatyczne sprite'y AI-generated pixel artem (Retro Diffusion via Replicate). Szacunkowy koszt: ~$2-4.
 **User Stories:** US-1 (pokój), US-2 (Truman) — real pixel art assets
 
-### Asset Inventory (minimum, happy path):
-- 14 room objects (rd-plus, static PNG z transparent bg)
-- 1 Truman walk spritesheet (rd-animation)
-- 1 Truman idle spritesheet (rd-animation)
-- 8 Truman activity poses (rd-plus, static)
-- 1 floor tile seamless (rd-tile)
-- 1 wall tile seamless (rd-tile)
-- 26 normal maps (Laigter CLI, $0)
-
-### Future assets (zapisane na później, NIE generujemy teraz):
-<!-- FUTURE: mood icons ×9, UI bubble 9-slice, additional room objects, weather sprites, Truman mood face variants ×9, additional activity animations, decorative objects (rug, lamp, books scattered), particle textures (fire, magic) -->
+### Asset Inventory:
+- 14 room objects (rd-plus, static PNG z transparent bg) ✅
+- 1 Truman walk spritesheet (rd-animation) ✅
+- 1 Truman idle spritesheet (rd-animation) ✅
+- 8 Truman activity poses (rd-plus, static) ✅
+- ~~1 floor tile seamless~~ — niepotrzebne, pokój używa FLUX background PNG
+- ~~1 wall tile seamless~~ — j.w.
+- ~~26 normal maps~~ — usunięte razem ze Stage 11 (Light2D)
 
 ### Taski:
 
-- [x] T12.1: Asset generation pipeline — Skrypt Node.js z Replicate API (`replicate` npm). Config `config/asset-prompts.json` definiuje: id, prompt, model, width, height. Batch generation z retry. Output: `packages/renderer/public/sprites/`. Cost tracking w console. (implement → test with 1 asset → verify)
-- [x] T12.2: Generate room objects (14 szt) — Uruchomić pipeline z prompts dla 14 obiektów. Retro Diffusion rd-plus, transparent background. Post-process: quantize to 16-32 colors. Output: `public/sprites/objects/`. (run → verify quality → iterate prompts if needed)
-- [x] T12.3: Generate Truman character — Walk + idle via rd-animation. 8 activity poses via rd-plus (static). Aseprite CLI lub PIL do assembly spritesheetu. Output: `public/sprites/truman/`. (run → verify → assemble atlas)
-- [ ] T12.4: Generate tilesets — Floor + wall via rd-tile z `tile_x: true, tile_y: true`. Seamless verification. Output: `public/sprites/tiles/`. (run → verify tiling → iterate)
-- [ ] T12.5: Normal map generation — Zainstalować Laigter lub użyć programmatic Sobel. Batch process ALL sprites → `_n.png` suffix. (install/implement → batch run → verify)
-- [x] T12.6: Phaser asset loader — Zastąpić `generateAllTextures()` na `this.load.image()` w BootScene preload. Load z `public/sprites/`. Normal maps via array: `['sprite.png', 'sprite_n.png']`. Fallback do programmatic jeśli PNG brak. (implement → verify objects render from PNG)
-- [x] T12.7: Truman PNG sprite — Zastąpić RenderTexture TrumanSprite na Phaser Sprite z atlas. Animacje z JSON atlas config. Zachować mood face overlay (tint lub swap frames). (refactor → implement → verify animations)
+- [x] T12.1: Asset generation pipeline — Skrypt Node.js z Replicate API (`replicate` npm). Config `config/asset-prompts.json` definiuje: id, prompt, model, width, height. Batch generation z retry. Output: `packages/renderer/public/sprites/`. Cost tracking w console.
+- [x] T12.2: Generate room objects (14 szt) — Retro Diffusion rd-plus, transparent background. Post-process: quantize to 16-32 colors. Output: `public/sprites/objects/`.
+- [x] T12.3: Generate Truman character — Walk + idle via rd-animation. 8 activity poses via rd-plus (static). Output: `public/sprites/truman/`.
+- ~~T12.4: Generate tilesets~~ — USUNIĘTY: pokój używa FLUX baked background (Stage 13/14), nie tiled floor/wall. BootScene ładuje `tile_floor`/`tile_wall` ale RoomScene ich nie używa.
+- ~~T12.5: Normal map generation~~ — USUNIĘTY razem ze Stage 11 (Light2D pipeline usunięty, normal maps niepotrzebne).
+- [x] T12.6: Phaser asset loader — Zastąpić `generateAllTextures()` na `this.load.image()` w BootScene preload. Load z `public/sprites/`. Fallback do programmatic jeśli PNG brak.
+- [x] T12.7: Truman PNG sprite — Zastąpić RenderTexture TrumanSprite na Phaser Sprite z atlas. Animacje z JSON atlas config. Zachować mood face overlay.
 
 ### Security (MANDATORY):
 
-- [ ] S12.1: Replicate API key w env — `REPLICATE_API_TOKEN` w `.env`. Nigdy w kodzie. Pipeline script czyta z env. (verify)
-- [ ] S12.2: Generated assets — PNG files only, no executable content. Verify file type before loading. (verify)
+- [x] S12.1: Replicate API key w env — `REPLICATE_API_TOKEN` w `.env`. Pipeline script czyta z env.
+- [x] S12.2: Generated assets — PNG files only, no executable content.
 
 ### Docs (MANDATORY):
 
 - [ ] D12.1: Update `docs/CHANGELOG.md` — wpis Stage 12
-- [ ] D12.2: Update `docs/ART_GUIDE.md` — asset pipeline, Retro Diffusion prompts, Laigter workflow
+- [ ] D12.2: Update `docs/ART_GUIDE.md` — asset pipeline, Retro Diffusion prompts
 - [ ] D12.3: Stworzyć `docs/ASSET_PIPELINE.md` — jak generować nowe assety, prompts, cleanup, koszt
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC12.1: Self-check — obiekty renderują się z PNG (nie z Graphics API)
-- [ ] SC12.2: Self-check — Light2D + normal maps działają razem
-- [ ] SC12.3: Self-check — Truman z animowanym spritesheetem
-- [ ] SC12.4: Self-check — testy zielone
+- [x] SC12.1: Self-check — obiekty renderują się z PNG (nie z Graphics API)
+- [x] SC12.3: Self-check — Truman z animowanym spritesheetem
+- [x] SC12.4: Self-check — testy zielone
 - [ ] SC12.5: Zaktualizuj HANDOFF → [x]
 
-**Stage 12 DoD:** Prawdziwe pixel art sprite'y (Retro Diffusion), normal maps (Laigter), Truman z PNG spritesheetem, floor/wall tiles. Light2D oświetla prawdziwe sprite'y z normal maps. Koszt: <$5.
+**Stage 12 DoD:** Prawdziwe pixel art sprite'y (Retro Diffusion), Truman z PNG spritesheetem. Pokój z FLUX background (Stage 13). Koszt: <$5.
 
 ---
 
