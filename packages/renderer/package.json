@@ -14,7 +14,8 @@
     "@nts/shared": "*",
     "@openrouter/ai-sdk-provider": "^2.3.3",
     "ai": "^6.0.137",
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "replicate": "^1.4.0"
   },
   "devDependencies": {
     "jsdom": "^29.0.1",
