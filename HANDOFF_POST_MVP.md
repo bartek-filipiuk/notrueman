@@ -170,8 +170,8 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 - [x] T9.3: Twitch bot — Twurple (@twurple/chat + @twurple/eventsub-ws). Komendy: `!status`, `!mood`, `!activity`. Channel Points: "Change weather", "Send letter". Głosowania z time window. Sanitizer na input (profanity + injection). (implement → test → verify)
 - [x] T9.4: Browser recycling & watchdog — Restart Chromium co 4-8h (memory leaks). Memory ceiling watchdog (>2GB → recycle). FFmpeg process monitor z auto-restart. Supervisor script jako PID 1. (implement → test → verify 24h stability)
 - [x] T9.5: Docker Compose production — Pełny stack: app (renderer + brain), streamer, postgres, redis. Caddy reverse proxy z auto-HTTPS. Resource limits na każdym service. Healthchecks. Log rotation (50MB max). Named volumes dla PostgreSQL. `.env` z wszystkimi secrets. (implement → verify)
-- [ ] T9.6: VPS deployment — Hetzner CPX31 (4 vCPU, 8 GB RAM, €16/mies). SSH hardening. `docker compose up -d`. Monitoring: Beszel + Uptime Kuma. Runbook: jak restartować, jak sprawdzić logi, jak dodać nowy content. (deploy → verify → document)
-- [ ] T9.7: Companion website MVP — Statyczna strona (Astro lub plain HTML): stream embed (Twitch/YouTube player), current status (co Truman robi), active votes, About + AI disclosure. Dark theme. Responsive. (implement → deploy → verify)
+- [ ] T9.6: VPS deployment — Hetzner CPX31 (4 vCPU, 8 GB RAM, €16/mies). SSH hardening. `docker compose up -d`. Monitoring: Beszel + Uptime Kuma. Runbook: jak restartować, jak sprawdzić logi, jak dodać nowy content. (deploy → verify → document) <!-- BLOCKED: Requires real VPS infrastructure (Hetzner server, SSH access, DNS). Cannot be done in CI/dev environment. -->
+- [x] T9.7: Companion website MVP — Statyczna strona (Astro lub plain HTML): stream embed (Twitch/YouTube player), current status (co Truman robi), active votes, About + AI disclosure. Dark theme. Responsive. (implement → deploy → verify)
 
 ### Security (MANDATORY):
 
