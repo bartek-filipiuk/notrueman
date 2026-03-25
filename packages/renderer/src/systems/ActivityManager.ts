@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { ActivityType, InteractiveObjectId } from "@nts/shared";
-import { ACTIVITY_LIST, ROOM_OBJECTS } from "@nts/shared";
+import { ACTIVITY_LIST, ROOM_OBJECTS, ACTIVITY_ANCHORS } from "@nts/shared";
 import { MovementSystem } from "./MovementSystem";
 import { ActivityRenderer } from "./ActivityRenderer";
 import { TrumanSprite } from "../entities/TrumanSprite";
@@ -74,13 +74,20 @@ export class ActivityManager {
     this.currentActivity = type;
     this.notifyChange();
 
-    const targetObject = ACTIVITY_OBJECTS[type];
-    await this.movement.moveToObject(targetObject);
+    // Move to anchor point (where Truman performs the activity)
+    await this.movement.moveToAnchor(type);
+
+    // Position at anchor + apply facing and offset
+    const anchor = ACTIVITY_ANCHORS[type];
+    if (anchor) {
+      this.truman.setFacing(anchor.facing);
+      if (anchor.poseOffsetX) this.truman.x += anchor.poseOffsetX;
+      if (anchor.poseOffsetY) this.truman.y += anchor.poseOffsetY;
+    }
 
     this.state = "performing";
     this.notifyChange();
     this.activityRenderer.playActivity(type);
-    // Switch to activity pose sprite
     this.truman.setActivityPose(type);
   }
 

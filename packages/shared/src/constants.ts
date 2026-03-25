@@ -244,26 +244,46 @@ export const ACTIVITY_LIST: readonly ActivityType[] = [
 ] as const;
 
 /** Room objects with positions (visual-spec.md S3.1, S4.1) */
-// Background is ONE AI-generated image with all furniture baked in.
-// ROOM_OBJECTS are now INTERACTION POINTS — where Truman walks to
-// perform activities. No separate sprites needed.
-// Positions match furniture in the AI background image (384x216 → 960x540).
-export const FLOOR_LINE_Y = 400;
+// Background: Variant A (jasny afternoon), 384x216 → 960x540.
+// ROOM_OBJECTS = interaction points matching furniture in the background.
+export const FLOOR_LINE_Y = 420;
 
 export const ROOM_OBJECTS: readonly RoomObject[] = [
-  // Positions = where Truman stands to interact (center-bottom of furniture)
-  { id: "bed",          x: 180, y: 430, width: 1, height: 1, label: "Bed", zone: "sleep" },
-  { id: "bookshelf",    x: 80,  y: 350, width: 1, height: 1, label: "Bookshelf", zone: "reading" },
-  { id: "desk",         x: 260, y: 370, width: 1, height: 1, label: "Desk", zone: "work" },
-  { id: "computer",     x: 280, y: 360, width: 1, height: 1, label: "Computer", zone: "work" },
-  { id: "window",       x: 480, y: 330, width: 1, height: 1, label: "Window", zone: "window" },
-  { id: "fridge",       x: 620, y: 360, width: 1, height: 1, label: "Fridge", zone: "kitchen" },
-  { id: "stove",        x: 620, y: 400, width: 1, height: 1, label: "Stove", zone: "kitchen" },
-  { id: "plant",        x: 700, y: 380, width: 1, height: 1, label: "Plant", zone: "window" },
-  { id: "easel",        x: 800, y: 380, width: 1, height: 1, label: "Easel", zone: "creative" },
-  { id: "table_chair",  x: 450, y: 440, width: 1, height: 1, label: "Table & Chair", zone: "kitchen" },
-  { id: "exercise_mat", x: 830, y: 450, width: 1, height: 1, label: "Exercise Mat", zone: "exercise" },
-  { id: "clock",        x: 480, y: 300, width: 1, height: 1, label: "Clock", zone: "window" },
-  { id: "poster",       x: 180, y: 280, width: 1, height: 1, label: "Poster", zone: "creative" },
-  { id: "door",         x: 900, y: 380, width: 1, height: 1, label: "Door", zone: "door" },
+  // Positions matched to Variant A background furniture locations
+  { id: "bed",          x: 200, y: 430, width: 1, height: 1, label: "Bed", zone: "sleep" },
+  { id: "bookshelf",    x: 60,  y: 330, width: 1, height: 1, label: "Bookshelf", zone: "reading" },
+  { id: "desk",         x: 680, y: 380, width: 1, height: 1, label: "Desk", zone: "work" },
+  { id: "computer",     x: 660, y: 360, width: 1, height: 1, label: "Computer", zone: "work" },
+  { id: "window",       x: 400, y: 300, width: 1, height: 1, label: "Window", zone: "window" },
+  { id: "fridge",       x: 100, y: 340, width: 1, height: 1, label: "Fridge", zone: "kitchen" },
+  { id: "stove",        x: 100, y: 400, width: 1, height: 1, label: "Stove", zone: "kitchen" },
+  { id: "plant",        x: 760, y: 380, width: 1, height: 1, label: "Plant", zone: "window" },
+  { id: "easel",        x: 360, y: 380, width: 1, height: 1, label: "Easel", zone: "creative" },
+  { id: "table_chair",  x: 500, y: 450, width: 1, height: 1, label: "Table & Chair", zone: "kitchen" },
+  { id: "exercise_mat", x: 550, y: 460, width: 1, height: 1, label: "Exercise Mat", zone: "exercise" },
+  { id: "clock",        x: 200, y: 150, width: 1, height: 1, label: "Clock", zone: "window" },
+  { id: "poster",       x: 130, y: 130, width: 1, height: 1, label: "Poster", zone: "creative" },
+  { id: "door",         x: 880, y: 380, width: 1, height: 1, label: "Door", zone: "door" },
 ] as const;
+
+/** Anchor points: where Truman positions himself when performing an activity.
+ *  x/y = Truman's feet position. facing = which way he looks.
+ *  poseOffsetY = vertical adjustment for pose (negative = higher, e.g. lying in bed). */
+export interface ActivityAnchor {
+  x: number;
+  y: number;
+  facing: "left" | "right";
+  poseOffsetX?: number;
+  poseOffsetY?: number;
+}
+
+export const ACTIVITY_ANCHORS: Record<ActivityType, ActivityAnchor> = {
+  sleep:    { x: 200, y: 440, facing: "right", poseOffsetY: -10 },  // in bed
+  eat:      { x: 500, y: 450, facing: "right" },                     // at table
+  read:     { x: 70,  y: 380, facing: "right" },                     // at bookshelf
+  computer: { x: 650, y: 390, facing: "right" },                     // at desk
+  exercise: { x: 550, y: 460, facing: "right" },                     // on mat
+  think:    { x: 400, y: 340, facing: "left" },                      // at window
+  cook:     { x: 100, y: 410, facing: "right" },                     // at stove/fridge
+  draw:     { x: 350, y: 390, facing: "right" },                     // at easel
+};

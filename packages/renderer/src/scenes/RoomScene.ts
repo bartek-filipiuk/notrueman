@@ -81,14 +81,7 @@ export class RoomScene extends Phaser.Scene {
       this.createCRTScanlines();
     }
 
-    // Foreground depth gradient — dark edge at bottom for "looking into room" feel
-    const fgGrad = this.add.graphics();
-    fgGrad.fillStyle(0x000000, 0.12);
-    fgGrad.fillRect(0, GAME_HEIGHT - 20, GAME_WIDTH, 20);
-    fgGrad.fillStyle(0x000000, 0.06);
-    fgGrad.fillRect(0, GAME_HEIGHT - 40, GAME_WIDTH, 20);
-    fgGrad.setDepth(97);
-    fgGrad.setScrollFactor(0);
+    // Foreground gradient removed — room stays bright
   }
 
   /** CRT scanline overlay — alternating dark lines for retro TV feel */
@@ -146,7 +139,7 @@ export class RoomScene extends Phaser.Scene {
     const cam = this.cameras.main;
 
     if (fx.vignette && cam.postFX) {
-      cam.postFX.addVignette(0.5, 0.5, 0.92, 0.18);
+      cam.postFX.addVignette(0.5, 0.5, 0.95, 0.08);
     }
     if (fx.bloom && cam.postFX) {
       cam.postFX.addBloom(0xffffff, 0.8, 0.8, 0.4, 1.1, 4);

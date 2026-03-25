@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import type { Position, InteractiveObjectId } from "@nts/shared";
-import { ROOM_OBJECTS } from "@nts/shared";
+import type { Position, InteractiveObjectId, ActivityType } from "@nts/shared";
+import { ROOM_OBJECTS, ACTIVITY_ANCHORS } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 
 const WALK_SPEED = 80; // pixels per second
@@ -89,6 +89,15 @@ export class MovementSystem {
         this.truman.playWalk(newFacing);
       }
     }
+  }
+
+  /** Move Truman to an activity anchor point (where he performs the activity) */
+  moveToAnchor(activity: ActivityType): Promise<void> {
+    const anchor = ACTIVITY_ANCHORS[activity];
+    if (!anchor) {
+      return Promise.resolve();
+    }
+    return this.moveTo({ x: anchor.x, y: anchor.y });
   }
 
   /** Check if Truman is currently moving */
