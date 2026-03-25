@@ -182,7 +182,7 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 
 ### Docs (MANDATORY):
 
-- [ ] D9.1: Update `docs/CHANGELOG.md` — wpis Stage 9
+- [x] D9.1: Update `docs/CHANGELOG.md` — wpis Stage 9
 - [ ] D9.2: Stworzyć `docs/RUNBOOK.md` — procedury operacyjne: deploy, restart, rollback, monitoring, troubleshooting
 - [ ] D9.3: Finalize `docs/README.md` — pełna dokumentacja production
 

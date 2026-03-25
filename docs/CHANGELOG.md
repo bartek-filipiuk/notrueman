@@ -1,5 +1,28 @@
 # Changelog
 
+## [Stage 9 — Streaming & Production] - 2026-03-25
+
+### Added
+- FFmpeg RTMP streaming pipeline (XVFB + x11grab → Twitch/YouTube)
+- Browser recycling & watchdog: Chromium restart every 4-8h, memory ceiling (>2GB → recycle)
+- Twitch bot (Twurple): `!status`, `!mood`, `!activity` commands, Channel Points ("Change weather", "Send letter"), voting system with time windows
+- Docker Compose production stack: app, streamer, postgres, redis, Caddy (auto-HTTPS)
+- Companion website MVP: stream embed, live status, active votes, dark theme, AI disclosure
+- VPS hardening script: UFW firewall (22/80/443), Fail2ban, unattended upgrades, SSH hardening
+
+### Security
+- 3-layer chat sanitizer: profanity filter → context check → injection detection
+- Fixed regex `g` flag lastIndex bug in injection detection patterns
+- 22 negative test cases for sanitizer (XSS, SQL injection, prompt injection, profanity variants)
+- Stream keys externalized to `.env` via RTMP_URL (never in source code)
+- Log masking strips sensitive URL params before logging
+- All Docker containers run as non-root users
+- `[AI Character]` disclosure on companion website + mandated in stream title
+
+### Documentation
+- Full AI disclosure section on companion website
+- Security spec compliance verified
+
 ## [Stage 8 — Audio & Voice: Complete] - 2026-03-25
 
 ### Added
