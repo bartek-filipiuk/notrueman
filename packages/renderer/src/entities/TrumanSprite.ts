@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import { getVisualConfig } from "../config/VisualConfig";
 
-const SPRITE_WIDTH = 32;
-const SPRITE_HEIGHT = 48;
+const SPRITE_WIDTH = 50;
+const SPRITE_HEIGHT = 50;
 // Extra padding for glow FX overflow
 const PAD = 8;
 const TEX_W = SPRITE_WIDTH + PAD * 2;
@@ -65,7 +65,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // Shadow ellipse (below character)
-    this.shadow = scene.add.ellipse(0, 36, 36, 8, 0x000000, SHADOW_ALPHA);
+    this.shadow = scene.add.ellipse(0, 45, 44, 10, 0x000000, SHADOW_ALPHA);
     this.add(this.shadow);
 
     // Check if AI-generated PNG sprites are available
@@ -73,8 +73,8 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
     if (this.usePNG) {
       // Use AI-generated PNG sprite (mood-switchable)
-      this.pngSprite = scene.add.image(0, -8, "truman_idle");
-      this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+      this.pngSprite = scene.add.image(0, 0, "truman_idle");
+      this.pngSprite.setDisplaySize(100, 100);
       this.add(this.pngSprite);
 
       // Apply glow to PNG sprite
@@ -117,7 +117,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       const poseKey = `truman_pose_${activity}`;
       if (this.scene.textures.exists(poseKey)) {
         this.pngSprite.setTexture(poseKey);
-        this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+        this.pngSprite.setDisplaySize(100, 100);
         this.pngSprite.setFlipX(this.facing === "left");
         this.stopAnim(); // freeze during activity pose
         return;
@@ -130,7 +130,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     } else {
       this.pngSprite.setTexture("truman_idle");
     }
-    this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+    this.pngSprite.setDisplaySize(100, 100);
   }
 
   setMood(mood: string): void {
@@ -285,7 +285,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
         callback: () => {
           this.frameIndex = (this.frameIndex + 1) % 4;
           const yOff = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
-          this.pngSprite!.setY(-4 + yOff);
+          this.pngSprite!.setY(yOff);
         },
       });
     } else {
@@ -316,7 +316,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
         callback: () => {
           this.frameIndex = (this.frameIndex + 1) % 6;
           const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
-          this.pngSprite!.setY(-4 + yOff);
+          this.pngSprite!.setY(yOff);
         },
       });
     } else {

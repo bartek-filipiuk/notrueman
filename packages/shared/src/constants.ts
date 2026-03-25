@@ -250,21 +250,21 @@ export const FLOOR_LINE_Y = 420;
 
 export const ROOM_OBJECTS: readonly RoomObject[] = [
   // Positions matched to Variant A background furniture locations
-  // Positions matched to Variant A background furniture locations
-  { id: "bed",          x: 380, y: 500, width: 1, height: 1, label: "Bed", zone: "sleep" },
-  { id: "bookshelf",    x: 160, y: 480, width: 1, height: 1, label: "Bookshelf", zone: "reading" },
-  { id: "desk",         x: 1020,y: 450, width: 1, height: 1, label: "Desk", zone: "work" },
-  { id: "computer",     x: 1020,y: 450, width: 1, height: 1, label: "Computer", zone: "work" },
-  { id: "window",       x: 650, y: 420, width: 1, height: 1, label: "Window", zone: "window" },
-  { id: "fridge",       x: 400, y: 430, width: 1, height: 1, label: "Fridge", zone: "kitchen" },
-  { id: "stove",        x: 400, y: 430, width: 1, height: 1, label: "Stove", zone: "kitchen" },
-  { id: "plant",        x: 1200,y: 440, width: 1, height: 1, label: "Plant", zone: "window" },
-  { id: "easel",        x: 600, y: 460, width: 1, height: 1, label: "Easel", zone: "creative" },
-  { id: "table_chair",  x: 300, y: 500, width: 1, height: 1, label: "Table & Chair", zone: "kitchen" },
-  { id: "exercise_mat", x: 850, y: 500, width: 1, height: 1, label: "Exercise Mat", zone: "exercise" },
-  { id: "clock",        x: 650, y: 300, width: 1, height: 1, label: "Clock", zone: "window" },
-  { id: "poster",       x: 200, y: 200, width: 1, height: 1, label: "Poster", zone: "creative" },
-  { id: "door",         x: 1400,y: 450, width: 1, height: 1, label: "Door", zone: "door" },
+  // Positions matched to FLUX pixel art room background
+  { id: "bed",          x: 800, y: 470, width: 1, height: 1, label: "Bed", zone: "sleep" },
+  { id: "bookshelf",    x: 170, y: 460, width: 1, height: 1, label: "Bookshelf", zone: "reading" },
+  { id: "desk",         x: 500, y: 450, width: 1, height: 1, label: "Desk", zone: "work" },
+  { id: "computer",     x: 520, y: 440, width: 1, height: 1, label: "Computer", zone: "work" },
+  { id: "window",       x: 480, y: 380, width: 1, height: 1, label: "Window", zone: "window" },
+  { id: "fridge",       x: 120, y: 440, width: 1, height: 1, label: "Fridge", zone: "kitchen" },
+  { id: "stove",        x: 140, y: 450, width: 1, height: 1, label: "Stove", zone: "kitchen" },
+  { id: "plant",        x: 300, y: 460, width: 1, height: 1, label: "Plant", zone: "window" },
+  { id: "easel",        x: 880, y: 460, width: 1, height: 1, label: "Easel", zone: "creative" },
+  { id: "table_chair",  x: 600, y: 480, width: 1, height: 1, label: "Table & Chair", zone: "kitchen" },
+  { id: "exercise_mat", x: 400, y: 490, width: 1, height: 1, label: "Exercise Mat", zone: "exercise" },
+  { id: "clock",        x: 750, y: 200, width: 1, height: 1, label: "Clock", zone: "window" },
+  { id: "poster",       x: 700, y: 200, width: 1, height: 1, label: "Poster", zone: "creative" },
+  { id: "door",         x: 900, y: 400, width: 1, height: 1, label: "Door", zone: "door" },
 ] as const;
 
 /** Anchor points: where Truman positions himself when performing an activity.
@@ -278,14 +278,14 @@ export interface ActivityAnchor {
   poseOffsetY?: number;
 }
 
-// Anchor points matched to Variant A background (384x216 → 960x540)
+// Anchor points matched to FLUX pixel art room background
 export const ACTIVITY_ANCHORS: Record<ActivityType, ActivityAnchor> = {
-  sleep:    { x: 380, y: 500, facing: "right", poseOffsetY: -15 },   // on bed
-  eat:      { x: 300, y: 500, facing: "right" },                     // near bed/table area
-  read:     { x: 160, y: 480, facing: "right" },                     // at bookshelf
-  computer: { x: 1020, y: 450, facing: "left" },                     // at desk chair
-  exercise: { x: 850, y: 500, facing: "right" },                     // on floor center
-  think:    { x: 650, y: 420, facing: "right" },                     // at window
-  cook:     { x: 400, y: 430, facing: "right" },                     // at fridge
-  draw:     { x: 600, y: 460, facing: "right" },                     // at easel
+  sleep:    { x: 800, y: 470, facing: "left", poseOffsetY: -10 },    // on bed (right side)
+  eat:      { x: 600, y: 480, facing: "right" },                     // at table area (center-right)
+  read:     { x: 170, y: 460, facing: "right" },                     // at bookshelf (left)
+  computer: { x: 500, y: 450, facing: "right" },                     // at desk (center)
+  exercise: { x: 400, y: 490, facing: "right" },                     // on mat (center-left)
+  think:    { x: 480, y: 380, facing: "right" },                     // at window (center-up)
+  cook:     { x: 120, y: 440, facing: "right" },                     // at fridge (far left)
+  draw:     { x: 880, y: 460, facing: "left" },                      // at easel area (far right)
 };
