@@ -42,9 +42,41 @@
 - Objects: minimum 32×32 px
 - 1 "pixel" = 2×2 screen pixels at stream resolution
 
-## Technique
+## Asset Pipeline
 
-All art is generated programmatically — no external image files.
+Assets are generated via **Retro Diffusion** models on Replicate, with a programmatic fallback.
+
+### Primary: AI-Generated PNGs (Retro Diffusion)
+
+```bash
+# Generate all sprites (~$0.90 total)
+REPLICATE_API_TOKEN=r8_xxx ./scripts/generate-assets.sh
+```
+
+**Models used:**
+| Model | Purpose | Cost |
+|-------|---------|------|
+| `retro-diffusion/rd-plus` | Static sprites (objects, character poses) | ~$0.03/image |
+| `retro-diffusion/rd-tile` | Seamless tiles (floor, wall) | ~$0.03/image |
+| `retro-diffusion/rd-animation` | Animated spritesheets (walk, idle) | ~$0.05/sheet |
+
+**Output:** `packages/renderer/public/sprites/`
+```
+sprites/
+  objects/   # 14 room objects (bed, desk, computer, bookshelf, etc.)
+  truman/    # idle, mood variants (happy, curious, anxious, etc.)
+  tiles/     # floor, wall (seamless)
+```
+
+**Prompt tips for Retro Diffusion:**
+- Always include: `pixel art`, `side view`, `warm colors`
+- Character: `chibi`, `large head small body`, `cute proportions`, `game sprite`, `facing right`
+- Objects: `room furniture`, `cozy style`, specific colors/materials
+- Use `remove_bg: true` for transparent backgrounds on objects/characters
+
+### Fallback: Programmatic (Graphics API)
+
+If PNGs are missing, `BootScene` falls back to `generateTexture()` shapes:
 
 ```typescript
 // 1. Draw with Graphics API
@@ -60,18 +92,26 @@ g.destroy();
 scene.add.image(x, y, "my_object");
 ```
 
+### Loading Priority
+
+`BootScene.preload()` checks for PNGs first → programmatic generation as fallback:
+1. Try `this.load.image('obj_bed', 'sprites/objects/bed.png')`
+2. On load error → call `generateBed()` from `RoomObjectSprites.ts`
+
 ## Naming Convention
 
 - Object textures: `obj_[id]` (e.g. `obj_bed`, `obj_fridge`)
+- Truman textures: `truman_idle`, `truman_walk`, `truman_mood_[mood]`
 - Particle textures: `particle_[name]` (e.g. `particle_steam`)
-- Truman: drawn in real-time (not texture-based)
+- Tile textures: `tile_floor`, `tile_wall`
 
 ## Adding a New Object
 
 1. Add entry to `ROOM_OBJECTS` in `packages/shared/src/constants.ts`
-2. Add `generate[Name]()` function in `packages/renderer/src/sprites/RoomObjectSprites.ts`
-3. Call it from `generateAllTextures()`
-4. The texture key must be `obj_[id]` where id matches the ROOM_OBJECTS entry
+2. Add prompt to `scripts/generate-assets.sh` → run to generate PNG
+3. Add `generate[Name]()` fallback in `packages/renderer/src/sprites/RoomObjectSprites.ts`
+4. Add PNG preload in `BootScene` with fallback to `generateAllTextures()`
+5. The texture key must be `obj_[id]` where id matches the ROOM_OBJECTS entry
 
 ## Visual FX (Stage 10)
 

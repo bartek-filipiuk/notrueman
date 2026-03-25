@@ -318,7 +318,7 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 ### Docs (MANDATORY):
 
 - [x] D12.1: Update `docs/CHANGELOG.md` — wpis Stage 12
-- [ ] D12.2: Update `docs/ART_GUIDE.md` — asset pipeline, Retro Diffusion prompts
+- [x] D12.2: Update `docs/ART_GUIDE.md` — asset pipeline, Retro Diffusion prompts
 - [ ] D12.3: Stworzyć `docs/ASSET_PIPELINE.md` — jak generować nowe assety, prompts, cleanup, koszt
 
 ### Stage Completion (MANDATORY):
