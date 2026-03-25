@@ -1,0 +1,42 @@
+# Production Docker Compose — includes streaming pipeline
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Requires .env with: RTMP_URL, STREAM_URL, and other secrets
+
+services:
+  streamer:
+    build:
+      context: ./packages/stream-manager/docker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DISPLAY=:99
+      - STREAM_URL=${STREAM_URL:-http://host.docker.internal:5173}
+      - RTMP_URL=${RTMP_URL:?RTMP_URL is required}
+      - RESOLUTION=${STREAM_RESOLUTION:-960x540}
+      - FRAMERATE=${STREAM_FRAMERATE:-30}
+      - VIDEO_BITRATE=${STREAM_VIDEO_BITRATE:-4500k}
+      - AUDIO_BITRATE=${STREAM_AUDIO_BITRATE:-160k}
+      - RECYCLE_INTERVAL_S=${BROWSER_RECYCLE_INTERVAL:-14400}
+      - MAX_MEMORY_MB=${BROWSER_MAX_MEMORY_MB:-2048}
+      - CHROME_FLAGS=${CHROME_FLAGS:-}
+    shm_size: "2gb"
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "2.0"
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x ffmpeg && pgrep -f chromium || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"

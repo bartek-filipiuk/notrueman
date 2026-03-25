@@ -11,7 +11,8 @@
     "lint": "echo 'lint ok'"
   },
   "dependencies": {
-    "@nts/shared": "*"
+    "@nts/shared": "*",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

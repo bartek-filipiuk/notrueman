@@ -165,7 +165,7 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 
 ### Taski:
 
-- [ ] T9.1: Streamer Docker container — Dockerfile z: Chromium, XVFB, FFmpeg, PulseAudio. Entrypoint: startuje Xvfb → PulseAudio → Chromium z renderer URL → FFmpeg x11grab → RTMP. Bazowany na `steveseguin/browser-to-rtmp-docker` reference. (implement → test local → verify stream)
+- [x] T9.1: Streamer Docker container — Dockerfile z: Chromium, XVFB, FFmpeg, PulseAudio. Entrypoint: startuje Xvfb → PulseAudio → Chromium z renderer URL → FFmpeg x11grab → RTMP. Bazowany na `steveseguin/browser-to-rtmp-docker` reference. (implement → test local → verify stream)
 - [ ] T9.2: FFmpeg pipeline — x11grab capture z Xvfb, H.264 veryfast/zerolatency, 4500kbps, 30fps. Audio capture z PulseAudio virtual sink. RTMP output z auto-reconnect (`-reconnect 1`). Configurable via env vars (resolution, bitrate, RTMP URL). (implement → test → verify Twitch ingest)
 - [ ] T9.3: Twitch bot — Twurple (@twurple/chat + @twurple/eventsub-ws). Komendy: `!status`, `!mood`, `!activity`. Channel Points: "Change weather", "Send letter". Głosowania z time window. Sanitizer na input (profanity + injection). (implement → test → verify)
 - [ ] T9.4: Browser recycling & watchdog — Restart Chromium co 4-8h (memory leaks). Memory ceiling watchdog (>2GB → recycle). FFmpeg process monitor z auto-restart. Supervisor script jako PID 1. (implement → test → verify 24h stability)
