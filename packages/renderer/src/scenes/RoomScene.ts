@@ -19,6 +19,7 @@ import { generateAllMusicTracks } from "../systems/ProceduralMusic";
 import { MusicManager } from "../systems/MusicManager";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 import { TTSManager } from "../systems/TTSManager";
+import { DayNightCycle } from "../systems/DayNightCycle";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -53,6 +54,7 @@ export class RoomScene extends Phaser.Scene {
   private ambientManager!: AmbientManager;
   private musicManager!: MusicManager;
   private ttsManager: TTSManager | null = null;
+  private dayNight: DayNightCycle | null = null;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -181,7 +183,10 @@ export class RoomScene extends Phaser.Scene {
     // feet are ~40px below. Objects use origin(0.5,1) so depth=obj.y = bottom edge.
     this.truman.setDepth(this.truman.y + 40);
 
-    // Object glow disabled — furniture is baked into background image
+    // Day/night cycle lighting update
+    this.dayNight?.update();
+    // Window view update (sky color/stars)
+    this.windowView?.update();
   }
 
   /** Add glow to nearest object when Truman is close */
@@ -239,8 +244,11 @@ export class RoomScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.thoughtBubble = new ThoughtBubble(this);
 
-    // WindowView and LightingSystem disabled — room background is self-contained
-    // and always bright. No overlays needed.
+    // Day/Night cycle with Light2D point lights
+    this.dayNight = new DayNightCycle(this);
+
+    // Window view — sky/clouds/stars behind window object
+    this.windowView = new WindowView(this);
 
     // Audio mixer with three channels (voice, ambient, music)
     this.audioMixer = new AudioMixer(this);

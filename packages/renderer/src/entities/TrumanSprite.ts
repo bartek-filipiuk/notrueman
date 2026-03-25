@@ -77,13 +77,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       this.pngSprite.setDisplaySize(96, 96);
       this.add(this.pngSprite);
 
-      // Apply glow to PNG sprite
-      try {
-        const fxConfig = getVisualConfig();
-        if (fxConfig.trumanGlow && this.pngSprite.preFX) {
-          this.pngSprite.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
-        }
-      } catch { /* skip */ }
+      // Glow disabled — Light2D handles ambient lighting now
 
       // RenderTexture hidden but kept for compatibility
       this.rt = scene.add.renderTexture(0, 0, 1, 1);
@@ -94,12 +88,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       this.rt.setOrigin(0.5, 0.5);
       this.add(this.rt);
 
-      try {
-        const fxConfig = getVisualConfig();
-        if (fxConfig.trumanGlow && this.rt.preFX) {
-          this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
-        }
-      } catch { /* skip */ }
+      // Glow disabled — Light2D handles ambient lighting now
     }
 
     this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
