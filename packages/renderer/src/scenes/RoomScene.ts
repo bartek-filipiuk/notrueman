@@ -61,27 +61,13 @@ export class RoomScene extends Phaser.Scene {
     generateAllTextures(this);
     ParticleManager.generateTextures(this);
 
-    // Fade in from black (coming from BootScene)
-    this.cameras.main.fadeIn(800, 10, 10, 26);
+    // No fade — room appears instantly and bright
 
     this.createBackground();
     this.createRoomObjects();
     this.createTruman();
 
-    // Apply camera PostFX (WebGL only)
-    this.applyCameraFX();
-
-    // Ambient dust particles in window light
-    if (getVisualConfig().ambientParticles) {
-      this.createAmbientDust();
-    }
-
-    // CRT scanlines (optional retro vibe, off by default)
-    if (getVisualConfig().crtScanlines) {
-      this.createCRTScanlines();
-    }
-
-    // Foreground gradient removed — room stays bright
+    // All overlays disabled — room is clean background + Truman only
   }
 
   /** CRT scanline overlay — alternating dark lines for retro TV feel */
@@ -133,17 +119,10 @@ export class RoomScene extends Phaser.Scene {
     emitter.setDepth(3);
   }
 
-  /** Apply pro-level camera PostFX effects */
+  /** Camera PostFX disabled — room stays clean and bright */
   private applyCameraFX(): void {
-    const fx = getVisualConfig();
-    const cam = this.cameras.main;
-
-    if (fx.vignette && cam.postFX) {
-      cam.postFX.addVignette(0.5, 0.5, 0.95, 0.08);
-    }
-    if (fx.bloom && cam.postFX) {
-      cam.postFX.addBloom(0xffffff, 0.5, 0.5, 0.3, 1.0, 2);
-    }
+    // All PostFX (vignette, bloom) disabled to keep room bright and clear.
+    // Can be re-enabled later via VisualConfig when brightness is confirmed.
   }
 
   private glowFrameCounter = 0;
@@ -153,8 +132,6 @@ export class RoomScene extends Phaser.Scene {
     this.movement.update(time, delta);
     this.activityRenderer.update();
     this.hud.updateTime();
-    this.lighting.update();
-    this.windowView.update();
 
     // Depth sort: Truman renders in front of objects below him, behind objects above
     this.truman.setDepth(this.truman.y);
@@ -215,8 +192,8 @@ export class RoomScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.thoughtBubble = new ThoughtBubble(this);
 
-    this.windowView = new WindowView(this);
-    this.lighting = new LightingSystem(this);
+    // WindowView and LightingSystem disabled — room background is self-contained
+    // and always bright. No overlays needed.
 
     // Audio mixer with three channels (voice, ambient, music)
     this.audioMixer = new AudioMixer(this);
