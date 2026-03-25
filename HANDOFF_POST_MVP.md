@@ -176,7 +176,7 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 ### Security (MANDATORY):
 
 - [x] S9.1: Stream key w env — `TWITCH_STREAM_KEY`, `YOUTUBE_STREAM_KEY` w `.env`, nigdy w kodzie. (verify) ✅ Audited: RTMP_URL with stream key externalized to .env, .gitignore covers .env*, no hardcoded keys in source, log masking in entrypoint.sh
-- [ ] S9.2: Chat sanitization — 3-layer: profanity filter → context check → injection detection. Brak viewer-controlled code execution. (implement → test negative cases)
+- [x] S9.2: Chat sanitization — 3-layer: profanity filter → context check → injection detection. Brak viewer-controlled code execution. (implement → test negative cases) ✅ Fixed regex g-flag lastIndex bug in injection patterns, added 22 negative test cases
 - [ ] S9.3: VPS hardening — Firewall (tylko 80, 443, 22). Fail2ban. Unattended upgrades. Non-root Docker. (implement → verify)
 - [ ] S9.4: AI disclosure — `[AI Character]` w stream title. Full disclosure w channel description i na companion website. (verify)
 

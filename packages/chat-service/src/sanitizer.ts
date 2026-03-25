@@ -85,22 +85,23 @@ function checkContext(text: string): ContextIssue | null {
 
 const INJECTION_PATTERNS: RegExp[] = [
   // Script/HTML injection
-  /<\s*script/gi,
-  /<\s*img[^>]+onerror/gi,
-  /javascript\s*:/gi,
-  /on\w+\s*=/gi,
+  // NOTE: Use 'i' flag only (no 'g') — .test() with 'g' causes lastIndex bugs
+  /<\s*script/i,
+  /<\s*img[^>]+onerror/i,
+  /javascript\s*:/i,
+  /on\w+\s*=/i,
 
   // SQL injection
-  /('\s*(OR|AND)\s+')/gi,
-  /(UNION\s+SELECT|DROP\s+TABLE|DELETE\s+FROM)/gi,
+  /'\s*(OR|AND)\s+'/i,
+  /(UNION\s+SELECT|DROP\s+TABLE|DELETE\s+FROM)/i,
 
   // Prompt injection (LLM manipulation)
-  /ignore\s+(all\s+)?previous\s+instructions/gi,
-  /you\s+are\s+now\s+/gi,
-  /system\s*:\s*/gi,
-  /\[INST\]/gi,
-  /<<SYS>>/gi,
-  /\bact\s+as\b.*\b(admin|root|system)\b/gi,
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+/i,
+  /system\s*:\s*/i,
+  /\[INST\]/i,
+  /<<SYS>>/i,
+  /\bact\s+as\b.*\b(admin|root|system)\b/i,
 ];
 
 function detectInjection(text: string): boolean {
