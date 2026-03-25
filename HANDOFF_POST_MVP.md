@@ -188,11 +188,11 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC9.1: Self-check — stream działa na Twitch/YouTube
-- [ ] SC9.2: Self-check — brak hardcoded secrets (final scan)
-- [ ] SC9.3: Self-check — 24h test na VPS (stabilność)
-- [ ] SC9.4: Self-check — monitoring działa i alertuje
-- [ ] SC9.5: Zaktualizuj HANDOFF → [x]
+- [ ] SC9.1: Self-check — stream działa na Twitch/YouTube <!-- BLOCKED: Requires real Twitch/YouTube stream setup -->
+- [x] SC9.2: Self-check — brak hardcoded secrets (final scan) ✅ grep scan: no hardcoded API keys, passwords, or stream keys in source
+- [ ] SC9.3: Self-check — 24h test na VPS (stabilność) <!-- BLOCKED: Requires real VPS infrastructure -->
+- [ ] SC9.4: Self-check — monitoring działa i alertuje <!-- BLOCKED: Requires real VPS + monitoring stack -->
+- [ ] SC9.5: Zaktualizuj HANDOFF → [x] <!-- BLOCKED: SC9.1, SC9.3, SC9.4 blocked on real infrastructure -->
 
 **Stage 9 DoD:** Truman streamuje 24/7 na Twitch. Widzowie widzą pixel art pokój z żyjącym AI. Chat komendy działają. Monitoring raportuje. System stabilny 24h+.
 
