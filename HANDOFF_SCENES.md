@@ -38,15 +38,15 @@ Każda scena to: 1 obraz FLUX (z Trumanem, full screen) + overlaye w Phaser (ani
 
 ### Taski:
 
-- [ ] T16.1: SleepScene — FLUX: "pixel art close-up, young man sleeping in cozy bed, blue blanket, red pillow, moonlight through window, peaceful, night, 16bit SNES". Overlaye: delikatne "Zzz" text pojawiające się i znikające, oddychanie (subtle alpha pulse na całym obrazie), gwiazdy za oknem (particles). `scenes/SleepScene.ts`. Dodać `sleep` do ZOOM_ACTIVITIES.
-- [ ] T16.2: CookScene — FLUX: "pixel art close-up, young man cooking at stove, stirring pot, steam rising, kitchen counter with ingredients, warm lighting, 16bit SNES". Overlaye: para z garnka (particles), bulgotanie (pulsujący circle), migające światło palnika (orange glow). `scenes/CookScene.ts`.
-- [ ] T16.3: ReadScene — FLUX: "pixel art close-up, young man sitting in armchair reading book, desk lamp warm glow, bookshelf background, cozy evening, 16bit SNES". Overlaye: przewracanie stron (tekst zmienia się co 3s), lampka glow pulse, dust particles w świetle. `scenes/ReadScene.ts`.
-- [ ] T16.4: DrawScene — FLUX: "pixel art close-up, young man painting at easel with brush, canvas with colorful art, paint palette, creative mess, warm studio light, 16bit SNES". Overlaye: kolorowe plamki (particles = paint splatter), pędzel stroke (linia pojawia się na płótnie co 2s). `scenes/DrawScene.ts`.
-- [ ] T16.5: ExerciseScene — FLUX: "pixel art close-up, young man doing push ups on yoga mat, water bottle nearby, energetic pose, bright room, 16bit SNES". Overlaye: krople potu (particles), effort lines, pulsujący glow (energy). `scenes/ExerciseScene.ts`.
-- [ ] T16.6: EatScene — FLUX: "pixel art close-up, young man sitting at table eating meal, plate of food, glass of water, cozy kitchen, warm lighting, 16bit SNES". Overlaye: para z jedzenia (particles), animowany tekst "nom nom" co 3s. `scenes/EatScene.ts`.
-- [ ] T16.7: ThinkScene — FLUX: "pixel art close-up, young man standing at window looking at city skyline at sunset, contemplative pose, warm golden light, 16bit SNES". Overlaye: chmury przesuwające się za oknem (tween), ptaki (małe particles), myśli (dymek z "..." pojawiający się i znikający). `scenes/ThinkScene.ts`.
-- [ ] T16.8: BootScene preload all scenes — Dodać preload dla 7 nowych scene backgrounds. Zarejestrować sceny w main.ts.
-- [ ] T16.9: ActivityManager — Dodać wszystkie 8 aktywności do ZOOM_ACTIVITIES set. Mapowanie activity → sceneKey.
+- [x] T16.1: SleepScene — FLUX: "pixel art close-up, young man sleeping in cozy bed, blue blanket, red pillow, moonlight through window, peaceful, night, 16bit SNES". Overlaye: delikatne "Zzz" text pojawiające się i znikające, oddychanie (subtle alpha pulse na całym obrazie), gwiazdy za oknem (particles). `scenes/SleepScene.ts`. Dodać `sleep` do ZOOM_ACTIVITIES.
+- [x] T16.2: CookScene — FLUX: "pixel art close-up, young man cooking at stove, stirring pot, steam rising, kitchen counter with ingredients, warm lighting, 16bit SNES". Overlaye: para z garnka (particles), bulgotanie (pulsujący circle), migające światło palnika (orange glow). `scenes/CookScene.ts`.
+- [x] T16.3: ReadScene — FLUX: "pixel art close-up, young man sitting in armchair reading book, desk lamp warm glow, bookshelf background, cozy evening, 16bit SNES". Overlaye: przewracanie stron (tekst zmienia się co 3s), lampka glow pulse, dust particles w świetle. `scenes/ReadScene.ts`.
+- [x] T16.4: DrawScene — FLUX: "pixel art close-up, young man painting at easel with brush, canvas with colorful art, paint palette, creative mess, warm studio light, 16bit SNES". Overlaye: kolorowe plamki (particles = paint splatter), pędzel stroke (linia pojawia się na płótnie co 2s). `scenes/DrawScene.ts`.
+- [x] T16.5: ExerciseScene — FLUX: "pixel art close-up, young man doing push ups on yoga mat, water bottle nearby, energetic pose, bright room, 16bit SNES". Overlaye: krople potu (particles), effort lines, pulsujący glow (energy). `scenes/ExerciseScene.ts`.
+- [x] T16.6: EatScene — FLUX: "pixel art close-up, young man sitting at table eating meal, plate of food, glass of water, cozy kitchen, warm lighting, 16bit SNES". Overlaye: para z jedzenia (particles), animowany tekst "nom nom" co 3s. `scenes/EatScene.ts`.
+- [x] T16.7: ThinkScene — FLUX: "pixel art close-up, young man standing at window looking at city skyline at sunset, contemplative pose, warm golden light, 16bit SNES". Overlaye: chmury przesuwające się za oknem (tween), ptaki (małe particles), myśli (dymek z "..." pojawiający się i znikający). `scenes/ThinkScene.ts`.
+- [x] T16.8: BootScene preload all scenes — Dodać preload dla 7 nowych scene backgrounds. Zarejestrować sceny w main.ts.
+- [x] T16.9: ActivityManager — Dodać wszystkie 8 aktywności do ZOOM_ACTIVITIES set. Mapowanie activity → sceneKey.
 
 ### Architektura (wspólna dla wszystkich scen):
 

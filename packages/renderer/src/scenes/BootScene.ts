@@ -34,8 +34,11 @@ export class BootScene extends Phaser.Scene {
     // Room background
     this.load.image("room_background", "sprites/room_background.png");
     // Close-up scene assets
-    // Computer close-up scene (single image + overlays)
-    this.load.image("scene_computer_bg", "sprites/scenes/computer_bg.png");
+    // Close-up scene backgrounds (FLUX generated, Truman baked in)
+    const scenes = ["computer", "sleep", "cook", "read", "draw", "exercise", "eat", "think"];
+    for (const s of scenes) {
+      this.load.image(`scene_${s}_bg`, `sprites/scenes/${s}_bg.png`);
+    }
     // Tiled room layout (object positions)
     this.load.tilemapTiledJSON("room-map", "tilemaps/room.json");
     // Tiles

@@ -3,6 +3,13 @@ import { GAME_WIDTH, GAME_HEIGHT, GAME_FPS } from "@nts/shared";
 import { BootScene } from "./scenes/BootScene";
 import { RoomScene } from "./scenes/RoomScene";
 import { ComputerScene } from "./scenes/ComputerScene";
+import { SleepScene } from "./scenes/SleepScene";
+import { CookScene } from "./scenes/CookScene";
+import { ReadScene } from "./scenes/ReadScene";
+import { DrawScene } from "./scenes/DrawScene";
+import { ExerciseScene } from "./scenes/ExerciseScene";
+import { EatScene } from "./scenes/EatScene";
+import { ThinkScene } from "./scenes/ThinkScene";
 import { SceneHandler } from "./adapters/SceneHandler";
 import {
   BrainLoop,
@@ -43,7 +50,7 @@ const config: Phaser.Types.Core.GameConfig = {
     target: GAME_FPS,
     forceSetTimeOut: true,
   },
-  scene: [BootScene, RoomScene, ComputerScene],
+  scene: [BootScene, RoomScene, ComputerScene, SleepScene, CookScene, ReadScene, DrawScene, ExerciseScene, EatScene, ThinkScene],
 };
 
 const game = new Phaser.Game(config);

@@ -69,7 +69,9 @@ export class ActivityManager {
   }
 
   /** Activities that trigger a close-up zoom scene */
-  private static readonly ZOOM_ACTIVITIES: Set<ActivityType> = new Set(["computer"]);
+  private static readonly ZOOM_ACTIVITIES: Set<ActivityType> = new Set([
+    "computer", "sleep", "cook", "read", "draw", "exercise", "eat", "think",
+  ]);
 
   /** Manually trigger a specific activity */
   async doActivity(type: ActivityType): Promise<void> {
