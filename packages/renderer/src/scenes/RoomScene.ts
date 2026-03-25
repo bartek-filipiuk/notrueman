@@ -267,6 +267,13 @@ export class RoomScene extends Phaser.Scene {
     this.thoughtBubble.onSpeechBubbleShow = (bubbleText, bubbleMood) => {
       void this.ttsManager?.speak(bubbleText, bubbleMood);
     };
+    // Wire TTS playback to Truman mouth animation (audio-visual sync)
+    tts.onSpeechStart = () => {
+      this.truman.startTalking();
+    };
+    tts.onSpeechEnd = () => {
+      this.truman.stopTalking();
+    };
   }
 
   getTTSManager(): TTSManager | null {

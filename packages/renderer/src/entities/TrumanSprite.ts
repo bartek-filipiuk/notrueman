@@ -55,6 +55,12 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
   private currentMood: string = "neutral";
   private usePNG = false;
 
+  /** Mouth animation state for talking */
+  private isTalking = false;
+  private talkTimer?: Phaser.Time.TimerEvent;
+  private mouthOpen = false;
+  private mouthOverlay: Phaser.GameObjects.Graphics | null = null;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
@@ -235,10 +241,24 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     g.fillRect(eyeBaseX - 1, cy - 20 + yOffset + mood.brow, 4, 1);
     g.fillRect(eyeBaseX + 4, cy - 20 + yOffset + mood.brow, 4, 1);
 
-    // Mouth
-    g.fillStyle(MOUTH);
-    const mouthX = cx - Math.floor(mood.mouthW / 2);
-    g.fillRect(mouthX, cy - 12 + yOffset, mood.mouthW, mood.mouthH);
+    // Mouth — animated when talking (open/close cycle)
+    if (this.isTalking && this.mouthOpen) {
+      // Open mouth: wider and taller, with dark interior
+      const openW = Math.max(mood.mouthW + 1, 4);
+      const openH = 3;
+      const mouthX = cx - Math.floor(openW / 2);
+      const mouthY = cy - 12 + yOffset;
+      g.fillStyle(0x8b4513); // dark mouth interior
+      g.fillRect(mouthX, mouthY, openW, openH);
+      g.fillStyle(MOUTH); // lip outline
+      g.fillRect(mouthX, mouthY, openW, 1);
+      g.fillRect(mouthX, mouthY + openH - 1, openW, 1);
+    } else {
+      // Normal closed mouth
+      g.fillStyle(MOUTH);
+      const mouthX = cx - Math.floor(mood.mouthW / 2);
+      g.fillRect(mouthX, cy - 12 + yOffset, mood.mouthW, mood.mouthH);
+    }
 
     // Blush
     if (mood.blush) {
@@ -334,5 +354,82 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     } else {
       this.renderFrame(0, 0);
     }
+  }
+
+  /** Whether Truman is currently in talking animation */
+  getIsTalking(): boolean {
+    return this.isTalking;
+  }
+
+  /**
+   * Start mouth open/close animation (during TTS speech playback).
+   * Toggles mouth between open and closed every ~150ms.
+   */
+  startTalking(): void {
+    if (this.isTalking) return;
+    this.isTalking = true;
+    this.mouthOpen = false;
+
+    if (this.usePNG && this.pngSprite) {
+      // PNG mode: overlay a small animated mouth graphic on top of sprite
+      if (!this.mouthOverlay) {
+        this.mouthOverlay = this.scene.add.graphics();
+        this.add(this.mouthOverlay);
+      }
+    }
+
+    this.talkTimer = this.scene.time.addEvent({
+      delay: 150,
+      loop: true,
+      callback: () => {
+        this.mouthOpen = !this.mouthOpen;
+        if (this.usePNG) {
+          this.drawMouthOverlay();
+        } else {
+          // RenderTexture mode: re-render with mouth state
+          const yOffset = this.currentAnim === "idle"
+            ? (this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0)
+            : 0;
+          this.renderFrame(yOffset, 0);
+        }
+      },
+    });
+  }
+
+  /** Stop mouth animation (when TTS speech ends) */
+  stopTalking(): void {
+    if (!this.isTalking) return;
+    this.isTalking = false;
+    this.mouthOpen = false;
+
+    if (this.talkTimer) {
+      this.talkTimer.destroy();
+      this.talkTimer = undefined;
+    }
+
+    if (this.mouthOverlay) {
+      this.mouthOverlay.clear();
+    }
+
+    // Re-render to restore normal mouth (RenderTexture mode)
+    if (!this.usePNG) {
+      this.renderFrame(0, 0);
+    }
+  }
+
+  /** Draw animated mouth overlay for PNG mode */
+  private drawMouthOverlay(): void {
+    if (!this.mouthOverlay) return;
+    this.mouthOverlay.clear();
+
+    if (!this.mouthOpen) return; // closed = no overlay (show original mouth)
+
+    // Draw open mouth: dark oval over the mouth area of the PNG sprite
+    // Mouth position is roughly center-bottom of head area
+    const mouthY = -14; // relative to sprite center, matches head proportions
+    this.mouthOverlay.fillStyle(0x8b4513, 0.9); // dark brown mouth interior
+    this.mouthOverlay.fillEllipse(0, mouthY, 6, 4);
+    this.mouthOverlay.fillStyle(MOUTH, 0.8); // lip color ring
+    this.mouthOverlay.strokeEllipse(0, mouthY, 6, 4);
   }
 }

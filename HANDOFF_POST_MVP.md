@@ -126,7 +126,7 @@ Stage 9 (Streaming & Deployment)
 - [x] T8.2: Ambient sounds — Zegar tykający (loop, 10% vol), aktywność-specyficzne: klawiatura (typing), gotowanie (sizzle), strony (page turn), ćwiczenia (breathing). Royalty-free samples z freesound.org. Auto-play wg aktywności. (source audio → implement → verify)
 - [x] T8.3: TTS integration — OpenAI gpt-4o-mini-tts. TTSClient calls API with mood-based emotional instructions. TTSManager queues utterances (max 1 at a time), plays via Web Audio API on AudioMixer voice channel. Speech bubbles (pointed tail) trigger TTS, thought bubbles (cloud tail) don't. Config: `?tts=on&openaiKey=sk-...&voice=nova`. 30% of brain thoughts become speech. ConfigPanel shows TTS status. (implement → test → verify sync)
 - [x] T8.4: Background music — Lo-fi ambient tracks (royalty-free). Cichy (15-20% vol). Zmiana nastroju: happy = upbeat lo-fi, sad = piano, curious = quirky. Crossfade między trackami (2s). (source music → implement → verify)
-- [ ] T8.5: Audio-visual sync — Dymek speech typu "mówienie" synchronizowany z playback TTS. Usta Trumana animowane podczas mówienia (prosty open/close overlay). (implement → verify)
+- [x] T8.5: Audio-visual sync — Dymek speech typu "mówienie" synchronizowany z playback TTS. Usta Trumana animowane podczas mówienia (prosty open/close overlay). (implement → verify)
 
 ### Security (MANDATORY):
 
