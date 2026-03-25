@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { Position, InteractiveObjectId, ActivityType } from "@nts/shared";
-import { ROOM_OBJECTS, ACTIVITY_ANCHORS } from "@nts/shared";
+import { ROOM_OBJECTS, ACTIVITY_ANCHORS, ROOM_FLOOR_TOP_Y, ROOM_FLOOR_BOTTOM_Y } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 
 const WALK_SPEED = 80; // pixels per second
@@ -79,8 +79,8 @@ export class MovementSystem {
     const nx = dx / dist;
     const ny = dy / dist;
 
-    this.truman.x += nx * step;
-    this.truman.y += ny * step;
+    this.truman.x = Phaser.Math.Clamp(this.truman.x + nx * step, 50, 910);
+    this.truman.y = Phaser.Math.Clamp(this.truman.y + ny * step, ROOM_FLOOR_TOP_Y + 20, ROOM_FLOOR_BOTTOM_Y - 10);
 
     // Update facing direction based on horizontal movement
     if (Math.abs(dx) > 1) {

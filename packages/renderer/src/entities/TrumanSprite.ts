@@ -65,7 +65,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // Shadow ellipse (below character)
-    this.shadow = scene.add.ellipse(0, 70, 60, 12, 0x000000, SHADOW_ALPHA);
+    this.shadow = scene.add.ellipse(0, 42, 40, 10, 0x000000, SHADOW_ALPHA);
     this.add(this.shadow);
 
     // Check if AI-generated PNG sprites are available
@@ -74,7 +74,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     if (this.usePNG) {
       // Use AI-generated PNG sprite (mood-switchable)
       this.pngSprite = scene.add.image(0, 0, "truman_idle");
-      this.pngSprite.setDisplaySize(160, 160);
+      this.pngSprite.setDisplaySize(96, 96);
       this.add(this.pngSprite);
 
       // Apply glow to PNG sprite
@@ -117,7 +117,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       const poseKey = `truman_pose_${activity}`;
       if (this.scene.textures.exists(poseKey)) {
         this.pngSprite.setTexture(poseKey);
-        this.pngSprite.setDisplaySize(160, 160);
+        this.pngSprite.setDisplaySize(96, 96);
         this.pngSprite.setFlipX(this.facing === "left");
         this.stopAnim(); // freeze during activity pose
         return;
@@ -130,7 +130,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     } else {
       this.pngSprite.setTexture("truman_idle");
     }
-    this.pngSprite.setDisplaySize(160, 160);
+    this.pngSprite.setDisplaySize(96, 96);
   }
 
   setMood(mood: string): void {

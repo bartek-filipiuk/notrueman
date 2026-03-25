@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
+import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS, ROOM_WALL_BOTTOM_Y, ROOM_FLOOR_TOP_Y, ROOM_FLOOR_BOTTOM_Y } from "@nts/shared";
 import type { InteractiveObjectId } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 import { MovementSystem } from "../systems/MovementSystem";
@@ -32,7 +32,8 @@ const FLOOR_PLANK_DARK = 0x8b6d45; // darker plank variation
 const FLOOR_PLANK_LIGHT = 0xb08f65;// lighter plank variation
 const FLOOR_GRAIN = 0x906e48;      // wood grain lines
 const FLOOR_GAP = 0x5c3d1e;        // gap between planks
-const FLOOR_Y = 460;
+/** @deprecated replaced by ROOM_FLOOR_TOP_Y from shared constants */
+const FLOOR_Y = ROOM_FLOOR_TOP_Y;
 
 /** Window glow color for ambient lighting — exported for tests */
 export const WINDOW_GLOW_COLOR = 0xfdd835;
@@ -136,8 +137,9 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.update();
     this.hud.updateTime();
 
-    // Depth sort: Truman renders in front of objects below him, behind objects above
-    this.truman.setDepth(this.truman.y);
+    // Depth sort by feet position: Truman Container origin is center,
+    // feet are ~40px below. Objects use origin(0.5,1) so depth=obj.y = bottom edge.
+    this.truman.setDepth(this.truman.y + 40);
 
     // Object glow disabled — furniture is baked into background image
   }
@@ -188,7 +190,8 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createTruman(): void {
-    this.truman = new TrumanSprite(this, 400, 420);
+    // Spawn Truman at center of walkable floor area (3/4 view)
+    this.truman = new TrumanSprite(this, 480, 400);
     this.movement = new MovementSystem(this, this.truman);
     this.activityRenderer = new ActivityRenderer(this, this.truman);
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
@@ -293,159 +296,114 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    // Use AI-generated room background if available
-    if (this.textures.exists("room_background")) {
-      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_background");
+    // Priority: AI-generated 3/4 background > programmatic 3/4
+    if (this.textures.exists("room_background_34")) {
+      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_background_34");
       bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
       bg.setDepth(0);
-      return; // Skip programmatic background
+      return;
     }
 
-    // Fallback: programmatic background
-    const bg = this.add.graphics();
-    bg.setDepth(0);
+    // Programmatic 3/4 top-down room background
+    const g = this.add.graphics();
 
-    // === CEILING ===
-    // Thin cream ceiling strip
-    bg.fillStyle(CEILING_COLOR);
-    bg.fillRect(0, 0, GAME_WIDTH, 12);
-    // Ceiling frieze (thin decorative wood trim)
-    bg.fillStyle(CEILING_FRIEZE);
-    bg.fillRect(0, 12, GAME_WIDTH, 3);
-    // Frieze highlight
-    bg.fillStyle(BASEBOARD_TOP, 0.5);
-    bg.fillRect(0, 12, GAME_WIDTH, 1);
+    // === BACK WALL (top portion) ===
+    g.fillStyle(WALL_BASE);
+    g.fillRect(0, 0, GAME_WIDTH, ROOM_WALL_BOTTOM_Y);
 
-    // === WALL ===
-    // Base wall color — warm beige
-    bg.fillStyle(WALL_BASE);
-    bg.fillRect(0, 15, GAME_WIDTH, FLOOR_Y - 15);
+    // Wall shading — darker at top
+    g.fillStyle(WALL_TOP_SHADE, 0.3);
+    g.fillRect(0, 0, GAME_WIDTH, 30);
 
-    // Subtle top shading (darker near ceiling for depth)
-    bg.fillStyle(WALL_TOP_SHADE, 0.3);
-    bg.fillRect(0, 15, GAME_WIDTH, 30);
-
-    // Wallpaper pattern — subtle diamond grid
-    this.drawWallpaperPattern(bg);
-
-    // Corner shadow — left (darker in corners)
-    bg.fillStyle(0x000000, 0.06);
-    bg.fillRect(0, 15, 60, FLOOR_Y - 15);
-    bg.fillStyle(0x000000, 0.03);
-    bg.fillRect(60, 15, 40, FLOOR_Y - 15);
-
-    // Corner shadow — right
-    bg.fillStyle(0x000000, 0.06);
-    bg.fillRect(GAME_WIDTH - 50, 15, 50, FLOOR_Y - 15);
-    bg.fillStyle(0x000000, 0.03);
-    bg.fillRect(GAME_WIDTH - 90, 15, 40, FLOOR_Y - 15);
-
-    // === BASEBOARD ===
-    // Main baseboard
-    bg.fillStyle(BASEBOARD_COLOR);
-    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 8);
-    // Baseboard top edge highlight
-    bg.fillStyle(BASEBOARD_TOP);
-    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 2);
-    // Baseboard bottom shadow
-    bg.fillStyle(0x4a3520);
-    bg.fillRect(0, FLOOR_Y - 1, GAME_WIDTH, 1);
-
-    // === WOODEN FLOOR ===
-    this.drawWoodenFloor(bg);
-
-    // === WINDOW AMBIENT GLOW ===
-    const windowObj = ROOM_OBJECTS.find((o) => o.id === "window");
-    if (windowObj) {
-      const glow = this.add.graphics();
-      glow.setDepth(0);
-      // Warm sunlight trapezoid from window to floor
-      glow.fillStyle(WINDOW_GLOW_COLOR, 0.06);
-      glow.fillTriangle(
-        windowObj.x + windowObj.width / 2, windowObj.y + windowObj.height,
-        windowObj.x - 50, FLOOR_Y,
-        windowObj.x + windowObj.width + 50, FLOOR_Y,
-      );
-      // Lighter patch on wall near window
-      glow.fillStyle(0xfff8e1, 0.08);
-      glow.fillRect(windowObj.x - 20, windowObj.y - 10, windowObj.width + 40, windowObj.height + 20);
-      // Sunlight on floor below window
-      glow.fillStyle(WINDOW_GLOW_COLOR, 0.05);
-      glow.fillRect(windowObj.x - 30, FLOOR_Y, windowObj.width + 60, GAME_HEIGHT - FLOOR_Y);
-    }
-  }
-
-  /** Draw subtle diamond wallpaper pattern on the wall */
-  private drawWallpaperPattern(g: Phaser.GameObjects.Graphics): void {
-    g.fillStyle(WALL_PATTERN, 0.25);
-    const spacing = 24;
-    const dotSize = 2;
-    for (let y = 30; y < FLOOR_Y - 10; y += spacing) {
-      const offset = ((y - 30) / spacing) % 2 === 0 ? 0 : spacing / 2;
-      for (let x = offset + 12; x < GAME_WIDTH - 10; x += spacing) {
-        // Small diamond dot
-        g.fillRect(x - dotSize / 2, y - dotSize / 2, dotSize, dotSize);
+    // Wallpaper pattern — subtle diamond grid on wall
+    g.fillStyle(WALL_PATTERN, 0.2);
+    const spacing = 20;
+    for (let wy = 20; wy < ROOM_WALL_BOTTOM_Y - 10; wy += spacing) {
+      const offset = ((wy - 20) / spacing) % 2 === 0 ? 0 : spacing / 2;
+      for (let wx = offset + 10; wx < GAME_WIDTH - 10; wx += spacing) {
+        g.fillRect(wx - 1, wy - 1, 2, 2);
       }
     }
-    // Subtle horizontal wainscoting line at ~60% wall height
-    const wainscotY = 15 + (FLOOR_Y - 15) * 0.62;
-    g.fillStyle(BASEBOARD_TOP, 0.2);
-    g.fillRect(0, wainscotY, GAME_WIDTH, 2);
-    g.fillStyle(CEILING_COLOR, 0.15);
-    g.fillRect(0, wainscotY - 1, GAME_WIDTH, 1);
-  }
 
-  /** Draw wooden plank floor with grain pattern */
-  private drawWoodenFloor(g: Phaser.GameObjects.Graphics): void {
-    const floorHeight = GAME_HEIGHT - FLOOR_Y;
-    const plankWidth = 64;
-    const plankHeight = floorHeight;
+    // Baseboard at wall-floor junction
+    g.fillStyle(BASEBOARD_COLOR);
+    g.fillRect(0, ROOM_WALL_BOTTOM_Y - 6, GAME_WIDTH, 6);
+    g.fillStyle(BASEBOARD_TOP);
+    g.fillRect(0, ROOM_WALL_BOTTOM_Y - 6, GAME_WIDTH, 2);
+
+    // === WOODEN FLOOR (3/4 top-down view) ===
+    const floorTop = ROOM_FLOOR_TOP_Y;
+    const floorBot = GAME_HEIGHT;
+    const floorH = floorBot - floorTop;
+
+    // Base floor color
+    g.fillStyle(FLOOR_PLANK_BASE);
+    g.fillRect(0, floorTop, GAME_WIDTH, floorH);
+
+    // Plank lines — horizontal planks (viewed from above)
+    const plankH = 24;
     const plankColors = [FLOOR_PLANK_BASE, FLOOR_PLANK_DARK, FLOOR_PLANK_LIGHT, FLOOR_PLANK_BASE, FLOOR_PLANK_DARK];
-
-    // Draw planks left to right
-    for (let i = 0; i * plankWidth < GAME_WIDTH; i++) {
-      const x = i * plankWidth;
-      const color = plankColors[i % plankColors.length];
-
-      // Plank base
-      g.fillStyle(color);
-      g.fillRect(x, FLOOR_Y, plankWidth, plankHeight);
+    for (let py = floorTop; py < floorBot; py += plankH) {
+      const ci = Math.floor((py - floorTop) / plankH);
+      g.fillStyle(plankColors[ci % plankColors.length]);
+      g.fillRect(0, py, GAME_WIDTH, plankH);
 
       // Gap line between planks
-      if (i > 0) {
-        g.fillStyle(FLOOR_GAP);
-        g.fillRect(x, FLOOR_Y, 1, plankHeight);
-      }
+      g.fillStyle(FLOOR_GAP, 0.6);
+      g.fillRect(0, py, GAME_WIDTH, 1);
 
-      // Wood grain lines (subtle horizontal dashes)
-      g.fillStyle(FLOOR_GRAIN, 0.25);
-      const grainOffset = (i * 7) % 5; // vary grain per plank
-      for (let gy = FLOOR_Y + 4 + grainOffset; gy < GAME_HEIGHT; gy += 8) {
-        const grainX = x + 3 + ((gy * 3 + i * 11) % 7);
-        const grainLen = 12 + ((gy * 5 + i * 3) % 20);
-        g.fillRect(grainX, gy, Math.min(grainLen, plankWidth - 6), 1);
+      // Wood grain — short horizontal dashes
+      g.fillStyle(FLOOR_GRAIN, 0.2);
+      for (let gx = 4 + (ci * 13) % 20; gx < GAME_WIDTH; gx += 30 + (ci * 7) % 15) {
+        g.fillRect(gx, py + 6 + (ci * 3) % 8, 12 + (ci * 5) % 10, 1);
       }
-
-      // Subtle plank highlight at top edge
-      g.fillStyle(0xffffff, 0.06);
-      g.fillRect(x + 1, FLOOR_Y + 1, plankWidth - 2, 1);
     }
 
-    // Perspective depth — floor gets slightly darker toward bottom
-    g.fillStyle(0x000000, 0.08);
-    g.fillRect(0, GAME_HEIGHT - 12, GAME_WIDTH, 12);
-    g.fillStyle(0x000000, 0.04);
-    g.fillRect(0, GAME_HEIGHT - 24, GAME_WIDTH, 12);
+    // Perspective — floor slightly darker toward front (bottom)
+    g.fillStyle(0x000000, 0.06);
+    g.fillRect(0, floorBot - 20, GAME_WIDTH, 20);
+
+    // Corner shadows on wall
+    g.fillStyle(0x000000, 0.05);
+    g.fillRect(0, 0, 40, ROOM_WALL_BOTTOM_Y);
+    g.fillRect(GAME_WIDTH - 40, 0, 40, ROOM_WALL_BOTTOM_Y);
+
+    // Convert to Image (required for future Light2D pipeline)
+    g.generateTexture("room_bg_34_gen", GAME_WIDTH, GAME_HEIGHT);
+    g.destroy();
+    const bgImg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_bg_34_gen");
+    bgImg.setDepth(0);
   }
 
   private createRoomObjects(): void {
-    // Furniture is baked into the background image.
-    // ROOM_OBJECTS are invisible interaction points — where Truman walks to.
-    // No separate sprites needed. Just store positions for movement system.
     for (const obj of ROOM_OBJECTS) {
-      // Invisible zone marker (not rendered, used for pathfinding targets)
-      const zone = this.add.zone(obj.x, obj.y, 1, 1);
-      this.roomObjects.set(obj.id, zone as any);
+      // Try AI 3/4 sprite, then programmatic sprite, then skip
+      const texKey34 = `obj_34_${obj.id}`;
+      const texKeyProg = `obj_${obj.id}`;
+      let texKey: string | null = null;
+      if (this.textures.exists(texKey34)) texKey = texKey34;
+      else if (this.textures.exists(texKeyProg)) texKey = texKeyProg;
+
+      if (texKey) {
+        const img = this.add.image(obj.x, obj.y, texKey);
+        img.setDisplaySize(obj.displayWidth, obj.displayHeight);
+
+        if (obj.wallMounted) {
+          // Wall objects: centered origin, fixed depth behind everything
+          img.setOrigin(0.5, 0.5);
+          img.setDepth(1);
+        } else {
+          // Floor objects: origin at bottom-center for Y-based depth sorting
+          img.setOrigin(0.5, 1);
+          img.setDepth(obj.y);
+        }
+
+        this.roomObjects.set(obj.id, img);
+      } else {
+        // No texture available — invisible zone fallback
+        const zone = this.add.zone(obj.x, obj.y, obj.displayWidth, obj.displayHeight);
+        this.roomObjects.set(obj.id, zone as unknown as Phaser.GameObjects.Image);
+      }
     }
   }
 

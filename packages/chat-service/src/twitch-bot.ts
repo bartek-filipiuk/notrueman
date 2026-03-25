@@ -104,7 +104,7 @@ export class TwitchBot {
       this.log("info", "Connected to Twitch chat");
     });
 
-    this.chatClient.onDisconnect((_manually, reason) => {
+    this.chatClient.onDisconnect((_manually: boolean, reason: Error | undefined) => {
       this.log("warn", `Disconnected from chat: ${reason ?? "unknown"}`);
     });
 
@@ -118,7 +118,7 @@ export class TwitchBot {
     try {
       const broadcaster = await this.apiClient.users.getUserByName(this.config.channel);
       if (broadcaster) {
-        this.eventSub.onChannelRedemptionAdd(broadcaster.id, (event) => {
+        this.eventSub.onChannelRedemptionAdd(broadcaster.id, (event: { rewardTitle: string; userId: string; userDisplayName: string; input: string }) => {
           this.handleRedemption(
             event.rewardTitle,
             event.userId,
@@ -281,7 +281,7 @@ export class TwitchBot {
 
   /** Send a message to chat. */
   private say(channel: string, message: string): void {
-    this.chatClient?.say(channel, message).catch((err) => {
+    this.chatClient?.say(channel, message).catch((err: unknown) => {
       this.log("error", `Failed to send message: ${err}`);
     });
   }
