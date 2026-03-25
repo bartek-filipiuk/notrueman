@@ -47,6 +47,17 @@ http://localhost:5173/?apiKey=sk-or-KEY&tts=on&openaiKey=sk-KEY&voice=nova
 
 Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer. ~30% of thoughts become speech bubbles (pointed tail + audio). TTS status visible in debug panel (`~`).
 
+Audio-visual sync: when TTS is playing, Truman's mouth animates and the speech bubble shows a pulsing blue glow border. Browser autoplay policy is handled automatically — audio context resumes on first user interaction.
+
+### Audio
+
+Three audio channels (configurable via AudioMixer):
+- **Voice** (TTS): 80% volume, speech bubbles only
+- **Ambient**: activity-specific sounds (keyboard, cooking, page turns), 10-30% volume
+- **Music**: mood-based lo-fi tracks with crossfade, 15-20% volume
+
+Press `M` to toggle master mute. Individual channel volumes adjustable via ConfigPanel (`~`).
+
 ### Visual FX
 
 Requires WebGL (default). To disable all visual effects (vignette, bloom, glow) for lower-end machines:

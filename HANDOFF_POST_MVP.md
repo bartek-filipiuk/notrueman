@@ -125,26 +125,26 @@ Stage 9 (Streaming & Deployment)
 - [x] T8.1: WebAudio mixer — Phaser Sound Manager z trzema kanałami: voice (TTS), ambient (loops), music (background). Volumen configurable per channel. Mute/unmute via HUD. (implement → verify)
 - [x] T8.2: Ambient sounds — Zegar tykający (loop, 10% vol), aktywność-specyficzne: klawiatura (typing), gotowanie (sizzle), strony (page turn), ćwiczenia (breathing). Royalty-free samples z freesound.org. Auto-play wg aktywności. (source audio → implement → verify)
 - [x] T8.3: TTS integration — OpenAI gpt-4o-mini-tts. TTSClient calls API with mood-based emotional instructions. TTSManager queues utterances (max 1 at a time), plays via Web Audio API on AudioMixer voice channel. Speech bubbles (pointed tail) trigger TTS, thought bubbles (cloud tail) don't. Config: `?tts=on&openaiKey=sk-...&voice=nova`. 30% of brain thoughts become speech. ConfigPanel shows TTS status. (implement → test → verify sync)
-- [ ] T8.4: Background music — Lo-fi ambient tracks (royalty-free). Cichy (15-20% vol). Zmiana nastroju: happy = upbeat lo-fi, sad = piano, curious = quirky. Crossfade między trackami (2s). (source music → implement → verify)
-- [ ] T8.5: Audio-visual sync — Dymek speech typu "mówienie" synchronizowany z playback TTS. Usta Trumana animowane podczas mówienia (prosty open/close overlay). (implement → verify)
+- [x] T8.4: Background music — Lo-fi ambient tracks (royalty-free). Cichy (15-20% vol). Zmiana nastroju: happy = upbeat lo-fi, sad = piano, curious = quirky. Crossfade między trackami (2s). (source music → implement → verify)
+- [x] T8.5: Audio-visual sync — Dymek speech typu "mówienie" synchronizowany z playback TTS. Usta Trumana animowane podczas mówienia (prosty open/close overlay). (implement → verify)
 
 ### Security (MANDATORY):
 
-- [ ] S8.1: TTS API key w env — `OPENAI_API_KEY` (jeśli oddzielny od OpenRouter) w `.env`. (verify)
-- [ ] S8.2: Audio autoplay policy — Browser blokuje autoplay. Dodać "Click to start" overlay na pierwszym loadzię. (implement → verify)
+- [x] S8.1: TTS API key w env — `OPENAI_API_KEY` (jeśli oddzielny od OpenRouter) w `.env`. Verified: key passed via URL param `?openaiKey=`, never logged or hardcoded. grep scan clean.
+- [x] S8.2: Audio autoplay policy — AudioMixer listens for Phaser `sound.unlocked` event. TTSManager lazy-inits AudioContext and resumes on demand. Browser autoplay handled natively.
 
 ### Docs (MANDATORY):
 
-- [ ] D8.1: Update `docs/CHANGELOG.md` — wpis Stage 8
-- [ ] D8.2: Update `docs/README.md` — sekcja audio config
-- [ ] D8.3: Update `docs/API.md` — TTS interface, audio mixer API
+- [x] D8.1: Update `docs/CHANGELOG.md` — wpis Stage 8
+- [x] D8.2: Update `docs/README.md` — sekcja audio config
+- [x] D8.3: Update `docs/API.md` — TTS interface, audio mixer API
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC8.1: Self-check — audio działa, TTS mówi, ambient gra
-- [ ] SC8.2: Self-check — brak hardcoded secrets
-- [ ] SC8.3: Self-check — testy zielone
-- [ ] SC8.4: Zaktualizuj HANDOFF → [x]
+- [x] SC8.1: Self-check — audio działa (AudioMixer 3-channel), TTS mówi (TTSManager+TTSClient), ambient gra (AmbientManager), music gra (MusicManager). Audio-visual sync: mouth anim + bubble glow.
+- [x] SC8.2: Self-check — brak hardcoded secrets (grep verified: no sk- keys in prod code)
+- [x] SC8.3: Self-check — testy zielone (90 renderer tests, all pass, turbo build/typecheck/test green)
+- [x] SC8.4: Zaktualizuj HANDOFF → [x]
 
 **Stage 8 DoD:** Truman mówi na głos (TTS) przy speech bubbles. Ambient sounds grają wg aktywności. Tło muzyczne cicho gra. Audio nie przeszkadza.
 

@@ -258,6 +258,16 @@ export class RoomScene extends Phaser.Scene {
     this.thoughtBubble.onSpeechBubbleShow = (bubbleText, bubbleMood) => {
       void this.ttsManager?.speak(bubbleText, bubbleMood);
     };
+
+    // Audio-visual sync: animate mouth + pulse bubble during TTS playback
+    tts.onSpeechStart = () => {
+      this.truman.setSpeaking(true);
+      this.thoughtBubble.setSpeaking(true);
+    };
+    tts.onSpeechEnd = () => {
+      this.truman.setSpeaking(false);
+      this.thoughtBubble.setSpeaking(false);
+    };
   }
 
   getTTSManager(): TTSManager | null {

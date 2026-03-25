@@ -25,6 +25,7 @@ const SHOES = 0x2c2c44;
 const EYE_WHITE = 0xffffff;
 const EYE_PUPIL = 0x1a1a2e;
 const MOUTH = 0xcc8866;
+const MOUTH_OPEN = 0x993333;
 const BLUSH = 0xffaa88;
 
 const MOOD_EYES: Record<string, { brow: number; mouthW: number; mouthH: number; blush: boolean }> = {
@@ -54,6 +55,11 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
   private frameIndex = 0;
   private currentMood: string = "neutral";
   private usePNG = false;
+  private isSpeaking = false;
+  private mouthOpen = false;
+  private speakTimer?: Phaser.Time.TimerEvent;
+  /** Overlay graphics for mouth animation during speech (PNG mode) */
+  private mouthOverlay: Phaser.GameObjects.Graphics | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -95,6 +101,11 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
         }
       } catch { /* skip */ }
     }
+
+    // Mouth overlay for speaking animation (both modes)
+    this.mouthOverlay = scene.add.graphics();
+    this.mouthOverlay.setVisible(false);
+    this.add(this.mouthOverlay);
 
     this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
     scene.add.existing(this as Phaser.GameObjects.GameObject);
@@ -147,7 +158,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
   /** Render character to RenderTexture using offscreen Graphics */
   private renderFrame(yOffset: number, legFrame: number): void {
-    const gfx = this.scene.make.graphics({ add: false });
+    const gfx = this.scene.add.graphics().setVisible(false);
     // Draw centered in texture (offset by PAD + half sprite)
     const cx = TEX_W / 2;
     const cy = TEX_H / 2;
@@ -333,6 +344,90 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       this.pngSprite.setFlipX(dir === "left");
     } else {
       this.renderFrame(0, 0);
+    }
+  }
+
+  /**
+   * Enable/disable speaking mouth animation.
+   * Toggles a simple open/close mouth overlay at ~4Hz.
+   */
+  setSpeaking(speaking: boolean): void {
+    if (speaking === this.isSpeaking) return;
+    this.isSpeaking = speaking;
+
+    if (speaking) {
+      this.mouthOpen = false;
+      this.speakTimer = this.scene.time.addEvent({
+        delay: 130, // ~4 toggles/sec for natural speech feel
+        loop: true,
+        callback: () => {
+          this.mouthOpen = !this.mouthOpen;
+          this.drawMouthOverlay();
+        },
+      });
+      this.drawMouthOverlay();
+    } else {
+      this.speakTimer?.destroy();
+      this.speakTimer = undefined;
+      this.mouthOpen = false;
+      if (this.mouthOverlay) {
+        this.mouthOverlay.clear();
+        this.mouthOverlay.setVisible(false);
+      }
+      // Re-render normal mouth for fallback mode
+      if (!this.usePNG) {
+        this.renderFrame(0, 0);
+      }
+    }
+  }
+
+  /** Whether Truman is currently in speaking animation */
+  getIsSpeaking(): boolean {
+    return this.isSpeaking;
+  }
+
+  /** Draw the mouth overlay (open or closed) for speaking animation */
+  private drawMouthOverlay(): void {
+    if (!this.mouthOverlay) return;
+    this.mouthOverlay.clear();
+
+    if (!this.mouthOpen) {
+      // Mouth closed — hide overlay, let normal sprite show through
+      this.mouthOverlay.setVisible(false);
+      if (!this.usePNG) {
+        this.renderFrame(0, 0);
+      }
+      return;
+    }
+
+    // Mouth open — draw open mouth over sprite
+    this.mouthOverlay.setVisible(true);
+
+    if (this.usePNG) {
+      // PNG mode: small dark oval over the mouth area of the sprite
+      // Sprite is displayed at 2x scale, centered at (0, -8)
+      // Mouth is roughly at center-bottom of face
+      this.mouthOverlay.fillStyle(MOUTH_OPEN);
+      this.mouthOverlay.fillEllipse(0, -4, 8, 6);
+      // Inner dark for depth
+      this.mouthOverlay.fillStyle(0x661111);
+      this.mouthOverlay.fillEllipse(0, -3, 5, 3);
+    } else {
+      // Fallback mode: redraw with open mouth via renderFrame
+      // Use RenderTexture — draw open mouth directly
+      const gfx = this.scene.add.graphics().setVisible(false);
+      const cx = TEX_W / 2;
+      const cy = TEX_H / 2;
+
+      // Draw open mouth (wider + taller than normal)
+      gfx.fillStyle(MOUTH_OPEN);
+      gfx.fillRect(cx - 3, cy - 13, 6, 4);
+      gfx.fillStyle(0x661111);
+      gfx.fillRect(cx - 2, cy - 12, 4, 2);
+
+      this.rt.draw(gfx, 0, 0);
+      gfx.destroy();
+      this.mouthOverlay.setVisible(false); // use RT directly
     }
   }
 }

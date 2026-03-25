@@ -235,6 +235,62 @@ Returns JSON with agent status. Available on `localhost:3001`.
 
 Returns Prometheus-formatted metrics for scraping.
 
+## Audio System
+
+### AudioMixer
+
+Three-channel audio mixer wrapping Phaser Sound Manager.
+
+```typescript
+type AudioChannel = "voice" | "ambient" | "music";
+
+class AudioMixer {
+  getVolume(channel: AudioChannel): number;
+  setVolume(channel: AudioChannel, volume: number): void;
+  toggleMute(channel: AudioChannel): void;
+  toggleMasterMute(): void;
+  getEffectiveVolume(channel: AudioChannel): number;
+  get audioUnlocked(): boolean;
+}
+```
+
+Default volumes: voice=0.8, ambient=0.3, music=0.2. Master mute toggle via `M` key.
+
+### TTSManager
+
+Orchestrates TTS generation and playback via Web Audio API.
+
+```typescript
+class TTSManager {
+  speak(text: string, mood: string): Promise<void>;
+  stopCurrent(): void;
+  setEnabled(enabled: boolean): void;
+  setVoice(voice: string): void;
+  setApiKey(apiKey: string): void;
+  setAudioMixer(mixer: AudioMixer): void;
+  isEnabled(): boolean;
+  getIsPlaying(): boolean;
+  getVoice(): TTSVoice;
+  getQueueSize(): number;
+
+  // Audio-visual sync callbacks
+  onSpeechStart: (() => void) | null;
+  onSpeechEnd: (() => void) | null;
+}
+```
+
+URL config: `?tts=on&openaiKey=sk-...&voice=echo`. Queue max 1 utterance. `onSpeechStart`/`onSpeechEnd` drive mouth animation (TrumanSprite) and bubble glow (ThoughtBubble).
+
+### TTSClient
+
+Low-level API call to OpenAI gpt-4o-mini-tts.
+
+```typescript
+function generateSpeech(text: string, mood: string, config: TTSClientConfig): Promise<ArrayBuffer>;
+```
+
+Mood-based instructions map emotions to vocal direction (e.g., happy → "warmth and gentle smile").
+
 ```
 # HELP nts_tick_count Total number of cognitive loop ticks
 # TYPE nts_tick_count gauge
