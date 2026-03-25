@@ -166,6 +166,9 @@ function initBrain(): void {
     const mood = emotions.getOverallMood();
     handler.updateHUD({ mood });
 
+    // Update background music to match mood (crossfade if different)
+    roomScene.getMusicManager().onMoodChange(mood);
+
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
   };
 
