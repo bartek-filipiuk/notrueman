@@ -153,7 +153,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
   /** Render character to RenderTexture using offscreen Graphics */
   private renderFrame(yOffset: number, legFrame: number): void {
-    const gfx = this.scene.make.graphics({ add: false });
+    const gfx = this.scene.make.graphics({ x: 0, y: 0 } as Phaser.Types.GameObjects.Graphics.Options);
     // Draw centered in texture (offset by PAD + half sprite)
     const cx = TEX_W / 2;
     const cy = TEX_H / 2;

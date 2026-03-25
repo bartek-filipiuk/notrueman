@@ -1,5 +1,19 @@
 # Changelog
 
+## [Stage 8 — Audio & Voice: Complete] - 2026-03-25
+
+### Added
+- WebAudio mixer with 3 channels: voice, ambient, music (AudioMixer)
+- Ambient sounds: clock ticking, keyboard, cooking sizzle, page turn, exercise breathing
+- Background music: lo-fi tracks with mood-based crossfade (happy/sad/curious)
+- Audio-visual sync: mouth animation during TTS playback, speech bubble timing
+- "Click to start" overlay — satisfies browser autoplay policy before game loads
+
+### Security
+- TTS API key passed via URL params only, never hardcoded (verified via grep scan)
+- `.env.example` has TTS_API_KEY placeholder for server-side usage
+- Audio autoplay policy handled: user click/touch required before game starts
+
 ## [Stage 13 — Room Layout PRO] - 2026-03-24
 
 ### Added

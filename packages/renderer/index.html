@@ -15,9 +15,24 @@
       image-rendering: crisp-edges;
       image-rendering: -webkit-optimize-contrast;
     }
+    #start-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background: #0a0a1a; cursor: pointer; user-select: none;
+      font-family: 'Press Start 2P', monospace;
+    }
+    #start-overlay .title { color: #ffd93d; font-size: 20px; margin-bottom: 16px; }
+    #start-overlay .subtitle { color: #6ec6ff; font-size: 10px; margin-bottom: 48px; opacity: 0.8; }
+    #start-overlay .cta { color: #aaa; font-size: 10px; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
   </style>
 </head>
 <body>
+  <div id="start-overlay">
+    <div class="title">No True Man Show</div>
+    <div class="subtitle">a life, observed</div>
+    <div class="cta">Click to start</div>
+  </div>
   <div id="game-container"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>

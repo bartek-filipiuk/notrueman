@@ -47,6 +47,15 @@ http://localhost:5173/?apiKey=sk-or-KEY&tts=on&openaiKey=sk-KEY&voice=nova
 
 Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer. ~30% of thoughts become speech bubbles (pointed tail + audio). TTS status visible in debug panel (`~`).
 
+### Audio
+
+The game requires a click/touch to start (browser autoplay policy). Audio channels:
+- **Voice** — TTS speech (primary, ~80% volume)
+- **Ambient** — Activity-specific sounds: clock ticking, keyboard typing, cooking sizzle, page turning, exercise breathing
+- **Music** — Lo-fi background tracks, mood-based crossfade (15-20% volume)
+
+Mute/unmute via the HUD speaker icon. Volume configurable per channel in the debug panel (`~`).
+
 ### Visual FX
 
 Requires WebGL (default). To disable all visual effects (vignette, bloom, glow) for lower-end machines:

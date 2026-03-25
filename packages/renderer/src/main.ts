@@ -53,17 +53,33 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, RoomScene, ComputerScene, SleepScene, CookScene, ReadScene, DrawScene, ExerciseScene, EatScene, ThinkScene],
 };
 
-const game = new Phaser.Game(config);
+/** Remove the "Click to start" overlay and create the game.
+ *  The click/touch satisfies browser autoplay policy so AudioContext can start. */
+function startGame(): void {
+  const overlay = document.getElementById("start-overlay");
+  if (overlay) overlay.remove();
 
-// Wait for RoomScene to be ready, then decide mode
-game.events.on("ready", () => {
-  // RoomScene starts after BootScene transition (1s delay)
-  setTimeout(() => {
-    initBrain();
-  }, 1500);
-});
+  const game = new Phaser.Game(config);
 
-function initBrain(): void {
+  // Wait for RoomScene to be ready, then decide mode
+  game.events.on("ready", () => {
+    // RoomScene starts after BootScene transition (1s delay)
+    setTimeout(() => {
+      initBrain(game);
+    }, 1500);
+  });
+}
+
+// Gate game creation on user interaction (audio autoplay policy)
+const overlay = document.getElementById("start-overlay");
+if (overlay) {
+  overlay.addEventListener("click", startGame, { once: true });
+  overlay.addEventListener("touchstart", startGame, { once: true });
+} else {
+  startGame();
+}
+
+function initBrain(game: Phaser.Game): void {
   const roomScene = game.scene.getScene("RoomScene") as RoomScene;
   if (!roomScene) {
     console.warn("[main] RoomScene not found, retrying in 1s...");

@@ -29,7 +29,7 @@ Stage 6 (Integracja) ✅
 Stage 7 (Visual Overhaul) ✅
     |
     v
-Stage 8 (Audio & Voice) [opcjonalny]
+Stage 8 (Audio & Voice) ✅
     |
     v
 Stage 9 (Streaming & Deployment)
@@ -138,21 +138,21 @@ Stage 11 (Shaders) — USUNIĘTY: koliduje z decyzją "pokój jasny 24/7" z Stag
 
 ### Security (MANDATORY):
 
-- [ ] S8.1: TTS API key w env — `OPENAI_API_KEY` (jeśli oddzielny od OpenRouter) w `.env`. (verify)
-- [ ] S8.2: Audio autoplay policy — Browser blokuje autoplay. Dodać "Click to start" overlay na pierwszym loadzię. (implement → verify)
+- [x] S8.1: TTS API key w env — `OPENAI_API_KEY` (jeśli oddzielny od OpenRouter) w `.env`. (verify)
+- [x] S8.2: Audio autoplay policy — Browser blokuje autoplay. Dodać "Click to start" overlay na pierwszym loadzię. (implement → verify)
 
 ### Docs (MANDATORY):
 
-- [ ] D8.1: Update `docs/CHANGELOG.md` — wpis Stage 8
-- [ ] D8.2: Update `docs/README.md` — sekcja audio config
-- [ ] D8.3: Update `docs/API.md` — TTS interface, audio mixer API
+- [x] D8.1: Update `docs/CHANGELOG.md` — wpis Stage 8
+- [x] D8.2: Update `docs/README.md` — sekcja audio config
+- [x] D8.3: Update `docs/API.md` — TTS interface, audio mixer API
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SC8.1: Self-check — audio działa, TTS mówi, ambient gra
-- [ ] SC8.2: Self-check — brak hardcoded secrets
-- [ ] SC8.3: Self-check — testy zielone
-- [ ] SC8.4: Zaktualizuj HANDOFF → [x]
+- [x] SC8.1: Self-check — audio działa, TTS mówi, ambient gra
+- [x] SC8.2: Self-check — brak hardcoded secrets
+- [x] SC8.3: Self-check — testy zielone
+- [x] SC8.4: Zaktualizuj HANDOFF → [x]
 
 **Stage 8 DoD:** Truman mówi na głos (TTS) przy speech bubbles. Ambient sounds grają wg aktywności. Tło muzyczne cicho gra. Audio nie przeszkadza.
 

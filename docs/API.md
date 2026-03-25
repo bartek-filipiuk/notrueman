@@ -43,6 +43,63 @@ interface RendererHandler {
 
 Press `~` for ConfigPanel debug overlay.
 
+## Audio System
+
+### AudioMixer
+
+Three-channel mixer using Phaser Sound Manager.
+
+| Method | Description |
+|---|---|
+| `playAmbient(key, config?)` | Play a looping ambient sound |
+| `stopAmbient(key)` | Stop an ambient sound |
+| `playVoice(buffer)` | Play TTS audio buffer on voice channel |
+| `setVolume(channel, vol)` | Set volume (0-1) for voice/ambient/music |
+| `mute()` / `unmute()` | Global mute toggle |
+| `isMuted()` | Get mute state |
+
+### TTSClient
+
+Calls OpenAI `gpt-4o-mini-tts` API with mood-based emotional instructions.
+
+```typescript
+interface TTSClientConfig {
+  apiKey: string;
+  voice: string;    // alloy|ash|ballad|coral|echo|fable|nova|onyx|sage|shimmer
+  model: string;    // default: gpt-4o-mini-tts
+}
+
+// Returns mp3 ArrayBuffer
+ttsClient.synthesize(text: string, mood: string): Promise<ArrayBuffer>
+```
+
+### TTSManager
+
+Orchestrates speech queue and playback via Web Audio API.
+
+| Method | Description |
+|---|---|
+| `speak(text, mood)` | Queue text for TTS synthesis + playback |
+| `stopCurrent()` | Stop currently playing utterance |
+| `setEnabled(on)` | Enable/disable TTS |
+| `setApiKey(key)` | Set OpenAI API key |
+| `setVoice(voice)` | Set voice preset |
+| `isEnabled()` | Check if TTS is active |
+| `getIsPlaying()` | Check if audio is currently playing |
+| `getQueueSize()` | Number of queued utterances |
+
+### URL Configuration
+
+| Param | Default | Description |
+|---|---|---|
+| `tts` | `off` | Enable TTS (`on`/`off`) |
+| `openaiKey` | — | OpenAI API key for TTS |
+| `voice` | `echo` | Voice preset |
+
+### Audio Autoplay Policy
+
+The game shows a "Click to start" overlay on load. User interaction (click/touch) is required before the Phaser game initializes, satisfying browser autoplay restrictions for AudioContext.
+
 ## CognitiveLoop
 
 The main agent loop. Configurable via `CognitiveLoopConfig`.
