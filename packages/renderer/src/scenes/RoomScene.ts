@@ -13,7 +13,9 @@ import { generateAllTextures } from "../sprites/RoomObjectSprites";
 import { ParticleManager } from "../systems/ParticleManager";
 import { AudioMixer } from "../systems/AudioMixer";
 import { AmbientManager } from "../systems/AmbientManager";
+import { MusicManager } from "../systems/MusicManager";
 import { generateAllAmbientSounds } from "../systems/ProceduralAudio";
+import { generateAllMusicTracks } from "../systems/ProceduralMusic";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 import { TTSManager } from "../systems/TTSManager";
 
@@ -47,6 +49,7 @@ export class RoomScene extends Phaser.Scene {
   private windowView!: WindowView;
   private audioMixer!: AudioMixer;
   private ambientManager!: AmbientManager;
+  private musicManager!: MusicManager;
   private ttsManager: TTSManager | null = null;
 
   constructor() {
@@ -178,6 +181,7 @@ export class RoomScene extends Phaser.Scene {
     this.activityManager.stopLoop();
     this.activityRenderer.stopActivity();
     this.thoughtBubble.hide();
+    this.musicManager.destroy();
     this.ambientManager.destroy();
     this.audioMixer.destroy();
     this.ttsManager?.destroy();
@@ -203,6 +207,11 @@ export class RoomScene extends Phaser.Scene {
     generateAllAmbientSounds(this);
     this.ambientManager = new AmbientManager(this, this.audioMixer);
     this.ambientManager.start();
+
+    // Generate background music tracks and start music system
+    generateAllMusicTracks(this);
+    this.musicManager = new MusicManager(this, this.audioMixer);
+    this.musicManager.start();
 
     // Wire activity changes to ambient manager
     this.activityManager.setOnActivityChange((activity, state) => {
@@ -270,6 +279,10 @@ export class RoomScene extends Phaser.Scene {
 
   getAudioMixer(): AudioMixer {
     return this.audioMixer;
+  }
+
+  getMusicManager(): MusicManager {
+    return this.musicManager;
   }
 
   private createBackground(): void {

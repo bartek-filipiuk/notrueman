@@ -39,6 +39,8 @@ export class SceneHandler implements RendererHandler {
       hud.updateMood(update.mood);
       // Update Truman's facial expression based on mood
       this.scene.getTruman().setMood(update.mood);
+      // Update background music to match mood
+      this.scene.getMusicManager().onMoodChange(update.mood);
     }
     if (update.activity) hud.updateActivity(update.activity);
   }
