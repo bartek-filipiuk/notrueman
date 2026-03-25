@@ -1,5 +1,28 @@
 # Changelog
 
+## [Stage 12 — AI Asset Pipeline: Retro Diffusion] - 2026-03-25
+
+### Added
+- Asset generation pipeline (`scripts/generate-assets.sh`) using Replicate API (Retro Diffusion models)
+- 14 AI-generated room object sprites (rd-plus, transparent background, 16-32 color quantization)
+- Truman walk + idle spritesheets (rd-animation) with 8 activity poses (rd-plus static)
+- Phaser asset loader: `BootScene` preloads PNGs from `public/sprites/`, falls back to programmatic `generateTexture()` if missing
+- Truman PNG sprite with mood face overlay switching (replaces RenderTexture approach)
+- Asset prompt config (`config/asset-prompts.json`) with batch generation + retry
+
+### Changed
+- Room objects render from AI-generated PNGs instead of Graphics API shapes
+- TrumanSprite uses Phaser Sprite with atlas instead of RenderTexture
+
+### Removed
+- Stage 11 (Shaders & Lighting) — removed entirely, conflicts with bright room design and FLUX baked backgrounds
+- Tileset generation — room uses FLUX background PNG, not tiled floor/wall
+- Normal map generation — depended on removed Stage 11
+
+### Security
+- Replicate API key (`REPLICATE_API_TOKEN`) externalized to `.env`
+- Generated assets are PNG files only, no executable content
+
 ## [Stage 9 — Streaming & Production] - 2026-03-25
 
 ### Added
