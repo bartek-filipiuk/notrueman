@@ -31,6 +31,9 @@ export class BootScene extends Phaser.Scene {
     for (const mood of moods) {
       this.load.image(`truman_${mood}`, `sprites/truman/${mood}.png`);
     }
+    // Walk cycle sprites (2 frames — used as idle→walk_1→idle→walk_2 loop)
+    this.load.image("truman_walk_1", "sprites/truman/walk_1.png");
+    this.load.image("truman_walk_2", "sprites/truman/walk_2.png");
     // Room background
     this.load.image("room_background", "sprites/room_background.png");
     // Close-up scene assets

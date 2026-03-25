@@ -20,6 +20,7 @@ import { MusicManager } from "../systems/MusicManager";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 import { TTSManager } from "../systems/TTSManager";
 import { DayNightCycle } from "../systems/DayNightCycle";
+import { IdleAnimator } from "../systems/IdleAnimator";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -55,6 +56,7 @@ export class RoomScene extends Phaser.Scene {
   private musicManager!: MusicManager;
   private ttsManager: TTSManager | null = null;
   private dayNight: DayNightCycle | null = null;
+  private idleAnimator: IdleAnimator | null = null;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -250,6 +252,9 @@ export class RoomScene extends Phaser.Scene {
     // Window view — sky/clouds/stars behind window object
     this.windowView = new WindowView(this);
 
+    // Idle micro-animations (breathing, blinking, looking around)
+    this.idleAnimator = new IdleAnimator(this, this.truman);
+
     // Audio mixer with three channels (voice, ambient, music)
     this.audioMixer = new AudioMixer(this);
     this.hud.setAudioMixer(this.audioMixer);
@@ -264,11 +269,16 @@ export class RoomScene extends Phaser.Scene {
     this.musicManager = new MusicManager(this, this.audioMixer);
     this.musicManager.start("neutral");
 
-    // Wire activity changes to ambient manager
+    // Wire activity changes to ambient manager + idle animator
     this.activityManager.setOnActivityChange((activity, state) => {
       this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
-      // Only play ambient when performing, stop when idle/moving
       this.ambientManager.onActivityChange(state === "performing" ? activity : null);
+      // Start idle animations when idle, stop when moving/performing
+      if (state === "idle" && !activity) {
+        this.idleAnimator?.start();
+      } else {
+        this.idleAnimator?.stop();
+      }
     });
 
     // Keyboard shortcut: M toggles master mute
@@ -279,6 +289,7 @@ export class RoomScene extends Phaser.Scene {
     });
 
     this.activityManager.startLoop();
+    this.idleAnimator?.start(); // start breathing/blinking immediately
   }
 
   getTruman(): TrumanSprite {

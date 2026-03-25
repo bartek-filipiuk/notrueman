@@ -17,12 +17,10 @@ export class MovementSystem {
   private moveResolve: (() => void) | null = null;
   private isMoving = false;
 
-  /** Waypoints to follow (from navmesh pathfinding) */
   private waypoints: Position[] = [];
-  /** Total path length for easing calculation */
   private totalPathLength = 0;
-  /** Distance traveled so far */
   private distanceTraveled = 0;
+  private lastFootstepTime = 0;
 
   constructor(scene: Phaser.Scene, truman: TrumanSprite) {
     this.scene = scene;
@@ -44,21 +42,29 @@ export class MovementSystem {
       const path = this.navMesh.findPath(from, target);
 
       if (path && path.length > 1) {
-        // Use navmesh path (skip first point = current position)
         this.waypoints = path.slice(1);
       } else {
-        // Fallback: direct line to target
         this.waypoints = [target];
       }
 
-      // Calculate total path length for easing
       this.totalPathLength = this.calculatePathLength(from, this.waypoints);
       this.distanceTraveled = 0;
-      this.isMoving = true;
 
-      const dx = this.waypoints[0].x - this.truman.x;
-      const direction = dx > 0 ? "right" : "left";
-      this.truman.playWalk(direction);
+      // Anticipation: small "crouch" before moving (100ms)
+      this.scene.tweens.add({
+        targets: this.truman,
+        scaleY: 0.96,
+        scaleX: 1.02,
+        duration: 80,
+        yoyo: true,
+        ease: "Quad.Out",
+        onComplete: () => {
+          this.isMoving = true;
+          const dx = this.waypoints[0]?.x ?? target.x;
+          const direction = dx > this.truman.x ? "right" : "left";
+          this.truman.playWalk(direction);
+        },
+      });
     });
   }
 
@@ -95,6 +101,20 @@ export class MovementSystem {
         // Reached final destination
         this.isMoving = false;
         this.truman.playIdle();
+
+        // Squash/stretch on stop — settling effect
+        this.scene.tweens.add({
+          targets: this.truman,
+          scaleY: 0.93,
+          scaleX: 1.06,
+          duration: 80,
+          ease: "Sine.Out",
+          yoyo: true,
+          onComplete: () => {
+            this.truman.setScale(1, 1);
+          },
+        });
+
         if (this.moveResolve) {
           this.moveResolve();
           this.moveResolve = null;
@@ -131,6 +151,12 @@ export class MovementSystem {
       ROOM_FLOOR_BOTTOM_Y - 10,
     );
     this.distanceTraveled += actualStep;
+
+    // Footstep dust particles every 250ms while walking
+    if (_time - this.lastFootstepTime > 250) {
+      this.lastFootstepTime = _time;
+      this.emitFootstepDust();
+    }
 
     // Update facing direction
     if (Math.abs(dx) > 1) {
@@ -170,8 +196,33 @@ export class MovementSystem {
     return this.isMoving;
   }
 
-  /** Get navmesh system for debug overlay */
   getNavMesh(): NavMeshSystem {
     return this.navMesh;
+  }
+
+  /** Emit tiny dust particle at Truman's feet */
+  private emitFootstepDust(): void {
+    const texKey = "particle_dust";
+    if (!this.scene.textures.exists(texKey)) return;
+
+    const feetY = this.truman.y + 38;
+    const particle = this.scene.add.image(
+      this.truman.x + (Math.random() - 0.5) * 8,
+      feetY,
+      texKey,
+    );
+    particle.setScale(0.4);
+    particle.setAlpha(0.25);
+    particle.setDepth(this.truman.y + 39);
+
+    this.scene.tweens.add({
+      targets: particle,
+      y: feetY - 6,
+      alpha: 0,
+      scale: 0.1,
+      duration: 300,
+      ease: "Quad.Out",
+      onComplete: () => particle.destroy(),
+    });
   }
 }

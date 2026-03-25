@@ -298,17 +298,42 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
     if (this.usePNG && this.pngSprite) {
       this.pngSprite.setFlipX(direction === "left");
-      // PNG mode: bob + slight tilt for walk feel
-      this.animTimer = this.scene.time.addEvent({
-        delay: 140,
-        loop: true,
-        callback: () => {
-          this.frameIndex = (this.frameIndex + 1) % 6;
-          const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
-          this.pngSprite!.setY(yOff);
-        },
-      });
+
+      // Check for walk cycle sprites (idle → walk_1 → idle → walk_2)
+      const hasWalkFrames =
+        this.scene.textures.exists("truman_walk_1") &&
+        this.scene.textures.exists("truman_walk_2");
+
+      if (hasWalkFrames) {
+        // Real walk animation: 4-frame cycle like RPG Maker
+        const frames = ["truman_idle", "truman_walk_1", "truman_idle", "truman_walk_2"];
+        this.animTimer = this.scene.time.addEvent({
+          delay: 150,
+          loop: true,
+          callback: () => {
+            this.frameIndex = (this.frameIndex + 1) % 4;
+            this.pngSprite!.setTexture(frames[this.frameIndex]);
+            this.pngSprite!.setDisplaySize(96, 96);
+            this.pngSprite!.setFlipX(this.facing === "left");
+            // Subtle bob for extra bounce
+            const yOff = this.frameIndex % 2 === 0 ? 0 : -1;
+            this.pngSprite!.setY(yOff);
+          },
+        });
+      } else {
+        // Fallback: bob only (no walk frames available)
+        this.animTimer = this.scene.time.addEvent({
+          delay: 140,
+          loop: true,
+          callback: () => {
+            this.frameIndex = (this.frameIndex + 1) % 6;
+            const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
+            this.pngSprite!.setY(yOff);
+          },
+        });
+      }
     } else {
+      // RenderTexture fallback (programmatic legs)
       this.animTimer = this.scene.time.addEvent({
         delay: 140,
         loop: true,
