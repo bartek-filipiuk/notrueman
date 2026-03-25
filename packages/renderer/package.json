@@ -14,7 +14,9 @@
     "@nts/shared": "*",
     "@openrouter/ai-sdk-provider": "^2.3.3",
     "ai": "^6.0.137",
+    "navmesh": "^2.3.1",
     "phaser": "^3.90.0",
+    "phaser-navmesh": "^2.3.1",
     "replicate": "^1.4.0"
   },
   "devDependencies": {

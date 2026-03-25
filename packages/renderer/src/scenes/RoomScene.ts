@@ -10,6 +10,7 @@ import { ThoughtBubble } from "../ui/ThoughtBubble";
 import { LightingSystem } from "../systems/LightingSystem";
 import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
+import { buildNavMeshPolygons, getObstacles } from "../config/NavMeshConfig";
 import { ParticleManager } from "../systems/ParticleManager";
 import { AudioMixer } from "../systems/AudioMixer";
 import { AmbientManager } from "../systems/AmbientManager";
@@ -70,8 +71,47 @@ export class RoomScene extends Phaser.Scene {
     this.createBackground();
     this.createRoomObjects();
     this.createTruman();
+    this.createNavMeshDebug();
+  }
 
-    // All overlays disabled — room is clean background + Truman only
+  /** Debug overlay for navmesh — enabled via ?debug=nav URL param */
+  private navDebugGraphics: Phaser.GameObjects.Graphics | null = null;
+
+  private createNavMeshDebug(): void {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("debug") !== "nav") return;
+
+    this.navDebugGraphics = this.add.graphics();
+    this.navDebugGraphics.setDepth(95);
+    this.drawNavMeshDebug();
+  }
+
+  private drawNavMeshDebug(): void {
+    if (!this.navDebugGraphics) return;
+    const g = this.navDebugGraphics;
+    g.clear();
+
+    // Draw walkable polygons (green outlines)
+    const polys = buildNavMeshPolygons();
+    g.lineStyle(1, 0x00ff00, 0.3);
+    for (const poly of polys) {
+      g.beginPath();
+      g.moveTo(poly[0].x, poly[0].y);
+      for (let i = 1; i < poly.length; i++) g.lineTo(poly[i].x, poly[i].y);
+      g.closePath();
+      g.strokePath();
+    }
+
+    // Draw obstacles (red filled)
+    const obstacles = getObstacles();
+    g.fillStyle(0xff0000, 0.15);
+    for (const ob of obstacles) {
+      g.fillRect(ob.x, ob.y, ob.w, ob.h);
+    }
+    g.lineStyle(1, 0xff0000, 0.5);
+    for (const ob of obstacles) {
+      g.strokeRect(ob.x, ob.y, ob.w, ob.h);
+    }
   }
 
   /** CRT scanline overlay — alternating dark lines for retro TV feel */
