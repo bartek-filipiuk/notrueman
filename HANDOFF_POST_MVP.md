@@ -417,7 +417,7 @@ Obiekty AI (piękne) wiszą na flat beżowej ścianie (brzydkiej, rysowanej kode
 ### Taski:
 
 - [x] T14.1: Wygenerować 3 warianty tła pokoju — Retro Diffusion rd-plus, 384x216, skalowane do 960x540 NEAREST. Wariant A (jasny afternoon), B (przytulny lamp), C (minimalistyczny modern). User wybiera najlepszy. (generate → user picks → apply)
-- [x] T14.2: Fix ciemność — Wyłączyć/zmniejszyć: LightingSystem night ColorMatrix (max saturate -0.02), vignette (0.08 lub off), foreground gradient (remove), corner shadows (remove). Pokój ZAWSZE jasny i czytelny 24/7. (implement → verify bright at all hours)
+- [x] T14.2: Fix ciemność — WYŁĄCZONE WSZYSTKIE overlaye: PostFX (vignette, bloom), WindowView, LightingSystem (ColorMatrix, corner shadows), CRT scanlines, ambient dust, foreground gradient, fade-in. Pokój = czysty background + Truman + HUD. ZAWSZE jasny.
 - [x] T14.3: System anchor points — Nowy `ActivityAnchor` type: {x, y, facing, poseOffsetX?, poseOffsetY?}. `ACTIVITY_ANCHORS: Record<ActivityType, ActivityAnchor>` w constants.ts. Pozycje dopasowane do wybranego tła. (implement → verify per activity)
 - [x] T14.4: MovementSystem anchor integration — `moveToObject()` czyta z ACTIVITY_ANCHORS. Truman idzie do anchor.x/y, odwraca się w anchor.facing. (implement → test movement to each anchor)
 - [x] T14.5: Activity pose positioning — Przy "performing": pozycja = anchor + poseOffset, facing = anchor.facing, texture = pose sprite. Przy zakończeniu: revert to idle. Opcjonalnie: 200ms fade transition. (implement → verify Truman leży W łóżku, siedzi PRZY biurku)
