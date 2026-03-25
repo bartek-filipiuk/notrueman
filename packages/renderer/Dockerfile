@@ -22,10 +22,15 @@ WORKDIR /app
 # Install a minimal static file server
 RUN npm install -g serve@14
 
+# Create non-root user for security
+RUN groupadd -r renderer && useradd -r -g renderer renderer
+
 # Copy built renderer output
 COPY --from=builder /app/packages/renderer/dist /app/dist
 
 EXPOSE 5173
+
+USER renderer
 
 # Serve static files on port 5173
 CMD ["serve", "-s", "dist", "-l", "5173", "--no-clipboard"]
