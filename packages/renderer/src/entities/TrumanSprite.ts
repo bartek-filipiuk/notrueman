@@ -65,7 +65,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     // Shadow ellipse (below character)
-    this.shadow = scene.add.ellipse(0, 70, 60, 12, 0x000000, SHADOW_ALPHA);
+    this.shadow = scene.add.ellipse(0, 42, 40, 10, 0x000000, SHADOW_ALPHA);
     this.add(this.shadow);
 
     // Check if AI-generated PNG sprites are available
@@ -74,16 +74,10 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     if (this.usePNG) {
       // Use AI-generated PNG sprite (mood-switchable)
       this.pngSprite = scene.add.image(0, 0, "truman_idle");
-      this.pngSprite.setDisplaySize(160, 160);
+      this.pngSprite.setDisplaySize(96, 96);
       this.add(this.pngSprite);
 
-      // Apply glow to PNG sprite
-      try {
-        const fxConfig = getVisualConfig();
-        if (fxConfig.trumanGlow && this.pngSprite.preFX) {
-          this.pngSprite.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
-        }
-      } catch { /* skip */ }
+      // Glow disabled — Light2D handles ambient lighting now
 
       // RenderTexture hidden but kept for compatibility
       this.rt = scene.add.renderTexture(0, 0, 1, 1);
@@ -94,12 +88,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       this.rt.setOrigin(0.5, 0.5);
       this.add(this.rt);
 
-      try {
-        const fxConfig = getVisualConfig();
-        if (fxConfig.trumanGlow && this.rt.preFX) {
-          this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
-        }
-      } catch { /* skip */ }
+      // Glow disabled — Light2D handles ambient lighting now
     }
 
     this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
@@ -117,7 +106,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
       const poseKey = `truman_pose_${activity}`;
       if (this.scene.textures.exists(poseKey)) {
         this.pngSprite.setTexture(poseKey);
-        this.pngSprite.setDisplaySize(160, 160);
+        this.pngSprite.setDisplaySize(96, 96);
         this.pngSprite.setFlipX(this.facing === "left");
         this.stopAnim(); // freeze during activity pose
         return;
@@ -130,7 +119,7 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
     } else {
       this.pngSprite.setTexture("truman_idle");
     }
-    this.pngSprite.setDisplaySize(160, 160);
+    this.pngSprite.setDisplaySize(96, 96);
   }
 
   setMood(mood: string): void {
@@ -309,17 +298,42 @@ export class TrumanSprite extends Phaser.GameObjects.Container {
 
     if (this.usePNG && this.pngSprite) {
       this.pngSprite.setFlipX(direction === "left");
-      // PNG mode: bob + slight tilt for walk feel
-      this.animTimer = this.scene.time.addEvent({
-        delay: 140,
-        loop: true,
-        callback: () => {
-          this.frameIndex = (this.frameIndex + 1) % 6;
-          const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
-          this.pngSprite!.setY(yOff);
-        },
-      });
+
+      // Check for walk cycle sprites (idle → walk_1 → idle → walk_2)
+      const hasWalkFrames =
+        this.scene.textures.exists("truman_walk_1") &&
+        this.scene.textures.exists("truman_walk_2");
+
+      if (hasWalkFrames) {
+        // Real walk animation: 4-frame cycle like RPG Maker
+        const frames = ["truman_idle", "truman_walk_1", "truman_idle", "truman_walk_2"];
+        this.animTimer = this.scene.time.addEvent({
+          delay: 150,
+          loop: true,
+          callback: () => {
+            this.frameIndex = (this.frameIndex + 1) % 4;
+            this.pngSprite!.setTexture(frames[this.frameIndex]);
+            this.pngSprite!.setDisplaySize(96, 96);
+            this.pngSprite!.setFlipX(this.facing === "left");
+            // Subtle bob for extra bounce
+            const yOff = this.frameIndex % 2 === 0 ? 0 : -1;
+            this.pngSprite!.setY(yOff);
+          },
+        });
+      } else {
+        // Fallback: bob only (no walk frames available)
+        this.animTimer = this.scene.time.addEvent({
+          delay: 140,
+          loop: true,
+          callback: () => {
+            this.frameIndex = (this.frameIndex + 1) % 6;
+            const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
+            this.pngSprite!.setY(yOff);
+          },
+        });
+      }
     } else {
+      // RenderTexture fallback (programmatic legs)
       this.animTimer = this.scene.time.addEvent({
         delay: 140,
         loop: true,

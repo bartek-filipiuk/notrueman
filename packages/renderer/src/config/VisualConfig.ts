@@ -11,6 +11,7 @@ export interface VisualFXConfig {
   trumanGlow: boolean;
   crtScanlines: boolean;
   ambientParticles: boolean;
+  dayNightCycle: boolean;
 }
 
 const DEFAULT_FX: VisualFXConfig = {
@@ -19,8 +20,9 @@ const DEFAULT_FX: VisualFXConfig = {
   colorGrading: true,
   objectGlow: true,
   trumanGlow: true,
-  crtScanlines: false,       // off by default — toggle with config panel
+  crtScanlines: false,
   ambientParticles: true,
+  dayNightCycle: true,
 };
 
 const ALL_OFF: VisualFXConfig = {
@@ -31,6 +33,7 @@ const ALL_OFF: VisualFXConfig = {
   trumanGlow: false,
   crtScanlines: false,
   ambientParticles: false,
+  dayNightCycle: false,
 };
 
 let currentConfig: VisualFXConfig = { ...DEFAULT_FX };
