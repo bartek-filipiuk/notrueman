@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH } from "@nts/shared";
+import { GAME_WIDTH, GAME_HEIGHT } from "@nts/shared";
 import type { AudioMixer } from "../systems/AudioMixer";
 
 // Mood emoji characters for pixel feel
@@ -39,6 +39,7 @@ export class HUD {
   private activityText: Phaser.GameObjects.Text;
   private bgBar: Phaser.GameObjects.Rectangle;
   private muteBtn: Phaser.GameObjects.Text;
+  private dayCounterText: Phaser.GameObjects.Text;
   private audioMixer: AudioMixer | null = null;
   private lastTimeString = "";
 
@@ -100,6 +101,16 @@ export class HUD {
       .setDepth(100)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => this.onMuteToggle());
+
+    // Day counter (bottom-left corner) — TI.1
+    this.dayCounterText = scene.add
+      .text(12, GAME_HEIGHT - 24, "Day 0", {
+        fontSize: "10px",
+        fontFamily: "'Press Start 2P', monospace",
+        color: "#e0e0e0",
+      })
+      .setDepth(100)
+      .setAlpha(0.7);
   }
 
   updateMood(mood: string): void {
@@ -131,6 +142,11 @@ export class HUD {
 
   updateActivity(activity: string): void {
     this.activityText.setText(activity);
+  }
+
+  /** Update the day counter display (TI.1) */
+  updateDayCounter(dayCount: number): void {
+    this.dayCounterText.setText(`Day ${dayCount}`);
   }
 
   /** Connect an AudioMixer so the mute button can toggle audio */

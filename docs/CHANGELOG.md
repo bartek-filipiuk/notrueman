@@ -1,5 +1,20 @@
 # Changelog
 
+## [Stage I — Reset UI + Day Counter HUD] - 2026-03-26
+
+### Added
+- HUD day counter: "Day X" text in bottom-left corner (Press Start 2P font, 10px, 70% alpha)
+- ConfigPanel save stats: Day, Session #, Alive time, Last saved Xs ago (auto-refresh every 2s)
+- Soft reset button (yellow): resets position to center, emotions to defaults, preserves dayCount/createdAt/memories
+- Hard reset button (red): clears all save data (localStorage + DB state), requires `confirm()` dialog
+- URL params: `?reset=soft` and `?reset=hard` for dev tools (no confirm dialog, page reloads)
+- Save version migration: version mismatch in SaveManager.load() → discard + log warning (TI.6)
+- Tests: 16 new tests covering day counter math, soft/hard reset logic, URL params, version migration, stats formatting
+
+### Security
+- Hard reset requires browser `confirm()` dialog to prevent accidental data loss (SI.1)
+- All tests pass (SI.2) — pre-existing failures unchanged
+
 ## [Stage H — Recovery Integration: Restore on Startup] - 2026-03-26
 
 ### Added

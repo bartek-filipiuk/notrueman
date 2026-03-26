@@ -93,7 +93,8 @@ export class SaveManager {
     }
   }
 
-  /** Load state — GET from backend, fallback to localStorage, returns null if no save */
+  /** Load state — GET from backend, fallback to localStorage, returns null if no save.
+   *  Validates version — discards saves with version mismatch (TI.6). */
   async load(): Promise<SaveData | null> {
     // Try backend first
     if (this.backendAvailable) {
@@ -102,7 +103,13 @@ export class SaveManager {
         if (res.ok) {
           const json = await res.json();
           const parsed = SaveDataSchema.safeParse(json.state);
-          if (parsed.success) return parsed.data;
+          if (parsed.success) {
+            if (parsed.data.version !== SAVE_DATA_VERSION) {
+              console.warn(`[SaveManager] Backend save version mismatch: got ${parsed.data.version}, expected ${SAVE_DATA_VERSION}. Discarding.`);
+              return null;
+            }
+            return parsed.data;
+          }
           console.warn("[SaveManager] Backend state invalid, trying localStorage");
         }
       } catch (e) {
@@ -148,7 +155,14 @@ export class SaveManager {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = SaveDataSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) return parsed.data;
+      if (parsed.success) {
+        if (parsed.data.version !== SAVE_DATA_VERSION) {
+          console.warn(`[SaveManager] localStorage save version mismatch: got ${parsed.data.version}, expected ${SAVE_DATA_VERSION}. Discarding.`);
+          localStorage.removeItem(STORAGE_KEY);
+          return null;
+        }
+        return parsed.data;
+      }
       console.warn("[SaveManager] localStorage data invalid, discarding");
       localStorage.removeItem(STORAGE_KEY);
       return null;

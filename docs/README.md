@@ -100,6 +100,25 @@ All sprites are generated programmatically via `Phaser.GameObjects.Graphics` + `
 
 To modify an object's appearance, edit the corresponding `generate*()` function and reload. Palette constants at the top of each file.
 
+## State Persistence
+
+Truman's state survives page refreshes. Position, emotions, activity, mood, and day counter are saved automatically and restored on startup.
+
+**How it works:**
+- **Primary:** PostgreSQL via REST API (`POST /state/save`, `GET /state/load/:agentId`)
+- **Fallback:** localStorage (when backend is unavailable)
+- **Save triggers:** Tab hidden, page unload (sendBeacon), periodic 30s, activity change, position change >10px
+- **Offline compensation:** Emotions drift toward defaults based on elapsed time. If offline >8h, Truman "slept" (tiredness reset).
+
+**Day counter:** `Day X` shown in bottom-left HUD. `X = floor((now - firstEverStart) / 86400000)`. Session count tracks how many times the page was loaded.
+
+**Reset options** (debug panel `~`):
+- **Soft Reset** (yellow button): Position → center, emotions → defaults. Preserves day counter, memories.
+- **Hard Reset** (red button + confirm): Clears ALL save data. Fresh start at Day 0.
+- **URL params:** `?reset=soft` or `?reset=hard` (dev tools, no confirm dialog).
+
+**Version migration:** Save data has a `version` field. On load, mismatched versions are discarded with a console warning.
+
 ## Architecture
 
 ```

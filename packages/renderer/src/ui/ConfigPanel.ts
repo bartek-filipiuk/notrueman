@@ -1,11 +1,22 @@
+export interface SaveStats {
+  dayCount: number;
+  sessionCount: number;
+  totalTimeAliveMs: number;
+  lastSavedAt: number;
+}
+
+export type ResetCallback = (mode: "soft" | "hard") => void;
+
 /**
  * Simple debug/config overlay toggled with ~ key.
- * Shows current brain state and allows tick interval adjustment.
+ * Shows current brain state, save stats, and reset buttons.
  */
 export class ConfigPanel {
   private container: HTMLDivElement;
   private visible = false;
   private getState: () => Record<string, unknown>;
+  private saveStats: SaveStats = { dayCount: 0, sessionCount: 1, totalTimeAliveMs: 0, lastSavedAt: 0 };
+  private onReset: ResetCallback | null = null;
 
   constructor(getState: () => Record<string, unknown>) {
     this.getState = getState;
@@ -32,6 +43,16 @@ export class ConfigPanel {
     }, 2000);
   }
 
+  /** Set save stats for display (TI.2) */
+  setSaveStats(stats: SaveStats): void {
+    this.saveStats = stats;
+  }
+
+  /** Set reset callback for soft/hard reset buttons (TI.3, TI.4) */
+  setOnReset(cb: ResetCallback): void {
+    this.onReset = cb;
+  }
+
   toggle(): void {
     this.visible = !this.visible;
     this.container.style.display = this.visible ? "block" : "none";
@@ -56,7 +77,7 @@ export class ConfigPanel {
       lines.push(``);
       lines.push(`<b>Emotions:</b>`);
       for (const [k, v] of Object.entries(e)) {
-        const bar = "█".repeat(Math.round(v * 10)) + "░".repeat(10 - Math.round(v * 10));
+        const bar = "\u2588".repeat(Math.round(v * 10)) + "\u2591".repeat(10 - Math.round(v * 10));
         lines.push(`  ${k.padEnd(12)} ${bar} ${(v as number).toFixed(2)}`);
       }
     }
@@ -66,16 +87,51 @@ export class ConfigPanel {
       lines.push(``);
       lines.push(`<b>TTS:</b> ${tts.enabled ? `ON (${tts.voice})` : "OFF"}`);
       if (tts.enabled) {
-        lines.push(`  Playing: ${tts.playing ? "🔊" : "—"}  Queue: ${tts.queueSize}`);
+        lines.push(`  Playing: ${tts.playing ? "\uD83D\uDD0A" : "\u2014"}  Queue: ${tts.queueSize}`);
       }
     }
 
     if (state.recentActivities) {
       const recent = state.recentActivities as Array<{ activity: string }>;
       lines.push(``);
-      lines.push(`<b>Recent:</b> ${recent.map((r) => r.activity).join(" → ")}`);
+      lines.push(`<b>Recent:</b> ${recent.map((r) => r.activity).join(" \u2192 ")}`);
+    }
+
+    // Save stats section (TI.2)
+    lines.push(``);
+    lines.push(`<b style="color:#ffd93d">State Persistence:</b>`);
+    lines.push(`  Day ${this.saveStats.dayCount}`);
+    lines.push(`  Session #${this.saveStats.sessionCount}`);
+    const aliveH = Math.floor(this.saveStats.totalTimeAliveMs / 3_600_000);
+    const aliveM = Math.floor((this.saveStats.totalTimeAliveMs % 3_600_000) / 60_000);
+    lines.push(`  Alive: ${aliveH}h ${aliveM}m`);
+    if (this.saveStats.lastSavedAt > 0) {
+      const agoS = Math.round((Date.now() - this.saveStats.lastSavedAt) / 1000);
+      lines.push(`  Last saved: ${agoS}s ago`);
     }
 
     this.container.innerHTML = lines.join("<br>");
+
+    // Add reset buttons (TI.3, TI.4) — recreate each render
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = "margin-top: 10px; display: flex; gap: 8px;";
+
+    const softBtn = document.createElement("button");
+    softBtn.textContent = "Soft Reset";
+    softBtn.style.cssText = "background: #f9a825; color: #000; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 10px;";
+    softBtn.onclick = () => this.onReset?.("soft");
+
+    const hardBtn = document.createElement("button");
+    hardBtn.textContent = "Hard Reset";
+    hardBtn.style.cssText = "background: #e53935; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 10px;";
+    hardBtn.onclick = () => {
+      if (confirm("Are you sure? This will erase ALL save data and start from Day 0.")) {
+        this.onReset?.("hard");
+      }
+    };
+
+    btnRow.appendChild(softBtn);
+    btnRow.appendChild(hardBtn);
+    this.container.appendChild(btnRow);
   }
 }

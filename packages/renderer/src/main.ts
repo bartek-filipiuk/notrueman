@@ -19,6 +19,7 @@ import {
   EmotionEngine,
 } from "@nts/agent-brain";
 import { ConfigPanel } from "./ui/ConfigPanel";
+import type { SaveStats } from "./ui/ConfigPanel";
 import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
 import { SaveManager } from "./systems/SaveManager";
 
@@ -67,6 +68,13 @@ function startGame(): void {
   game.events.on("ready", () => {
     // RoomScene starts after BootScene transition (1s delay)
     setTimeout(async () => {
+      // Handle URL reset params (TI.5) — ?reset=soft or ?reset=hard
+      const resetParam = new URLSearchParams(window.location.search).get("reset");
+      if (resetParam === "hard" || resetParam === "soft") {
+        await handleResetParam(resetParam);
+        return; // page will reload
+      }
+
       // Init save manager + load existing save before brain starts
       const save = await initSaveManager();
       // Restore Truman's position/facing from save (TH.1 + TH.2)
@@ -76,6 +84,19 @@ function startGame(): void {
       initBrain(game, save);
     }, 1500);
   });
+}
+
+/** Handle ?reset=soft or ?reset=hard URL params (TI.5) */
+async function handleResetParam(mode: "soft" | "hard"): Promise<void> {
+  console.log(`[save] URL reset param: ${mode}`);
+  await saveManager.init();
+  if (mode === "hard") {
+    await saveManager.reset("hard");
+  }
+  // Remove the reset param and reload
+  const url = new URL(window.location.href);
+  url.searchParams.delete("reset");
+  window.location.replace(url.toString());
 }
 
 // Gate game creation on user interaction (audio autoplay policy)
@@ -143,7 +164,11 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     console.log("[main] No API key provided — running in DEMO mode");
     console.log("[main] Add ?apiKey=sk-or-... to URL for AI mode");
     // Demo mode: ActivityManager hardcoded loop already running from RoomScene.create()
-    new ConfigPanel(() => ({ mode: "demo", tickCount: 0, currentActivity: "cycling", currentMood: "neutral" }));
+    const demoPanel = new ConfigPanel(() => ({ mode: "demo", tickCount: 0, currentActivity: "cycling", currentMood: "neutral" }));
+    setupConfigPanelStats(demoPanel, roomScene);
+    demoPanel.setOnReset((mode) => {
+      void performReset(mode, roomScene, null, null);
+    });
     // Save triggers for demo mode too
     setupSaveTriggers(roomScene, null, null);
     return;
@@ -278,7 +303,7 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
   (window as any).__tts = ttsManager;
 
   // Config panel (toggle with ~ key)
-  new ConfigPanel(() => ({
+  const configPanel = new ConfigPanel(() => ({
     mode: "AI",
     ...brain.getState(),
     currentMood: emotions.getOverallMood(),
@@ -290,6 +315,14 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
       queueSize: ttsManager.getQueueSize(),
     },
   }));
+
+  // Wire save stats to ConfigPanel (TI.2)
+  setupConfigPanelStats(configPanel, roomScene);
+
+  // Wire reset buttons (TI.3, TI.4)
+  configPanel.setOnReset((mode) => {
+    void performReset(mode, roomScene, brain, emotions);
+  });
 
   const ttsStatus = ttsManager.isEnabled()
     ? `TTS enabled (voice: ${ttsManager.getVoice()})`
@@ -399,12 +432,14 @@ function setupSaveTriggers(
     const data = collectSaveData(roomScene, brain, emotions);
     await saveManager.save(data);
     dirty = false;
+    lastSavedTimestamp = Date.now();
   };
 
   const doBeaconSave = () => {
     const data = collectSaveData(roomScene, brain, emotions);
     saveManager.saveBeacon(data);
     dirty = false;
+    lastSavedTimestamp = Date.now();
   };
 
   // Save when tab becomes hidden
@@ -455,4 +490,81 @@ function setupSaveTriggers(
   // Expose for debugging
   (window as any).__saveManager = saveManager;
   console.log(`[save] Triggers active: visibilitychange, pagehide, 30s periodic, activity change. Backend: ${saveManager.isBackendAvailable ? "PostgreSQL" : "localStorage"}`);
+}
+
+// =============================================
+// ConfigPanel Wiring — Stats + Reset (TI.2-TI.4)
+// =============================================
+
+/** Wire save stats updates to ConfigPanel (TI.2) */
+function setupConfigPanelStats(panel: ConfigPanel, roomScene: RoomScene): void {
+  // Also update HUD day counter
+  const updateStats = () => {
+    const now = Date.now();
+    const elapsedThisSession = now - sessionStartedAt;
+    const totalAlive = saveTotalTimeAliveMs + elapsedThisSession;
+    const dayCount = Math.floor((now - saveCreatedAt) / 86_400_000);
+
+    const stats: SaveStats = {
+      dayCount,
+      sessionCount: saveSessionCount,
+      totalTimeAliveMs: totalAlive,
+      lastSavedAt: lastSavedTimestamp,
+    };
+    panel.setSaveStats(stats);
+
+    // Update HUD day counter
+    roomScene.getHUD().updateDayCounter(dayCount);
+  };
+
+  updateStats();
+  setInterval(updateStats, 2000);
+}
+
+/** Track when last save occurred (for "Xs ago" display) */
+let lastSavedTimestamp = 0;
+
+/** Perform soft or hard reset (TI.3, TI.4) */
+async function performReset(
+  mode: "soft" | "hard",
+  roomScene: RoomScene,
+  brain: BrainLoop | null,
+  emotions: EmotionEngine | null,
+): Promise<void> {
+  console.log(`[save] Performing ${mode} reset...`);
+
+  if (mode === "hard") {
+    await saveManager.reset("hard");
+    // Clear and reload — Day 0, fresh start
+    window.location.reload();
+    return;
+  }
+
+  // Soft reset: position → center, emotions → default, activity → idle
+  // Preserve: dayCount, createdAt, sessionCount, memories
+  const truman = roomScene.getTruman();
+  truman.setPosition(480, 400); // center of room
+  truman.setFacing("right");
+
+  if (emotions) {
+    emotions.setState({
+      happiness: 0.5, curiosity: 0.5, anxiety: 0.2,
+      boredom: 0.3, excitement: 0.3, contentment: 0.5, frustration: 0.1,
+    });
+  }
+
+  if (brain) {
+    brain.restoreState({
+      currentActivity: null,
+      currentMood: "contemplative",
+    });
+  }
+
+  // Save the reset state immediately
+  const data = collectSaveData(roomScene, brain, emotions);
+  await saveManager.save(data);
+  markDirty();
+
+  // Reload page to apply cleanly
+  window.location.reload();
 }
