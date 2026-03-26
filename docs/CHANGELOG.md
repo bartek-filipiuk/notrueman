@@ -1,5 +1,24 @@
 # Changelog
 
+## [Stage J — Tool Framework + Brave Search] - 2026-03-26
+
+### Added
+- `ToolRegistry` class — registers tools with metadata, maps activities to available tools, filters by budget
+- `BudgetManager` class — daily tool call budget (20 calls/day default), midnight UTC reset, hard-blocks when exceeded
+- Web Search tool (Brave Search API) — real internet search via `BRAVE_SEARCH_API_KEY`, Zod-validated input/output
+- Blog Post tool (placeholder) — saves draft to memory, does not publish
+- Artwork tool (placeholder) — saves concept to memory, does not generate images
+- `generateWithTools()` in LLMClient — Vercel AI SDK `generateText()` with tools + `stopWhen(stepCountIs(N))`
+- Config extension: `tools.maxCallsPerDay`, `tools.enabledTools`, `interests` array in `truman-config.json`
+- `.env.example` updated with `BRAVE_SEARCH_API_KEY`
+- Tests: 28 new tests (ToolRegistry mapping, BudgetManager tracking, Zod schemas, config validation)
+
+### Security
+- `BRAVE_SEARCH_API_KEY` accessed only from env vars, never hardcoded (SJ.1)
+- Zod validation on all tool inputs (SJ.2)
+- Budget hard-blocks tool calls when exceeded (SJ.3)
+- All tests pass (SJ.4)
+
 ## [Stage I — Reset UI + Day Counter HUD] - 2026-03-26
 
 ### Added

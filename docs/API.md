@@ -374,3 +374,42 @@ All queues use `concurrency: 1`, `removeOnComplete: { count: 1000 }`, `removeOnF
 | `TrumanConfigSchema` | @nts/agent-brain | Runtime config validation |
 
 Activity enums in all schemas derive from `ACTIVITY_LIST` in `packages/shared/src/constants.ts`.
+
+## Creative Tools
+
+### Tool Definitions
+
+| Tool | Trigger Activities | Input | Output | Status |
+|---|---|---|---|---|
+| `web_search` | computer, think, read, draw | `{ query: string, count?: number }` | `{ results: Array<{ title, url, snippet }> }` | Real (Brave Search API) |
+| `write_blog_post` | computer | `{ title: string, content: string, tags: string[] }` | `{ id: string, status: "draft_saved" }` | Placeholder |
+| `create_artwork` | draw | `{ title: string, description: string, style: string }` | `{ id: string, status: "concept_saved" }` | Placeholder |
+
+### Budget System
+
+- Default: 20 tool calls per day (`tools.maxCallsPerDay` in `truman-config.json`)
+- Daily reset at midnight UTC
+- Hard-blocks calls when budget exceeded (no graceful degradation)
+- Tracked via `BudgetManager` class
+
+### LLM Client Extension
+
+`generateWithTools()` method on `LLMClient`:
+- Uses Vercel AI SDK `generateText()` with `tools` parameter
+- `stopWhen: stepCountIs(N)` controls max tool round-trips (default: 3)
+- Returns `{ text, toolCalls, toolResults, usage }`
+
+### Configuration
+
+`config/truman-config.json`:
+```json
+{
+  "tools": {
+    "maxCallsPerDay": 20,
+    "enabledTools": ["web_search", "write_blog_post", "create_artwork"]
+  },
+  "interests": ["technology", "philosophy", "art", "science", "creativity"]
+}
+```
+
+Environment: `BRAVE_SEARCH_API_KEY` in `.env` (Brave Search API free tier, 2000 queries/month).

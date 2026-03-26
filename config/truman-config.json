@@ -19,5 +19,10 @@
     "excitement": 0.4,
     "contentment": 0.5,
     "frustration": 0.1
-  }
+  },
+  "tools": {
+    "maxCallsPerDay": 20,
+    "enabledTools": ["web_search", "write_blog_post", "create_artwork"]
+  },
+  "interests": ["technology", "philosophy", "art", "science", "creativity"]
 }

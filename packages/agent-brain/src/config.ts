@@ -23,6 +23,11 @@ export const TrumanConfigSchema = z.object({
     contentment: z.number().min(0).max(1),
     frustration: z.number().min(0).max(1),
   }),
+  tools: z.object({
+    maxCallsPerDay: z.number().int().min(1).max(100).default(20),
+    enabledTools: z.array(z.string()).default(["web_search", "write_blog_post", "create_artwork"]),
+  }).optional(),
+  interests: z.array(z.string()).max(10).optional(),
 });
 
 export type TrumanConfig = z.infer<typeof TrumanConfigSchema>;
