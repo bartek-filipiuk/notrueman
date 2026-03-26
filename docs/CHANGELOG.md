@@ -90,6 +90,18 @@
 - `.env.example` has TTS_API_KEY placeholder for server-side usage
 - Audio autoplay policy handled: user click/touch required before game starts
 
+## [Stage 8 — Audio & Voice: Complete] - 2026-03-25
+
+### Added
+- Audio-visual sync: Truman's mouth animates (open/close at ~4Hz) during TTS playback
+- Speech bubble pulsing glow indicator while TTS audio is playing
+- TTSManager onSpeechStart/onSpeechEnd callbacks wired to TrumanSprite and ThoughtBubble
+- TrumanSprite.setSpeaking(): toggles mouth overlay animation (works in both PNG and fallback modes)
+- ThoughtBubble.setSpeaking(): pulsing blue border glow on speech bubbles during playback
+
+### Fixed
+- TrumanSprite: replaced `make.graphics({ add: false })` with `add.graphics().setVisible(false)` to fix Phaser 3.90 type error
+
 ## [Stage 13 — Room Layout PRO] - 2026-03-24
 
 ### Added

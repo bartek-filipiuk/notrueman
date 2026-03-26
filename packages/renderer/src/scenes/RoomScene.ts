@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS, ROOM_WALL_BOTTOM_Y, ROOM_FLOOR_TOP_Y, ROOM_FLOOR_BOTTOM_Y } from "@nts/shared";
+import { GAME_WIDTH, GAME_HEIGHT, ROOM_OBJECTS } from "@nts/shared";
 import type { InteractiveObjectId } from "@nts/shared";
 import { TrumanSprite } from "../entities/TrumanSprite";
 import { MovementSystem } from "../systems/MovementSystem";
@@ -10,18 +10,12 @@ import { ThoughtBubble } from "../ui/ThoughtBubble";
 import { LightingSystem } from "../systems/LightingSystem";
 import { WindowView } from "../systems/WindowView";
 import { generateAllTextures } from "../sprites/RoomObjectSprites";
-import { buildNavMeshPolygons, getObstacles } from "../config/NavMeshConfig";
 import { ParticleManager } from "../systems/ParticleManager";
 import { AudioMixer } from "../systems/AudioMixer";
 import { AmbientManager } from "../systems/AmbientManager";
 import { generateAllAmbientSounds } from "../systems/ProceduralAudio";
-import { generateAllMusicTracks } from "../systems/ProceduralMusic";
-import { MusicManager } from "../systems/MusicManager";
 import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 import { TTSManager } from "../systems/TTSManager";
-import { DayNightCycle } from "../systems/DayNightCycle";
-import { IdleAnimator } from "../systems/IdleAnimator";
-import { RoomEditor } from "../systems/RoomEditor";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -36,14 +30,12 @@ const FLOOR_PLANK_DARK = 0x8b6d45; // darker plank variation
 const FLOOR_PLANK_LIGHT = 0xb08f65;// lighter plank variation
 const FLOOR_GRAIN = 0x906e48;      // wood grain lines
 const FLOOR_GAP = 0x5c3d1e;        // gap between planks
-/** @deprecated replaced by ROOM_FLOOR_TOP_Y from shared constants */
-const FLOOR_Y = ROOM_FLOOR_TOP_Y;
+const FLOOR_Y = 460;
 
 /** Window glow color for ambient lighting — exported for tests */
 export const WINDOW_GLOW_COLOR = 0xfdd835;
 
 export class RoomScene extends Phaser.Scene {
-  private bgImage: Phaser.GameObjects.Image | null = null;
   private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle>();
   private truman!: TrumanSprite;
   private movement!: MovementSystem;
@@ -55,10 +47,7 @@ export class RoomScene extends Phaser.Scene {
   private windowView!: WindowView;
   private audioMixer!: AudioMixer;
   private ambientManager!: AmbientManager;
-  private musicManager!: MusicManager;
   private ttsManager: TTSManager | null = null;
-  private dayNight: DayNightCycle | null = null;
-  private idleAnimator: IdleAnimator | null = null;
 
   constructor() {
     super({ key: "RoomScene" });
@@ -77,57 +66,8 @@ export class RoomScene extends Phaser.Scene {
     this.createBackground();
     this.createRoomObjects();
     this.createTruman();
-    this.createNavMeshDebug();
 
-    // Room editor mode: ?edit=true — drag objects, scroll=scale, P=print positions
-    // Also stops Truman from moving and disables activity loop
-    const isEditMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("edit") === "true";
-    if (isEditMode) {
-      this.activityManager.stopLoop();
-      this.truman.setVisible(false);
-      this.drawObjectDebugMarkers();
-      new RoomEditor(this, this.roomObjects);
-    }
-  }
-
-  /** Debug overlay for navmesh — enabled via ?debug=nav URL param */
-  private navDebugGraphics: Phaser.GameObjects.Graphics | null = null;
-
-  private createNavMeshDebug(): void {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("debug") !== "nav") return;
-
-    this.navDebugGraphics = this.add.graphics();
-    this.navDebugGraphics.setDepth(95);
-    this.drawNavMeshDebug();
-  }
-
-  private drawNavMeshDebug(): void {
-    if (!this.navDebugGraphics) return;
-    const g = this.navDebugGraphics;
-    g.clear();
-
-    // Draw walkable polygons (green outlines)
-    const polys = buildNavMeshPolygons();
-    g.lineStyle(1, 0x00ff00, 0.3);
-    for (const poly of polys) {
-      g.beginPath();
-      g.moveTo(poly[0].x, poly[0].y);
-      for (let i = 1; i < poly.length; i++) g.lineTo(poly[i].x, poly[i].y);
-      g.closePath();
-      g.strokePath();
-    }
-
-    // Draw obstacles (red filled)
-    const obstacles = getObstacles();
-    g.fillStyle(0xff0000, 0.15);
-    for (const ob of obstacles) {
-      g.fillRect(ob.x, ob.y, ob.w, ob.h);
-    }
-    g.lineStyle(1, 0xff0000, 0.5);
-    for (const ob of obstacles) {
-      g.strokeRect(ob.x, ob.y, ob.w, ob.h);
-    }
+    // All overlays disabled — room is clean background + Truman only
   }
 
   /** CRT scanline overlay — alternating dark lines for retro TV feel */
@@ -193,11 +133,10 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.update();
     this.hud.updateTime();
 
-    this.truman.setDepth(900);
+    // Depth sort: Truman renders in front of objects below him, behind objects above
+    this.truman.setDepth(this.truman.y);
 
-    this.dayNight?.update();
-    // Window view update (sky color/stars)
-    this.windowView?.update();
+    // Object glow disabled — furniture is baked into background image
   }
 
   /** Add glow to nearest object when Truman is close */
@@ -240,14 +179,12 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.stopActivity();
     this.thoughtBubble.hide();
     this.ambientManager.destroy();
-    this.musicManager.destroy();
     this.audioMixer.destroy();
     this.ttsManager?.destroy();
   }
 
   private createTruman(): void {
-    // Spawn Truman at center of walkable floor area (3/4 view)
-    this.truman = new TrumanSprite(this, 480, 400);
+    this.truman = new TrumanSprite(this, 400, 420);
     this.movement = new MovementSystem(this, this.truman);
     this.activityRenderer = new ActivityRenderer(this, this.truman);
     this.activityManager = new ActivityManager(this, this.truman, this.movement, this.activityRenderer);
@@ -255,13 +192,8 @@ export class RoomScene extends Phaser.Scene {
     this.hud = new HUD(this);
     this.thoughtBubble = new ThoughtBubble(this);
 
-    // Day/Night cycle with Light2D point lights
-    this.dayNight = new DayNightCycle(this);
-
-    // WindowView disabled — window baked into room background
-
-    // Idle micro-animations (breathing, blinking, looking around)
-    this.idleAnimator = new IdleAnimator(this, this.truman);
+    // WindowView and LightingSystem disabled — room background is self-contained
+    // and always bright. No overlays needed.
 
     // Audio mixer with three channels (voice, ambient, music)
     this.audioMixer = new AudioMixer(this);
@@ -272,21 +204,11 @@ export class RoomScene extends Phaser.Scene {
     this.ambientManager = new AmbientManager(this, this.audioMixer);
     this.ambientManager.start();
 
-    // Generate procedural music tracks and start music system
-    generateAllMusicTracks(this);
-    this.musicManager = new MusicManager(this, this.audioMixer);
-    this.musicManager.start("neutral");
-
-    // Wire activity changes to ambient manager + idle animator
+    // Wire activity changes to ambient manager
     this.activityManager.setOnActivityChange((activity, state) => {
       this.hud.updateActivity(activity ? `${activity} (${state})` : "Idle");
+      // Only play ambient when performing, stop when idle/moving
       this.ambientManager.onActivityChange(state === "performing" ? activity : null);
-      // Start idle animations when idle, stop when moving/performing
-      if (state === "idle" && !activity) {
-        this.idleAnimator?.start();
-      } else {
-        this.idleAnimator?.stop();
-      }
     });
 
     // Keyboard shortcut: M toggles master mute
@@ -297,7 +219,6 @@ export class RoomScene extends Phaser.Scene {
     });
 
     this.activityManager.startLoop();
-    this.idleAnimator?.start(); // start breathing/blinking immediately
   }
 
   getTruman(): TrumanSprite {
@@ -337,12 +258,15 @@ export class RoomScene extends Phaser.Scene {
     this.thoughtBubble.onSpeechBubbleShow = (bubbleText, bubbleMood) => {
       void this.ttsManager?.speak(bubbleText, bubbleMood);
     };
-    // Wire TTS playback to Truman mouth animation (audio-visual sync)
+
+    // Audio-visual sync: animate mouth + pulse bubble during TTS playback
     tts.onSpeechStart = () => {
-      this.truman.startTalking();
+      this.truman.setSpeaking(true);
+      this.thoughtBubble.setSpeaking(true);
     };
     tts.onSpeechEnd = () => {
-      this.truman.stopTalking();
+      this.truman.setSpeaking(false);
+      this.thoughtBubble.setSpeaking(false);
     };
   }
 
@@ -358,196 +282,161 @@ export class RoomScene extends Phaser.Scene {
     return this.audioMixer;
   }
 
-  getMusicManager(): MusicManager {
-    return this.musicManager;
-  }
-
-  /** Switch room background based on time of day */
-  setBackgroundTime(isNight: boolean): void {
-    if (!this.bgImage) return;
-    const nightKey = "room_background_34_night";
-    const dayKey = "room_background_34";
-    const wantKey = isNight ? nightKey : dayKey;
-    if (this.textures.exists(wantKey) && this.bgImage.texture.key !== wantKey) {
-      this.bgImage.setTexture(wantKey);
-    }
-  }
-
   private createBackground(): void {
-    // Pick initial background based on current hour
-    const hour = new Date().getHours();
-    const isNight = hour >= 19 || hour < 6;
-    const nightKey = "room_background_34_night";
-    const dayKey = "room_background_34";
-    const bgKey = isNight && this.textures.exists(nightKey) ? nightKey : dayKey;
-
-    if (this.textures.exists(bgKey)) {
-      this.bgImage = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, bgKey);
-      this.bgImage.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-      this.bgImage.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      this.bgImage.setDepth(0);
-      return;
+    // Use AI-generated room background if available
+    if (this.textures.exists("room_background")) {
+      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_background");
+      bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+      bg.setDepth(0);
+      return; // Skip programmatic background
     }
 
-    // Programmatic 3/4 top-down room background
-    const g = this.add.graphics();
+    // Fallback: programmatic background
+    const bg = this.add.graphics();
+    bg.setDepth(0);
 
-    // === BACK WALL (top portion) ===
-    g.fillStyle(WALL_BASE);
-    g.fillRect(0, 0, GAME_WIDTH, ROOM_WALL_BOTTOM_Y);
+    // === CEILING ===
+    // Thin cream ceiling strip
+    bg.fillStyle(CEILING_COLOR);
+    bg.fillRect(0, 0, GAME_WIDTH, 12);
+    // Ceiling frieze (thin decorative wood trim)
+    bg.fillStyle(CEILING_FRIEZE);
+    bg.fillRect(0, 12, GAME_WIDTH, 3);
+    // Frieze highlight
+    bg.fillStyle(BASEBOARD_TOP, 0.5);
+    bg.fillRect(0, 12, GAME_WIDTH, 1);
 
-    // Wall shading — darker at top
-    g.fillStyle(WALL_TOP_SHADE, 0.3);
-    g.fillRect(0, 0, GAME_WIDTH, 30);
+    // === WALL ===
+    // Base wall color — warm beige
+    bg.fillStyle(WALL_BASE);
+    bg.fillRect(0, 15, GAME_WIDTH, FLOOR_Y - 15);
 
-    // Wallpaper pattern — subtle diamond grid on wall
-    g.fillStyle(WALL_PATTERN, 0.2);
-    const spacing = 20;
-    for (let wy = 20; wy < ROOM_WALL_BOTTOM_Y - 10; wy += spacing) {
-      const offset = ((wy - 20) / spacing) % 2 === 0 ? 0 : spacing / 2;
-      for (let wx = offset + 10; wx < GAME_WIDTH - 10; wx += spacing) {
-        g.fillRect(wx - 1, wy - 1, 2, 2);
+    // Subtle top shading (darker near ceiling for depth)
+    bg.fillStyle(WALL_TOP_SHADE, 0.3);
+    bg.fillRect(0, 15, GAME_WIDTH, 30);
+
+    // Wallpaper pattern — subtle diamond grid
+    this.drawWallpaperPattern(bg);
+
+    // Corner shadow — left (darker in corners)
+    bg.fillStyle(0x000000, 0.06);
+    bg.fillRect(0, 15, 60, FLOOR_Y - 15);
+    bg.fillStyle(0x000000, 0.03);
+    bg.fillRect(60, 15, 40, FLOOR_Y - 15);
+
+    // Corner shadow — right
+    bg.fillStyle(0x000000, 0.06);
+    bg.fillRect(GAME_WIDTH - 50, 15, 50, FLOOR_Y - 15);
+    bg.fillStyle(0x000000, 0.03);
+    bg.fillRect(GAME_WIDTH - 90, 15, 40, FLOOR_Y - 15);
+
+    // === BASEBOARD ===
+    // Main baseboard
+    bg.fillStyle(BASEBOARD_COLOR);
+    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 8);
+    // Baseboard top edge highlight
+    bg.fillStyle(BASEBOARD_TOP);
+    bg.fillRect(0, FLOOR_Y - 8, GAME_WIDTH, 2);
+    // Baseboard bottom shadow
+    bg.fillStyle(0x4a3520);
+    bg.fillRect(0, FLOOR_Y - 1, GAME_WIDTH, 1);
+
+    // === WOODEN FLOOR ===
+    this.drawWoodenFloor(bg);
+
+    // === WINDOW AMBIENT GLOW ===
+    const windowObj = ROOM_OBJECTS.find((o) => o.id === "window");
+    if (windowObj) {
+      const glow = this.add.graphics();
+      glow.setDepth(0);
+      // Warm sunlight trapezoid from window to floor
+      glow.fillStyle(WINDOW_GLOW_COLOR, 0.06);
+      glow.fillTriangle(
+        windowObj.x + windowObj.width / 2, windowObj.y + windowObj.height,
+        windowObj.x - 50, FLOOR_Y,
+        windowObj.x + windowObj.width + 50, FLOOR_Y,
+      );
+      // Lighter patch on wall near window
+      glow.fillStyle(0xfff8e1, 0.08);
+      glow.fillRect(windowObj.x - 20, windowObj.y - 10, windowObj.width + 40, windowObj.height + 20);
+      // Sunlight on floor below window
+      glow.fillStyle(WINDOW_GLOW_COLOR, 0.05);
+      glow.fillRect(windowObj.x - 30, FLOOR_Y, windowObj.width + 60, GAME_HEIGHT - FLOOR_Y);
+    }
+  }
+
+  /** Draw subtle diamond wallpaper pattern on the wall */
+  private drawWallpaperPattern(g: Phaser.GameObjects.Graphics): void {
+    g.fillStyle(WALL_PATTERN, 0.25);
+    const spacing = 24;
+    const dotSize = 2;
+    for (let y = 30; y < FLOOR_Y - 10; y += spacing) {
+      const offset = ((y - 30) / spacing) % 2 === 0 ? 0 : spacing / 2;
+      for (let x = offset + 12; x < GAME_WIDTH - 10; x += spacing) {
+        // Small diamond dot
+        g.fillRect(x - dotSize / 2, y - dotSize / 2, dotSize, dotSize);
       }
     }
+    // Subtle horizontal wainscoting line at ~60% wall height
+    const wainscotY = 15 + (FLOOR_Y - 15) * 0.62;
+    g.fillStyle(BASEBOARD_TOP, 0.2);
+    g.fillRect(0, wainscotY, GAME_WIDTH, 2);
+    g.fillStyle(CEILING_COLOR, 0.15);
+    g.fillRect(0, wainscotY - 1, GAME_WIDTH, 1);
+  }
 
-    // Baseboard at wall-floor junction
-    g.fillStyle(BASEBOARD_COLOR);
-    g.fillRect(0, ROOM_WALL_BOTTOM_Y - 6, GAME_WIDTH, 6);
-    g.fillStyle(BASEBOARD_TOP);
-    g.fillRect(0, ROOM_WALL_BOTTOM_Y - 6, GAME_WIDTH, 2);
-
-    // === WOODEN FLOOR (3/4 top-down view) ===
-    const floorTop = ROOM_FLOOR_TOP_Y;
-    const floorBot = GAME_HEIGHT;
-    const floorH = floorBot - floorTop;
-
-    // Base floor color
-    g.fillStyle(FLOOR_PLANK_BASE);
-    g.fillRect(0, floorTop, GAME_WIDTH, floorH);
-
-    // Plank lines — horizontal planks (viewed from above)
-    const plankH = 24;
+  /** Draw wooden plank floor with grain pattern */
+  private drawWoodenFloor(g: Phaser.GameObjects.Graphics): void {
+    const floorHeight = GAME_HEIGHT - FLOOR_Y;
+    const plankWidth = 64;
+    const plankHeight = floorHeight;
     const plankColors = [FLOOR_PLANK_BASE, FLOOR_PLANK_DARK, FLOOR_PLANK_LIGHT, FLOOR_PLANK_BASE, FLOOR_PLANK_DARK];
-    for (let py = floorTop; py < floorBot; py += plankH) {
-      const ci = Math.floor((py - floorTop) / plankH);
-      g.fillStyle(plankColors[ci % plankColors.length]);
-      g.fillRect(0, py, GAME_WIDTH, plankH);
+
+    // Draw planks left to right
+    for (let i = 0; i * plankWidth < GAME_WIDTH; i++) {
+      const x = i * plankWidth;
+      const color = plankColors[i % plankColors.length];
+
+      // Plank base
+      g.fillStyle(color);
+      g.fillRect(x, FLOOR_Y, plankWidth, plankHeight);
 
       // Gap line between planks
-      g.fillStyle(FLOOR_GAP, 0.6);
-      g.fillRect(0, py, GAME_WIDTH, 1);
-
-      // Wood grain — short horizontal dashes
-      g.fillStyle(FLOOR_GRAIN, 0.2);
-      for (let gx = 4 + (ci * 13) % 20; gx < GAME_WIDTH; gx += 30 + (ci * 7) % 15) {
-        g.fillRect(gx, py + 6 + (ci * 3) % 8, 12 + (ci * 5) % 10, 1);
+      if (i > 0) {
+        g.fillStyle(FLOOR_GAP);
+        g.fillRect(x, FLOOR_Y, 1, plankHeight);
       }
+
+      // Wood grain lines (subtle horizontal dashes)
+      g.fillStyle(FLOOR_GRAIN, 0.25);
+      const grainOffset = (i * 7) % 5; // vary grain per plank
+      for (let gy = FLOOR_Y + 4 + grainOffset; gy < GAME_HEIGHT; gy += 8) {
+        const grainX = x + 3 + ((gy * 3 + i * 11) % 7);
+        const grainLen = 12 + ((gy * 5 + i * 3) % 20);
+        g.fillRect(grainX, gy, Math.min(grainLen, plankWidth - 6), 1);
+      }
+
+      // Subtle plank highlight at top edge
+      g.fillStyle(0xffffff, 0.06);
+      g.fillRect(x + 1, FLOOR_Y + 1, plankWidth - 2, 1);
     }
 
-    // Perspective — floor slightly darker toward front (bottom)
-    g.fillStyle(0x000000, 0.06);
-    g.fillRect(0, floorBot - 20, GAME_WIDTH, 20);
-
-    // Corner shadows on wall
-    g.fillStyle(0x000000, 0.05);
-    g.fillRect(0, 0, 40, ROOM_WALL_BOTTOM_Y);
-    g.fillRect(GAME_WIDTH - 40, 0, 40, ROOM_WALL_BOTTOM_Y);
-
-    // Convert to Image (required for future Light2D pipeline)
-    g.generateTexture("room_bg_34_gen", GAME_WIDTH, GAME_HEIGHT);
-    g.destroy();
-    const bgImg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_bg_34_gen");
-    bgImg.setDepth(0);
+    // Perspective depth — floor gets slightly darker toward bottom
+    g.fillStyle(0x000000, 0.08);
+    g.fillRect(0, GAME_HEIGHT - 12, GAME_WIDTH, 12);
+    g.fillStyle(0x000000, 0.04);
+    g.fillRect(0, GAME_HEIGHT - 24, GAME_WIDTH, 12);
   }
 
   private createRoomObjects(): void {
+    // Furniture is baked into the background image.
+    // ROOM_OBJECTS are invisible interaction points — where Truman walks to.
+    // No separate sprites needed. Just store positions for movement system.
     for (const obj of ROOM_OBJECTS) {
-      // Try AI 3/4 sprite, then programmatic sprite, then skip
-      const texKey34 = `obj_34_${obj.id}`;
-      const texKeyProg = `obj_${obj.id}`;
-      let texKey: string | null = null;
-      if (this.textures.exists(texKey34)) texKey = texKey34;
-      else if (this.textures.exists(texKeyProg)) texKey = texKeyProg;
-
-      if (texKey) {
-        const img = this.add.image(obj.x, obj.y, texKey);
-
-        // Use LINEAR filtering for AI-generated sprites (smooth downscaling)
-        img.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-
-        // Scale to fit displayWidth while preserving aspect ratio
-        const texFrame = img.texture.getSourceImage();
-        const natW = texFrame.width;
-        const natH = texFrame.height;
-        const scale = Math.min(obj.displayWidth / natW, obj.displayHeight / natH);
-        img.setScale(scale);
-
-        // Apply rotation from constants
-        if (obj.angle) img.setAngle(obj.angle);
-
-        // Default origin (0.5, 0.5) — matches edit mode positioning
-        if (obj.wallMounted) {
-          img.setDepth(1);
-        } else {
-          img.setDepth(obj.y + img.displayHeight / 2);
-        }
-
-        this.roomObjects.set(obj.id, img);
-      } else {
-        // No texture available — invisible zone fallback
-        const zone = this.add.zone(obj.x, obj.y, obj.displayWidth, obj.displayHeight);
-        this.roomObjects.set(obj.id, zone as unknown as Phaser.GameObjects.Image);
-      }
+      // Invisible zone marker (not rendered, used for pathfinding targets)
+      const zone = this.add.zone(obj.x, obj.y, 1, 1);
+      this.roomObjects.set(obj.id, zone as any);
     }
-  }
-
-  /** Debug: draw crosshair + label at each object's x,y + bounding box */
-  private drawObjectDebugMarkers(): void {
-    const g = this.add.graphics();
-    g.setDepth(96);
-
-    for (const [id, obj] of this.roomObjects.entries()) {
-      if (!(obj instanceof Phaser.GameObjects.Image)) continue;
-      if (obj.x < 0) continue;
-
-      // Crosshair at object origin (x,y)
-      g.lineStyle(2, 0xff0000, 1);
-      g.lineBetween(obj.x - 8, obj.y, obj.x + 8, obj.y);
-      g.lineBetween(obj.x, obj.y - 8, obj.x, obj.y + 8);
-
-      // Bounding box
-      const bounds = obj.getBounds();
-      g.lineStyle(1, 0x00ff00, 0.5);
-      g.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-      // Label
-      this.add.text(obj.x + 10, obj.y - 12, `${id}\n${Math.round(obj.x)},${Math.round(obj.y)}\n${Math.round(obj.displayWidth)}x${Math.round(obj.displayHeight)}\nscale:${obj.scaleX.toFixed(3)}`, {
-        fontSize: "8px",
-        fontFamily: "monospace",
-        color: "#ffff00",
-        backgroundColor: "#000000aa",
-        padding: { x: 2, y: 1 },
-      }).setDepth(97);
-    }
-
-    // Also log to console
-    console.table(
-      ROOM_OBJECTS.filter(o => o.x > 0).map(o => {
-        const img = this.roomObjects.get(o.id);
-        return {
-          id: o.id,
-          "const x": o.x,
-          "const y": o.y,
-          "const dispW": o.displayWidth,
-          "const dispH": o.displayHeight,
-          "actual x": img ? Math.round(img.x) : "?",
-          "actual y": img ? Math.round(img.y) : "?",
-          "actual dispW": img ? Math.round(img.displayWidth) : "?",
-          "actual dispH": img ? Math.round(img.displayHeight) : "?",
-          "texKey": img instanceof Phaser.GameObjects.Image ? img.texture.key : "zone",
-        };
-      }),
-    );
   }
 
   getRoomObject(id: InteractiveObjectId): Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | undefined {

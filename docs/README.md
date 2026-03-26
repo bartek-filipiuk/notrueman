@@ -47,14 +47,16 @@ http://localhost:5173/?apiKey=sk-or-KEY&tts=on&openaiKey=sk-KEY&voice=nova
 
 Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer. ~30% of thoughts become speech bubbles (pointed tail + audio). TTS status visible in debug panel (`~`).
 
+Audio-visual sync: when TTS is playing, Truman's mouth animates and the speech bubble shows a pulsing blue glow border. Browser autoplay policy is handled automatically — audio context resumes on first user interaction.
+
 ### Audio
 
-The game requires a click/touch to start (browser autoplay policy). Audio channels:
-- **Voice** — TTS speech (primary, ~80% volume)
-- **Ambient** — Activity-specific sounds: clock ticking, keyboard typing, cooking sizzle, page turning, exercise breathing
-- **Music** — Lo-fi background tracks, mood-based crossfade (15-20% volume)
+Three audio channels (configurable via AudioMixer):
+- **Voice** (TTS): 80% volume, speech bubbles only
+- **Ambient**: activity-specific sounds (keyboard, cooking, page turns), 10-30% volume
+- **Music**: mood-based lo-fi tracks with crossfade, 15-20% volume
 
-Mute/unmute via the HUD speaker icon. Volume configurable per channel in the debug panel (`~`).
+Press `M` to toggle master mute. Individual channel volumes adjustable via ConfigPanel (`~`).
 
 ### Visual FX
 
@@ -126,6 +128,22 @@ The cognitive loop runs every 30-45 seconds (configurable). Each tick:
 4. **Act** — Renderer executes the activity with visual effects
 5. **Store** — Record the outcome and update emotional state
 
+## Directory Structure
+
+```
+notrueman/
+  packages/
+    shared/          # Shared types, schemas, constants (@nts/shared)
+    renderer/        # Phaser 3 game client (@nts/renderer)
+    agent-brain/     # AI agent logic (@nts/agent-brain)
+    memory-service/  # Memory & embeddings (@nts/memory-service)
+  apps/              # Application entry points
+  config/            # Runtime config (truman-config.json, truman-personality.md)
+  docs/              # Documentation & specs
+  docker-compose.yml # Dev services
+  turbo.json         # Turborepo config
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -183,96 +201,23 @@ Any model available on OpenRouter can be used.
 
 Emotion defaults, floors, and ceilings are in `packages/shared/src/constants.ts`. Runtime overrides via `config/truman-config.json` `emotions` field.
 
-## Production Deployment (24/7 Streaming)
-
-### Prerequisites
-- VPS: Hetzner CPX31 (4 vCPU, 8 GB RAM) or equivalent
-- Docker + Docker Compose
-- Twitch/YouTube stream key
-
-### Deploy
-```bash
-# Configure
-cp .env.example .env
-# Edit .env: set RTMP_URL, OPENROUTER_API_KEY, TWITCH_* credentials
-
-# Harden VPS (firewall, fail2ban, SSH hardening)
-sudo bash scripts/harden-vps.sh
-
-# Start production stack
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-
-# Verify all services are healthy
-docker compose ps
-```
-
-### Production Services
-| Service | Purpose |
-|---------|---------|
-| `app` | Phaser game + AI brain (port 5173) |
-| `streamer` | Chromium + FFmpeg → RTMP stream |
-| `caddy` | Reverse proxy with auto-HTTPS |
-| `postgres` | Memory & state persistence |
-| `redis` | BullMQ job queue |
-
-### Streaming Features
-- **Twitch bot**: `!status`, `!mood`, `!activity` commands
-- **Channel Points**: "Change weather", "Send letter"
-- **Viewer voting**: Time-windowed activity votes
-- **3-layer chat sanitizer**: profanity, spam, injection detection
-- **Browser recycling**: Auto-restart Chromium every 4-8h for stability
-- **Companion website**: Stream embed, live status, AI disclosure
-
-See [Runbook](RUNBOOK.md) for full operational procedures.
-
-## Directory Structure
-
-```
-notrueman/
-  packages/
-    shared/          # Shared types, schemas, constants (@nts/shared)
-    renderer/        # Phaser 3 game client (@nts/renderer)
-    agent-brain/     # AI agent logic (@nts/agent-brain)
-    memory-service/  # Memory & embeddings (@nts/memory-service)
-    chat-service/    # Twitch bot, voting, sanitizer (@nts/chat-service)
-    stream-manager/  # FFmpeg RTMP pipeline (@nts/stream-manager)
-    tts-service/     # Text-to-speech (@nts/tts-service)
-  apps/
-    companion-web/   # Stream embed, status, voting UI
-  config/            # Runtime config (truman-config.json, personality)
-  scripts/           # VPS hardening, asset generation
-  docs/              # Documentation & specs
-  docker-compose.yml          # Dev services
-  docker-compose.prod.yml     # Production stack
-  turbo.json                  # Turborepo config
-```
-
 ## Tech Stack
 
-- **Frontend:** Phaser 3 (WebGL, pixelArt, 960x540, 30 FPS), Vite, TypeScript
+- **Frontend:** Phaser 3 (CANVAS, pixelArt, 960x540, 30 FPS), Vite, TypeScript
 - **AI:** Vercel AI SDK 6, OpenRouter (DeepSeek V3.2 + Mistral Small 3)
 - **Backend:** Node.js, PostgreSQL 17 + pgvector, Redis 7, Ollama
 - **Memory:** Park et al. scoring (recency x importance x relevance), Drizzle ORM
 - **Queues:** BullMQ + Redis (agent:think, agent:action, renderer:command, log:event)
-- **Streaming:** Chromium + XVFB + FFmpeg → RTMP (Twitch/YouTube)
-- **Chat:** Twurple (Twitch), 3-layer sanitizer, voting system
-- **TTS:** Kokoro-82M / OpenAI gpt-4o-mini-tts
 - **Monitoring:** Fastify + prom-client (Prometheus metrics), daily cost tracking
 - **Build:** Turborepo, npm workspaces, strict TypeScript
-- **Testing:** Vitest (350+ tests across 47 files)
+- **Testing:** Vitest (330+ tests across 43 files)
 
 ## Security
 
-- All secrets in `.env`, never in code
-- 3-layer chat sanitizer: profanity → context → injection detection
-- Docker containers run as non-root users
-- VPS hardening: UFW firewall, Fail2ban, SSH key-only, unattended upgrades
-- `[AI Character]` disclosure in stream title and companion website
-- See [Security Audit](SECURITY.md) for full threat model and controls
+See [docs/SECURITY.md](SECURITY.md) for the full security audit report, including threat model, implemented controls, and known limitations.
 
 ## Documentation
 
-- [Runbook](RUNBOOK.md) — Production operations: deploy, restart, monitoring, troubleshooting
 - [API Reference](API.md) — All interfaces, endpoints, and queue schemas
 - [Changelog](CHANGELOG.md) — Version history by stage
 - [Security](SECURITY.md) — Audit report and threat model

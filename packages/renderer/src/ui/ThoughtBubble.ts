@@ -53,6 +53,9 @@ export class ThoughtBubble {
   private fadeTween?: Phaser.Tweens.Tween;
   private isVisible = false;
   private currentType: BubbleDisplayType = "thought";
+  private speakingPulse?: Phaser.Tweens.Tween;
+  private speakingGlow: Phaser.GameObjects.Graphics | null = null;
+  private isSpeakingActive = false;
 
   /** Fired when a speech bubble starts displaying (for TTS sync) */
   onSpeechBubbleShow: ((text: string, mood: string) => void) | null = null;
@@ -77,6 +80,11 @@ export class ThoughtBubble {
 
     this.tailDots = scene.add.graphics();
     this.container.add(this.tailDots);
+
+    // Speaking glow overlay (pulsing border during TTS playback)
+    this.speakingGlow = scene.add.graphics();
+    this.speakingGlow.setAlpha(0);
+    this.container.add(this.speakingGlow);
   }
 
   /**
@@ -173,6 +181,7 @@ export class ThoughtBubble {
     this.fadeTimer = undefined;
     this.fadeTween?.destroy();
     this.fadeTween = undefined;
+    this.stopSpeakingPulse();
     this.container.setAlpha(0);
     this.isVisible = false;
     this.bg.clear();
@@ -183,6 +192,69 @@ export class ThoughtBubble {
   /** Check if a bubble is currently visible */
   getIsVisible(): boolean {
     return this.isVisible;
+  }
+
+  /**
+   * Set speaking state — shows a pulsing glow on speech bubbles during TTS playback.
+   * Called by RoomScene in response to TTSManager onSpeechStart/onSpeechEnd.
+   */
+  setSpeaking(speaking: boolean): void {
+    this.isSpeakingActive = speaking;
+
+    if (speaking && this.isVisible && this.currentType === "speech") {
+      this.startSpeakingPulse();
+    } else {
+      this.stopSpeakingPulse();
+    }
+  }
+
+  /** Whether speaking animation is active */
+  getIsSpeaking(): boolean {
+    return this.isSpeakingActive;
+  }
+
+  /** Start a pulsing glow effect on the speech bubble border */
+  private startSpeakingPulse(): void {
+    if (this.speakingPulse) return; // already pulsing
+    if (!this.speakingGlow) return;
+
+    // Draw a slightly larger border as glow
+    this.speakingGlow.clear();
+    this.speakingGlow.lineStyle(2, 0x4fc3f7, 0.6);
+    // Approximate bubble bounds
+    const charWidth = 6;
+    const lineHeight = 14;
+    const maxCharsPerLine = Math.floor((BUBBLE_MAX_WIDTH - BUBBLE_PADDING * 2) / charWidth);
+    const lines = Math.ceil(this.fullText.length / maxCharsPerLine);
+    const textWidth = Math.min(this.fullText.length * charWidth, BUBBLE_MAX_WIDTH - BUBBLE_PADDING * 2);
+    const textHeight = lines * lineHeight;
+    const w = textWidth + BUBBLE_PADDING * 2 + 4;
+    const h = textHeight + BUBBLE_PADDING * 2 + 4;
+    this.speakingGlow.strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+
+    this.speakingGlow.setAlpha(0.5);
+
+    // Pulse tween
+    this.speakingPulse = this.scene.tweens.add({
+      targets: this.speakingGlow,
+      alpha: { from: 0.2, to: 0.7 },
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  /** Stop the pulsing glow */
+  private stopSpeakingPulse(): void {
+    if (this.speakingPulse) {
+      this.speakingPulse.destroy();
+      this.speakingPulse = undefined;
+    }
+    if (this.speakingGlow) {
+      this.speakingGlow.clear();
+      this.speakingGlow.setAlpha(0);
+    }
   }
 
   private drawBubbleBg(colorHex: string, text: string, borderRadius: number, borderStyle: string): void {

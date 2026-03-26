@@ -1,92 +1,266 @@
 import Phaser from "phaser";
+import { getVisualConfig } from "../config/VisualConfig";
+
+const SPRITE_WIDTH = 32;
+const SPRITE_HEIGHT = 48;
+// Extra padding for glow FX overflow
+const PAD = 8;
+const TEX_W = SPRITE_WIDTH + PAD * 2;
+const TEX_H = SPRITE_HEIGHT + PAD * 2;
 
 /** Drop shadow opacity — exported for tests */
 export const SHADOW_ALPHA = 0.25;
 
-/** Target display height for Truman sprite */
-const TARGET_HEIGHT = 110;
+// Truman palette
+const SKIN = 0xffcc99;
+const SKIN_SHADOW = 0xe6b380;
+const HAIR = 0x6b3a1f;
+const HAIR_HIGHLIGHT = 0x8b5a3f;
+const SHIRT = 0x4a90d9;
+const SHIRT_DARK = 0x3570b0;
+const SHIRT_COLLAR = 0x3a7bc8;
+const PANTS = 0x34495e;
+const PANTS_DARK = 0x2c3e50;
+const SHOES = 0x2c2c44;
+const EYE_WHITE = 0xffffff;
+const EYE_PUPIL = 0x1a1a2e;
+const MOUTH = 0xcc8866;
+const MOUTH_OPEN = 0x993333;
+const BLUSH = 0xffaa88;
+
+const MOOD_EYES: Record<string, { brow: number; mouthW: number; mouthH: number; blush: boolean }> = {
+  happy:         { brow: 0,  mouthW: 4, mouthH: 2, blush: true },
+  curious:       { brow: -1, mouthW: 2, mouthH: 1, blush: false },
+  anxious:       { brow: 1,  mouthW: 3, mouthH: 1, blush: false },
+  excited:       { brow: -1, mouthW: 5, mouthH: 2, blush: true },
+  frustrated:    { brow: 2,  mouthW: 3, mouthH: 1, blush: false },
+  content:       { brow: 0,  mouthW: 3, mouthH: 1, blush: false },
+  contemplative: { brow: 0,  mouthW: 2, mouthH: 1, blush: false },
+  bored:         { brow: 1,  mouthW: 4, mouthH: 1, blush: false },
+  neutral:       { brow: 0,  mouthW: 3, mouthH: 1, blush: false },
+};
 
 /**
- * Truman character — extends Image directly (no Container overhead).
- * Supports 4-directional walk (spritesheet frames) and idle breathing.
+ * Truman pixel art sprite using RenderTexture for WebGL FX support.
+ * Container holds: RenderTexture (character with glow PreFX) + shadow ellipse.
+ * Head-heavy proportions (~40% head) for pixel art charm.
  */
-export class TrumanSprite extends Phaser.GameObjects.Image {
+export class TrumanSprite extends Phaser.GameObjects.Container {
+  private rt: Phaser.GameObjects.RenderTexture;
+  private pngSprite: Phaser.GameObjects.Image | null = null;
   private shadow: Phaser.GameObjects.Ellipse;
   private facing: "left" | "right" = "right";
   private animTimer?: Phaser.Time.TimerEvent;
-  private walkTween: Phaser.Tweens.Tween | null = null;
-  private currentAnim = "idle";
+  private currentAnim: string = "idle";
   private frameIndex = 0;
-  private currentMood = "neutral";
-  private walkScale = 0;
-  private idleScale = 0;
-  private baseY = 0; // remember Y for walk tween reset
+  private currentMood: string = "neutral";
+  private usePNG = false;
+  private isSpeaking = false;
+  private mouthOpen = false;
+  private speakTimer?: Phaser.Time.TimerEvent;
+  /** Overlay graphics for mouth animation during speech (PNG mode) */
+  private mouthOverlay: Phaser.GameObjects.Graphics | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // Find best initial texture
-    const hasNewSprites = scene.textures.exists("truman_idle_side_0");
-    const hasLegacy = scene.textures.exists("truman_idle");
-    const initKey = hasNewSprites ? "truman_idle_side_0" : hasLegacy ? "truman_idle" : "__DEFAULT";
+    super(scene, x, y);
 
-    super(scene, x, y, initKey);
+    // Shadow ellipse (below character)
+    this.shadow = scene.add.ellipse(0, 36, 36, 8, 0x000000, SHADOW_ALPHA);
+    this.add(this.shadow);
 
-    // Anchor at feet
-    // Use default center origin (0.5, 0.5) — avoids rendering issues with bottom-anchored origin
-    // Truman's Y position represents his CENTER, not feet
+    // Check if AI-generated PNG sprites are available
+    this.usePNG = scene.textures.exists("truman_idle");
 
-    // Scale to target height
-    this.idleScale = TARGET_HEIGHT / this.texture.getSourceImage().height;
-    this.setScale(this.idleScale);
-    this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    if (this.usePNG) {
+      // Use AI-generated PNG sprite (mood-switchable)
+      this.pngSprite = scene.add.image(0, -8, "truman_idle");
+      this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+      this.add(this.pngSprite);
 
-    // Pre-calculate walk scale
-    if (scene.textures.exists("truman_walk_side_0")) {
-      const walkTex = scene.textures.get("truman_walk_side_0");
-      this.walkScale = TARGET_HEIGHT / walkTex.getSourceImage().height;
+      // Apply glow to PNG sprite
+      try {
+        const fxConfig = getVisualConfig();
+        if (fxConfig.trumanGlow && this.pngSprite.preFX) {
+          this.pngSprite.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
+        }
+      } catch { /* skip */ }
+
+      // RenderTexture hidden but kept for compatibility
+      this.rt = scene.add.renderTexture(0, 0, 1, 1);
+      this.rt.setVisible(false);
     } else {
-      this.walkScale = this.idleScale;
+      // Fallback: programmatic RenderTexture
+      this.rt = scene.add.renderTexture(0, 0, TEX_W, TEX_H);
+      this.rt.setOrigin(0.5, 0.5);
+      this.add(this.rt);
+
+      try {
+        const fxConfig = getVisualConfig();
+        if (fxConfig.trumanGlow && this.rt.preFX) {
+          this.rt.preFX.addGlow(0xffffff, 1, 0, false, 0.1, 4);
+        }
+      } catch { /* skip */ }
     }
 
-    // Shadow disabled for debugging
-    this.shadow = scene.add.ellipse(x, y + 4, 40, 10, 0x000000, 0);
-    this.shadow.setVisible(false);
+    // Mouth overlay for speaking animation (both modes)
+    this.mouthOverlay = scene.add.graphics();
+    this.mouthOverlay.setVisible(false);
+    this.add(this.mouthOverlay);
 
-    scene.add.existing(this);
-    this.setDepth(900);
+    this.setSize(SPRITE_WIDTH, SPRITE_HEIGHT);
+    scene.add.existing(this as Phaser.GameObjects.GameObject);
 
-    this.baseY = y;
-
-    // DEBUG: intercept y setter to catch who modifies it
-    let _internalY = y;
-    Object.defineProperty(this, 'y', {
-      get: () => _internalY,
-      set: (val: number) => {
-        if (Math.abs(val - _internalY) > 2) {
-          console.warn(`[TRUMAN Y SET] ${_internalY.toFixed(1)} → ${val.toFixed(1)}`);
-          console.trace();
-        }
-        _internalY = val;
-      },
-      configurable: true,
-    });
-
+    this.renderFrame(0, 0);
     this.playIdle();
   }
 
-  // Override setPosition to move shadow too
-  setPosition(x?: number, y?: number): this {
-    super.setPosition(x, y);
-    if (this.shadow) {
-      this.shadow.setPosition(x ?? this.x, (y ?? this.y) + 4);
+  /** Switch to activity pose sprite (sleep, computer, eat, read, etc.) */
+  setActivityPose(activity: string | null): void {
+    if (!this.usePNG || !this.pngSprite) return;
+
+    if (activity) {
+      const poseKey = `truman_pose_${activity}`;
+      if (this.scene.textures.exists(poseKey)) {
+        this.pngSprite.setTexture(poseKey);
+        this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
+        this.pngSprite.setFlipX(this.facing === "left");
+        this.stopAnim(); // freeze during activity pose
+        return;
+      }
     }
-    return this;
+    // No pose available or null activity → revert to idle/mood
+    const moodKey = this.currentMood === "neutral" ? "truman_idle" : `truman_mood_${this.currentMood}`;
+    if (this.scene.textures.exists(moodKey)) {
+      this.pngSprite.setTexture(moodKey);
+    } else {
+      this.pngSprite.setTexture("truman_idle");
+    }
+    this.pngSprite.setDisplaySize(SPRITE_WIDTH * 2, SPRITE_HEIGHT * 2);
   }
 
-  preUpdate(time: number, delta: number): void {
-    // Keep shadow in sync (in case x/y set directly)
-    if (this.shadow) {
-      this.shadow.setPosition(this.x, this.y + 4);
+  setMood(mood: string): void {
+    this.currentMood = mood;
+
+    if (this.usePNG && this.pngSprite) {
+      // Switch PNG texture based on mood
+      const moodKey = mood === "neutral" ? "truman_idle" : `truman_mood_${mood}`;
+      if (this.scene.textures.exists(moodKey)) {
+        this.pngSprite.setTexture(moodKey);
+      } else {
+        this.pngSprite.setTexture("truman_idle");
+      }
+      // Flip for facing direction
+      this.pngSprite.setFlipX(this.facing === "left");
+    } else {
+      this.renderFrame(0, 0);
     }
+  }
+
+  /** Render character to RenderTexture using offscreen Graphics */
+  private renderFrame(yOffset: number, legFrame: number): void {
+    const gfx = this.scene.add.graphics().setVisible(false);
+    // Draw centered in texture (offset by PAD + half sprite)
+    const cx = TEX_W / 2;
+    const cy = TEX_H / 2;
+    this.drawCharacter(gfx, cx, cy, yOffset, legFrame);
+
+    this.rt.clear();
+    this.rt.draw(gfx, 0, 0);
+    gfx.destroy();
+  }
+
+  /** Draw the pixel character at (cx, cy) offset */
+  private drawCharacter(g: Phaser.GameObjects.Graphics, cx: number, cy: number, yOffset: number, legFrame: number): void {
+    const f = this.facing;
+    const mood = MOOD_EYES[this.currentMood] || MOOD_EYES.neutral;
+    const fDir = f === "right" ? 1 : -1;
+
+    // === LEGS ===
+    const legSpread = legFrame % 2 === 0 ? 0 : 2;
+    g.fillStyle(PANTS);
+    g.fillRect(cx - 6, cy + 8 + yOffset, 5, 12 + legSpread);
+    g.fillStyle(PANTS_DARK);
+    g.fillRect(cx - 6, cy + 8 + yOffset, 1, 12 + legSpread);
+    g.fillStyle(PANTS);
+    g.fillRect(cx + 1, cy + 8 + yOffset, 5, 12 - legSpread);
+    g.fillStyle(PANTS_DARK);
+    g.fillRect(cx + 5, cy + 8 + yOffset, 1, 12 - legSpread);
+
+    // Shoes
+    g.fillStyle(SHOES);
+    g.fillRect(cx - 7, cy + 19 + yOffset + legSpread, 6, 4);
+    g.fillRect(cx + 1, cy + 19 + yOffset - legSpread + 2, 6, 4);
+    g.fillStyle(0x3d3d5c);
+    g.fillRect(cx - 7, cy + 19 + yOffset + legSpread, 6, 1);
+    g.fillRect(cx + 1, cy + 19 + yOffset - legSpread + 2, 6, 1);
+
+    // === BODY ===
+    g.fillStyle(SHIRT);
+    g.fillRect(cx - 8, cy - 6 + yOffset, 16, 15);
+    g.fillStyle(SHIRT_DARK);
+    g.fillRect(cx - 8, cy - 6 + yOffset, 2, 15);
+    g.fillRect(cx + 6, cy - 6 + yOffset, 2, 15);
+    g.fillStyle(SHIRT_COLLAR);
+    g.fillRect(cx - 5, cy - 6 + yOffset, 10, 3);
+    g.fillStyle(EYE_WHITE, 0.5);
+    g.fillRect(cx, cy + yOffset, 1, 1);
+    g.fillRect(cx, cy + 3 + yOffset, 1, 1);
+
+    // === ARMS ===
+    g.fillStyle(SHIRT_DARK);
+    g.fillRect(f === "right" ? cx - 11 : cx + 7, cy - 4 + yOffset, 4, 10);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(f === "right" ? cx - 11 : cx + 7, cy + 6 + yOffset, 4, 4);
+    g.fillStyle(SHIRT);
+    g.fillRect(f === "right" ? cx + 7 : cx - 11, cy - 4 + yOffset, 4, 10);
+    g.fillStyle(SKIN);
+    g.fillRect(f === "right" ? cx + 7 : cx - 11, cy + 6 + yOffset, 4, 4);
+
+    // === HEAD ===
+    g.fillStyle(SKIN);
+    g.fillRect(cx - 7, cy - 22 + yOffset, 14, 16);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(cx - 5, cy - 8 + yOffset, 10, 2);
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(f === "right" ? cx + 6 : cx - 7, cy - 17 + yOffset, 2, 4);
+
+    // === HAIR ===
+    g.fillStyle(HAIR);
+    g.fillRect(cx - 8, cy - 25 + yOffset, 16, 7);
+    g.fillRect(f === "right" ? cx - 8 : cx + 6, cy - 22 + yOffset, 2, 6);
+    g.fillRect(f === "right" ? cx + 6 : cx - 8, cy - 22 + yOffset, 2, 4);
+    g.fillStyle(HAIR_HIGHLIGHT);
+    g.fillRect(cx - 4, cy - 25 + yOffset, 6, 2);
+    g.fillStyle(HAIR);
+    g.fillRect(cx - 6 + fDir * 2, cy - 19 + yOffset, 4, 2);
+
+    // === FACE ===
+    const eyeBaseX = f === "right" ? cx - 3 : cx - 4;
+    g.fillStyle(EYE_WHITE);
+    g.fillRect(eyeBaseX, cy - 18 + yOffset + mood.brow, 3, 3);
+    g.fillRect(eyeBaseX + 5, cy - 18 + yOffset + mood.brow, 3, 3);
+    g.fillStyle(EYE_PUPIL);
+    g.fillRect(eyeBaseX + (f === "right" ? 1 : 0), cy - 17 + yOffset + mood.brow, 2, 2);
+    g.fillRect(eyeBaseX + 5 + (f === "right" ? 1 : 0), cy - 17 + yOffset + mood.brow, 2, 2);
+    g.fillStyle(HAIR);
+    g.fillRect(eyeBaseX - 1, cy - 20 + yOffset + mood.brow, 4, 1);
+    g.fillRect(eyeBaseX + 4, cy - 20 + yOffset + mood.brow, 4, 1);
+
+    // Mouth
+    g.fillStyle(MOUTH);
+    const mouthX = cx - Math.floor(mood.mouthW / 2);
+    g.fillRect(mouthX, cy - 12 + yOffset, mood.mouthW, mood.mouthH);
+
+    // Blush
+    if (mood.blush) {
+      g.fillStyle(BLUSH, 0.3);
+      g.fillRect(cx - 6, cy - 14 + yOffset, 3, 2);
+      g.fillRect(cx + 3, cy - 14 + yOffset, 3, 2);
+    }
+
+    // Nose
+    g.fillStyle(SKIN_SHADOW);
+    g.fillRect(cx + (fDir > 0 ? 1 : -2), cy - 14 + yOffset, 1, 2);
   }
 
   playIdle(): void {
@@ -94,115 +268,166 @@ export class TrumanSprite extends Phaser.GameObjects.Image {
     this.currentAnim = "idle";
     this.frameIndex = 0;
 
-    const hasIdleFrames = this.scene.textures.exists("truman_idle_side_0");
-    if (hasIdleFrames) {
-      this.setTexture("truman_idle_side_0");
-      this.setScale(this.idleScale);
-      this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      this.setFlipX(false);
-      this.setAngle(0);
-
+    if (this.usePNG && this.pngSprite) {
+      // PNG mode: gentle bob animation on the sprite
       this.animTimer = this.scene.time.addEvent({
-        delay: 200,
+        delay: 600,
         loop: true,
         callback: () => {
-          this.frameIndex = (this.frameIndex + 1) % 25;
-          this.setTexture(`truman_idle_side_${this.frameIndex}`);
-          this.setScale(this.idleScale);
-          this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+          this.frameIndex = (this.frameIndex + 1) % 4;
+          const yOff = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
+          this.pngSprite!.setY(-4 + yOff);
+        },
+      });
+    } else {
+      this.animTimer = this.scene.time.addEvent({
+        delay: 600,
+        loop: true,
+        callback: () => {
+          this.frameIndex = (this.frameIndex + 1) % 4;
+          const yOffset = this.frameIndex === 1 || this.frameIndex === 2 ? -1 : 0;
+          this.renderFrame(yOffset, 0);
         },
       });
     }
   }
 
-  playWalk(direction: "left" | "right" | "up" | "down"): void {
+  playWalk(direction: "left" | "right"): void {
     this.stopAnim();
-    if (direction === "left" || direction === "right") this.facing = direction;
+    this.facing = direction;
     this.currentAnim = "walk";
     this.frameIndex = 0;
 
-    const isSide = direction === "left" || direction === "right";
-    const hasWalkFrames = this.scene.textures.exists("truman_walk_side_0");
-
-    if (isSide && hasWalkFrames) {
-      const flipX = direction === "left";
-      this.setTexture("truman_walk_side_0");
-      this.setScale(this.walkScale);
-      this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      this.setFlipX(flipX);
-      this.setAngle(0);
-
+    if (this.usePNG && this.pngSprite) {
+      this.pngSprite.setFlipX(direction === "left");
+      // PNG mode: bob + slight tilt for walk feel
       this.animTimer = this.scene.time.addEvent({
-        delay: 100,
+        delay: 140,
         loop: true,
         callback: () => {
-          this.frameIndex = (this.frameIndex + 1) % 25;
-          this.setTexture(`truman_walk_side_${this.frameIndex}`);
-          this.setScale(this.walkScale);
-          this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-          this.setFlipX(flipX);
+          this.frameIndex = (this.frameIndex + 1) % 6;
+          const yOff = this.frameIndex % 3 === 0 ? 0 : -1;
+          this.pngSprite!.setY(-4 + yOff);
         },
       });
     } else {
-      // Front/back: use same side walk animation (flipped based on last facing)
-      // Most top-down games do this — side walk for all directions
-      const flipX = this.facing === "left";
-      this.setTexture("truman_walk_side_0");
-      this.setScale(this.walkScale);
-      this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      this.setFlipX(flipX);
-
       this.animTimer = this.scene.time.addEvent({
-        delay: 100,
+        delay: 140,
         loop: true,
         callback: () => {
-          this.frameIndex = (this.frameIndex + 1) % 25;
-          this.setTexture(`truman_walk_side_${this.frameIndex}`);
-          this.setScale(this.walkScale);
-          this.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-          this.setFlipX(flipX);
+          this.frameIndex = (this.frameIndex + 1) % 6;
+          const yOffset = this.frameIndex % 3 === 0 ? 0 : -1;
+          this.renderFrame(yOffset, this.frameIndex);
         },
       });
     }
   }
 
   stopAnim(): void {
-    this.animTimer?.destroy();
-    this.animTimer = undefined;
-    this.walkTween?.destroy();
-    this.walkTween = null;
-    this.setAngle(0);
+    if (this.animTimer) {
+      this.animTimer.destroy();
+      this.animTimer = undefined;
+    }
   }
 
-  getCurrentAnim(): string { return this.currentAnim; }
-  getFacing(): "left" | "right" { return this.facing; }
+  getCurrentAnim(): string {
+    return this.currentAnim;
+  }
+
+  getFacing(): "left" | "right" {
+    return this.facing;
+  }
 
   setFacing(dir: "left" | "right"): void {
     this.facing = dir;
-    this.setFlipX(dir === "left");
+    if (this.usePNG && this.pngSprite) {
+      this.pngSprite.setFlipX(dir === "left");
+    } else {
+      this.renderFrame(0, 0);
+    }
   }
 
-  setMood(mood: string): void { this.currentMood = mood; }
-  setActivityPose(activity: string | null): void {
-    if (!activity) this.playIdle();
+  /**
+   * Enable/disable speaking mouth animation.
+   * Toggles a simple open/close mouth overlay at ~4Hz.
+   */
+  setSpeaking(speaking: boolean): void {
+    if (speaking === this.isSpeaking) return;
+    this.isSpeaking = speaking;
+
+    if (speaking) {
+      this.mouthOpen = false;
+      this.speakTimer = this.scene.time.addEvent({
+        delay: 130, // ~4 toggles/sec for natural speech feel
+        loop: true,
+        callback: () => {
+          this.mouthOpen = !this.mouthOpen;
+          this.drawMouthOverlay();
+        },
+      });
+      this.drawMouthOverlay();
+    } else {
+      this.speakTimer?.destroy();
+      this.speakTimer = undefined;
+      this.mouthOpen = false;
+      if (this.mouthOverlay) {
+        this.mouthOverlay.clear();
+        this.mouthOverlay.setVisible(false);
+      }
+      // Re-render normal mouth for fallback mode
+      if (!this.usePNG) {
+        this.renderFrame(0, 0);
+      }
+    }
   }
 
-  // Talking stubs
-  private isTalking = false;
-  private talkTimer?: Phaser.Time.TimerEvent;
-  getIsTalking(): boolean { return this.isTalking; }
-  startTalking(): void {
-    if (this.isTalking) return;
-    this.isTalking = true;
-    this.talkTimer = this.scene.time.addEvent({
-      delay: 150, loop: true,
-      callback: () => { this.setAngle(this.angle === 0 ? 1 : 0); },
-    });
+  /** Whether Truman is currently in speaking animation */
+  getIsSpeaking(): boolean {
+    return this.isSpeaking;
   }
-  stopTalking(): void {
-    this.isTalking = false;
-    this.talkTimer?.destroy();
-    this.talkTimer = undefined;
-    this.setAngle(0);
+
+  /** Draw the mouth overlay (open or closed) for speaking animation */
+  private drawMouthOverlay(): void {
+    if (!this.mouthOverlay) return;
+    this.mouthOverlay.clear();
+
+    if (!this.mouthOpen) {
+      // Mouth closed — hide overlay, let normal sprite show through
+      this.mouthOverlay.setVisible(false);
+      if (!this.usePNG) {
+        this.renderFrame(0, 0);
+      }
+      return;
+    }
+
+    // Mouth open — draw open mouth over sprite
+    this.mouthOverlay.setVisible(true);
+
+    if (this.usePNG) {
+      // PNG mode: small dark oval over the mouth area of the sprite
+      // Sprite is displayed at 2x scale, centered at (0, -8)
+      // Mouth is roughly at center-bottom of face
+      this.mouthOverlay.fillStyle(MOUTH_OPEN);
+      this.mouthOverlay.fillEllipse(0, -4, 8, 6);
+      // Inner dark for depth
+      this.mouthOverlay.fillStyle(0x661111);
+      this.mouthOverlay.fillEllipse(0, -3, 5, 3);
+    } else {
+      // Fallback mode: redraw with open mouth via renderFrame
+      // Use RenderTexture — draw open mouth directly
+      const gfx = this.scene.add.graphics().setVisible(false);
+      const cx = TEX_W / 2;
+      const cy = TEX_H / 2;
+
+      // Draw open mouth (wider + taller than normal)
+      gfx.fillStyle(MOUTH_OPEN);
+      gfx.fillRect(cx - 3, cy - 13, 6, 4);
+      gfx.fillStyle(0x661111);
+      gfx.fillRect(cx - 2, cy - 12, 4, 2);
+
+      this.rt.draw(gfx, 0, 0);
+      gfx.destroy();
+      this.mouthOverlay.setVisible(false); // use RT directly
+    }
   }
 }
