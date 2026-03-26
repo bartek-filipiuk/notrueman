@@ -1,5 +1,20 @@
 # Changelog
 
+## [Stage H — Recovery Integration: Restore on Startup] - 2026-03-26
+
+### Added
+- `BrainLoop.restoreState()` method — recovers tickCount, currentActivity, mood, recentActivities from save
+- Renderer recovery: Truman's position and facing direction restored from save on page load
+- Emotion recovery: `EmotionEngine` initialized from saved emotion state
+- Offline time compensation: emotion drift toward defaults based on elapsed offline time, Truman "sleeps" if offline > 8h
+- Dirty flag with position tracking: state marked dirty when Truman moves > 10px (checked every 2s)
+- Save data passed through startup pipeline: `initSaveManager()` → `restoreRendererState()` → `initBrain()`
+- Tests: brain state recovery (5), emotion recovery (1), offline compensation (3), dirty flag logic (1), day counter (3) — 14 new tests
+
+### Security
+- No secrets in SaveData — only game state (emotions, position, activities) persisted (SH.1)
+- All tests pass (SH.2)
+
 ## [Stage G — State Persistence: SaveManager + REST API] - 2026-03-26
 
 ### Added

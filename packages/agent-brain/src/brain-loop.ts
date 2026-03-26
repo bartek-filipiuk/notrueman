@@ -100,6 +100,19 @@ export class BrainLoop {
     return { ...this.state };
   }
 
+  /** Restore state from persistence (for recovery after refresh) */
+  restoreState(partial: {
+    tickCount?: number;
+    currentActivity?: ActivityType | null;
+    currentMood?: string;
+    recentActivities?: Array<{ activity: ActivityType; completedSecondsAgo: number }>;
+  }): void {
+    if (partial.tickCount !== undefined) this.state.tickCount = partial.tickCount;
+    if (partial.currentActivity !== undefined) this.state.currentActivity = partial.currentActivity;
+    if (partial.currentMood !== undefined) this.state.currentMood = partial.currentMood;
+    if (partial.recentActivities !== undefined) this.state.recentActivities = [...partial.recentActivities];
+  }
+
   /** Execute a single brain tick with retry and fallback */
   async tick(): Promise<void> {
     this.state.tickCount++;

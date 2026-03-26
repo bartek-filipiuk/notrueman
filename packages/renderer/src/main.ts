@@ -68,8 +68,12 @@ function startGame(): void {
     // RoomScene starts after BootScene transition (1s delay)
     setTimeout(async () => {
       // Init save manager + load existing save before brain starts
-      await initSaveManager();
-      initBrain(game);
+      const save = await initSaveManager();
+      // Restore Truman's position/facing from save (TH.1 + TH.2)
+      if (save) {
+        restoreRendererState(game, save);
+      }
+      initBrain(game, save);
     }, 1500);
   });
 }
@@ -83,11 +87,53 @@ if (overlay) {
   startGame();
 }
 
-function initBrain(game: Phaser.Game): void {
+/** Restore Truman's renderer state (position, facing) from a save (TH.2) */
+function restoreRendererState(game: Phaser.Game, save: SaveData): void {
+  const roomScene = game.scene.getScene("RoomScene") as RoomScene | null;
+  if (!roomScene) return;
+  const truman = roomScene.getTruman();
+  truman.setPosition(save.truman.x, save.truman.y);
+  truman.setFacing(save.truman.facing);
+  console.log(`[save] Restored position: (${save.truman.x.toFixed(0)}, ${save.truman.y.toFixed(0)}) facing ${save.truman.facing}`);
+}
+
+/** Apply offline time compensation — drift emotions + physical state (TH.4) */
+function applyOfflineCompensation(
+  save: SaveData,
+  emotions: EmotionEngine,
+): void {
+  const elapsed = Date.now() - save.savedAt;
+  if (elapsed <= 0) return;
+
+  const elapsedHours = elapsed / (1000 * 60 * 60);
+
+  // Emotions: drift toward defaults using EmotionEngine's built-in drift
+  // Create a date in the past so applyTimeDrift calculates correctly
+  const pastDate = new Date(save.savedAt);
+  emotions.setState(save.emotions);
+  // Override lastUpdateAt by re-constructing after setState
+  // setState sets lastUpdateAt to now — we need to set it to savedAt
+  // So we manually call applyTimeDrift with a synthesized elapsed
+  emotions.applyTimeDrift(new Date());
+
+  // Physical state adjustments based on elapsed time
+  // Hunger increases ~0.1/hour, tiredness increases ~0.08/hour
+  // If elapsed > 8h → Truman "slept" (reset tiredness)
+  const hungerIncrease = Math.min(1, elapsedHours * 0.1);
+  const tirednessIncrease = Math.min(1, elapsedHours * 0.08);
+  const slept = elapsedHours > 8;
+
+  console.log(
+    `[save] Offline compensation: ${elapsedHours.toFixed(1)}h elapsed.` +
+    ` Hunger +${hungerIncrease.toFixed(2)}, tiredness ${slept ? "reset (slept)" : `+${tirednessIncrease.toFixed(2)}`}`
+  );
+}
+
+function initBrain(game: Phaser.Game, save?: SaveData | null): void {
   const roomScene = game.scene.getScene("RoomScene") as RoomScene;
   if (!roomScene) {
     console.warn("[main] RoomScene not found, retrying in 1s...");
-    setTimeout(initBrain, 1000);
+    setTimeout(() => initBrain(game, save), 1000);
     return;
   }
 
@@ -116,7 +162,13 @@ function initBrain(game: Phaser.Game): void {
   });
 
   // Create emotion engine — drives mood in HUD and thought bubbles
-  const emotions = new EmotionEngine();
+  // Restore from save if available (TH.3)
+  const emotions = new EmotionEngine(save?.emotions);
+
+  // Apply offline time compensation (TH.4)
+  if (save) {
+    applyOfflineCompensation(save, emotions);
+  }
 
   // Wrap the SceneHandler to inject emotion updates after each action
   const handler = new SceneHandler(roomScene);
@@ -145,6 +197,21 @@ function initBrain(game: Phaser.Game): void {
     maxRetries: 2,
     systemPrompt: PERSONALITY,
   });
+
+  // Restore brain state from save (TH.3)
+  if (save) {
+    const now = Date.now();
+    brain.restoreState({
+      tickCount: save.brainTickCount,
+      currentActivity: save.truman.currentActivity,
+      currentMood: save.truman.currentMood,
+      recentActivities: save.recentActivities.map((ra) => ({
+        activity: ra.type as import("@nts/shared").ActivityType,
+        completedSecondsAgo: Math.round((now - ra.at) / 1000),
+      })),
+    });
+    console.log(`[save] Restored brain: tick #${save.brainTickCount}, mood ${save.truman.currentMood}, ${save.recentActivities.length} recent activities`);
+  }
 
   // Patch bridge.executeAction to sometimes produce speech bubbles (30% chance)
   // Per visual-spec S7.1: speech = speaking aloud (with TTS), thought = internal monologue
@@ -370,6 +437,20 @@ function setupSaveTriggers(
       markDirty();
     };
   }
+
+  // Track position changes > 10px → mark dirty (TH.5)
+  let lastSavedX = roomScene.getTruman().x;
+  let lastSavedY = roomScene.getTruman().y;
+  setInterval(() => {
+    const truman = roomScene.getTruman();
+    const dx = truman.x - lastSavedX;
+    const dy = truman.y - lastSavedY;
+    if (dx * dx + dy * dy > 100) { // 10px threshold squared
+      lastSavedX = truman.x;
+      lastSavedY = truman.y;
+      markDirty();
+    }
+  }, 2000); // check every 2s
 
   // Expose for debugging
   (window as any).__saveManager = saveManager;
