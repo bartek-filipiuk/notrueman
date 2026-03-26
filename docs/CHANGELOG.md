@@ -1,5 +1,20 @@
 # Changelog
 
+## [Stage H — Recovery Integration: Restore on Startup] - 2026-03-26
+
+### Added
+- Recovery on startup: Truman resumes from saved position, facing, emotions, physical state, brain tick count, and recent activities after page refresh
+- `BrainLoop.restoreState()` method for recovering tick count, mood, activity, and recent activities
+- Offline time compensation: physical state drift (energy/hunger/tiredness), emotion drift toward defaults; 8h+ offline triggers "sleep" (tiredness reset)
+- Position-based dirty flag: save triggers when Truman moves >10px from last saved position
+- Activity change triggers immediate save (not just dirty flag)
+- `PhysicalStateEngine` exported from browser entry (`browser.ts`)
+- Recovery tests: 15 tests covering BrainLoop restore, EmotionEngine restore, PhysicalStateEngine restore, offline compensation math, day counter calculation
+
+### Security
+- No secrets (API keys, passwords) in SaveData — verified (SH.1)
+- All existing + new tests pass (SH.2)
+
 ## [Stage G — State Persistence: SaveManager + REST API] - 2026-03-26
 
 ### Added

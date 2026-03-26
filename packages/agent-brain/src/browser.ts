@@ -11,6 +11,7 @@ export type { LLMClient, LLMClientConfig, ModelType } from "./llm-client";
 // NOTE: loadPersonality uses fs.readFileSync — not browser-compatible.
 // Personality prompt should be embedded or fetched in browser context.
 export { EmotionEngine } from "./emotion-engine";
+export { PhysicalStateEngine } from "./physical-state";
 export { planNextAction } from "./action-planner";
 export { generateThought } from "./thought-generator";
 export { checkActivityFailure } from "./failure-mechanic";

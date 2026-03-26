@@ -17,6 +17,7 @@ import {
   RendererBridge,
   createLLMClient,
   EmotionEngine,
+  PhysicalStateEngine,
 } from "@nts/agent-brain";
 import { ConfigPanel } from "./ui/ConfigPanel";
 import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
@@ -68,8 +69,15 @@ function startGame(): void {
     // RoomScene starts after BootScene transition (1s delay)
     setTimeout(async () => {
       // Init save manager + load existing save before brain starts
-      await initSaveManager();
-      initBrain(game);
+      const save = await initSaveManager();
+
+      // TH.1 + TH.2: Recover renderer state from save before brain init
+      const roomScene = game.scene.getScene("RoomScene") as RoomScene;
+      if (save && roomScene) {
+        recoverRenderer(roomScene, save);
+      }
+
+      initBrain(game, save);
     }, 1500);
   });
 }
@@ -83,11 +91,11 @@ if (overlay) {
   startGame();
 }
 
-function initBrain(game: Phaser.Game): void {
+function initBrain(game: Phaser.Game, save: SaveData | null = null): void {
   const roomScene = game.scene.getScene("RoomScene") as RoomScene;
   if (!roomScene) {
     console.warn("[main] RoomScene not found, retrying in 1s...");
-    setTimeout(initBrain, 1000);
+    setTimeout(() => initBrain(game, save), 1000);
     return;
   }
 
@@ -117,6 +125,9 @@ function initBrain(game: Phaser.Game): void {
 
   // Create emotion engine — drives mood in HUD and thought bubbles
   const emotions = new EmotionEngine();
+
+  // Create physical state engine
+  const physicalState = new PhysicalStateEngine();
 
   // Wrap the SceneHandler to inject emotion updates after each action
   const handler = new SceneHandler(roomScene);
@@ -202,6 +213,11 @@ function initBrain(game: Phaser.Game): void {
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
   };
 
+  // TH.3 + TH.4: Recover brain state from save
+  if (save) {
+    recoverBrain(brain, emotions, physicalState, save);
+  }
+
   brain.start();
 
   // Expose for debugging
@@ -234,14 +250,83 @@ function initBrain(game: Phaser.Game): void {
 }
 
 // =============================================
+// Recovery — Restore state from save (TH.1-TH.4)
+// =============================================
+
+/** TH.2: Restore renderer position and facing from save */
+function recoverRenderer(roomScene: RoomScene, save: SaveData): void {
+  const truman = roomScene.getTruman();
+  truman.setPosition(save.truman.x, save.truman.y);
+  truman.setFacing(save.truman.facing);
+  console.log(`[recovery] Renderer: position (${save.truman.x}, ${save.truman.y}), facing ${save.truman.facing}`);
+}
+
+/** TH.3 + TH.4: Restore brain/emotion/physical state + offline compensation */
+function recoverBrain(
+  brain: BrainLoop,
+  emotions: EmotionEngine,
+  physicalState: PhysicalStateEngine,
+  save: SaveData,
+): void {
+  // Restore emotions
+  emotions.setState(save.emotions);
+
+  // Restore physical state
+  physicalState.setState(save.physicalState);
+
+  // Restore brain loop state
+  const recentActivities = save.recentActivities.map((ra) => ({
+    activity: ra.type as import("@nts/shared").ActivityType,
+    completedSecondsAgo: Math.round((Date.now() - ra.at) / 1000),
+  }));
+  brain.restoreState({
+    tickCount: save.brainTickCount,
+    currentActivity: save.truman.currentActivity,
+    currentMood: save.truman.currentMood,
+    recentActivities,
+  });
+
+  // TH.4: Offline time compensation
+  const elapsedMs = Date.now() - save.savedAt;
+  const elapsedHours = elapsedMs / 3_600_000;
+
+  if (elapsedHours > 0.01) { // more than ~36 seconds offline
+    // Physical state drift
+    physicalState.applyTimeDrift(elapsedHours);
+
+    // Emotion drift toward defaults
+    emotions.applyTimeDrift();
+
+    // If offline > 8h, Truman "slept" — reset tiredness
+    if (elapsedHours > 8) {
+      const ps = physicalState.getState();
+      physicalState.setState({ ...ps, tiredness: 0.1 });
+      // Also reduce hunger slightly (Truman would eat)
+      if (ps.hunger > 0.5) {
+        physicalState.setState({ ...physicalState.getState(), hunger: 0.3 });
+      }
+      console.log(`[recovery] Offline ${elapsedHours.toFixed(1)}h — Truman slept (tiredness reset)`);
+    } else {
+      console.log(`[recovery] Offline ${elapsedHours.toFixed(1)}h — drift applied`);
+    }
+  }
+
+  console.log(`[recovery] Brain: tick #${save.brainTickCount}, mood ${save.truman.currentMood}, ${recentActivities.length} recent activities`);
+}
+
+// =============================================
 // State Persistence — Save triggers + Day counter
 // =============================================
 
 /** Global save manager instance */
 const saveManager = new SaveManager();
 
-/** Track dirty state to avoid unnecessary saves */
+/** Track dirty state to avoid unnecessary saves (TH.5) */
 let dirty = false;
+
+/** Last saved position for dirty detection (TH.5) */
+let lastSavedX = 0;
+let lastSavedY = 0;
 
 /** Session-level state for day counter (TG.5) */
 let saveCreatedAt: number = Date.now();
@@ -307,6 +392,9 @@ async function initSaveManager(): Promise<SaveData | null> {
     saveSessionCount = save.sessionCount + 1; // increment on load
     saveBrainTickCountBase = save.brainTickCount;
     sessionStartedAt = Date.now();
+    // TH.5: Initialize position tracking from save
+    lastSavedX = save.truman.x;
+    lastSavedY = save.truman.y;
     console.log(`[save] Restored session #${saveSessionCount}, Day ${save.dayCount}, alive ${Math.round(save.totalTimeAliveMs / 3600000)}h`);
   } else {
     // First ever run
@@ -332,6 +420,8 @@ function setupSaveTriggers(
     const data = collectSaveData(roomScene, brain, emotions);
     await saveManager.save(data);
     dirty = false;
+    lastSavedX = data.truman.x;
+    lastSavedY = data.truman.y;
   };
 
   const doBeaconSave = () => {
@@ -357,9 +447,10 @@ function setupSaveTriggers(
     doSave().catch((e) => console.warn("[save] Periodic save failed:", e));
   }, 30_000);
 
-  // Activity change → mark dirty (will be saved by periodic or visibility trigger)
+  // TH.6: Activity change → mark dirty + trigger save
   roomScene.getActivityManager().setOnActivityChange(() => {
     markDirty();
+    doSave().catch((e) => console.warn("[save] Activity-change save failed:", e));
   });
 
   // Mark dirty on each brain tick
@@ -370,6 +461,16 @@ function setupSaveTriggers(
       markDirty();
     };
   }
+
+  // TH.5: Position-based dirty detection (check every 2s)
+  setInterval(() => {
+    const truman = roomScene.getTruman();
+    const dx = truman.x - lastSavedX;
+    const dy = truman.y - lastSavedY;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      markDirty();
+    }
+  }, 2000);
 
   // Expose for debugging
   (window as any).__saveManager = saveManager;
