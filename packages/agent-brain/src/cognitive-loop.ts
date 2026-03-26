@@ -9,6 +9,8 @@ import { checkActivityFailure } from "./failure-mechanic.js";
 import { scoreImportance } from "./importance-scorer.js";
 import { EmotionEngine } from "./emotion-engine.js";
 import { getTimeOfDay, sleep } from "./utils.js";
+import type { ToolRegistry } from "./tools/tool-registry.js";
+import type { BudgetManager } from "./tools/budget-manager.js";
 
 type LogFn = (level: "info" | "warn" | "error", message: string) => void;
 
@@ -61,6 +63,9 @@ export interface CognitiveLoopDeps {
   retrieval: RetrievalAdapter;
   config: CognitiveLoopConfig;
   log?: LogFn;
+  toolRegistry?: ToolRegistry;
+  budgetManager?: BudgetManager;
+  interests?: string[];
 }
 
 export interface CognitiveLoopState {
@@ -88,6 +93,9 @@ export class CognitiveLoop {
   private config: CognitiveLoopConfig;
   private log: LogFn;
   private emotionEngine: EmotionEngine;
+  private toolRegistry?: ToolRegistry;
+  private budgetManager?: BudgetManager;
+  private interests: string[];
 
   private state: CognitiveLoopState;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
@@ -102,6 +110,9 @@ export class CognitiveLoop {
     this.config = deps.config;
     this.log = deps.log ?? DEFAULT_LOG;
     this.emotionEngine = new EmotionEngine();
+    this.toolRegistry = deps.toolRegistry;
+    this.budgetManager = deps.budgetManager;
+    this.interests = deps.interests ?? [];
 
     this.state = {
       isRunning: false,
@@ -195,13 +206,26 @@ export class CognitiveLoop {
         this.log("warn", `Memory retrieval failed, continuing without context: ${err}`);
       }
 
-      // 3. PLAN — decide next action (with memory context)
+      // 2.5. TOOLS — use tools if available for current activity (TK.1)
+      let toolContext = "";
+      if (this.toolRegistry && this.budgetManager && this.state.currentActivity) {
+        toolContext = await this.useToolsForActivity(this.state.currentActivity, retrievedMemories);
+      }
+
+      // Build enhanced system prompt with interests (TK.2)
+      const systemPrompt = this.buildSystemPrompt();
+
+      // 3. PLAN — decide next action (with memory context + tool results)
+      const memoriesWithTools = toolContext
+        ? [...retrievedMemories, `[Tool results] ${toolContext}`]
+        : retrievedMemories;
+
       const action = await this.withRetry(() =>
-        planWithMemoryContext(this.llm, this.config.systemPrompt, {
+        planWithMemoryContext(this.llm, systemPrompt, {
           timeOfDay,
           currentMood: this.state.currentMood,
           recentActivities: this.state.recentActivities,
-          memories: retrievedMemories,
+          memories: memoriesWithTools,
         }),
       );
 
@@ -334,6 +358,104 @@ export class CognitiveLoop {
     });
 
     this.state.currentActivity = fallbackActivity;
+  }
+
+  /** Build system prompt with interests (TK.2) */
+  private buildSystemPrompt(): string {
+    if (this.interests.length === 0) return this.config.systemPrompt;
+    const interestsList = this.interests.join(", ");
+    return `${this.config.systemPrompt}\n\nYou are curious about: ${interestsList}. Use available tools when relevant. At computer: write blog posts. While drawing: create artwork concepts.`;
+  }
+
+  /** Use tools available for the current activity (TK.1) */
+  private async useToolsForActivity(
+    activity: ActivityType,
+    _memories: string[],
+  ): Promise<string> {
+    if (!this.toolRegistry || !this.budgetManager) return "";
+    if (!this.budgetManager.isWithinBudget()) {
+      this.log("info", "[BUDGET] No budget remaining — skipping tools");
+      return "";
+    }
+
+    const tools = this.toolRegistry.getToolsForActivity(activity);
+    if (Object.keys(tools).length === 0) return "";
+
+    try {
+      const result = await this.llm.generateWithTools({
+        prompt: `You are currently doing: ${activity}. Your mood is ${this.state.currentMood}. Use available tools if relevant to what you're doing. Be concise.`,
+        model: "think",
+        system: this.buildSystemPrompt(),
+        tools,
+        maxToolRoundtrips: 2,
+      });
+
+      // Track budget for each tool call (TK.5)
+      for (const tc of result.toolCalls) {
+        const tracked = this.budgetManager.trackCall(tc.toolName);
+        if (!tracked) break;
+        this.log("info", `[TOOL] ${tc.toolName} called`);
+      }
+
+      // Store tool results in memory (TK.3)
+      for (const tr of result.toolResults) {
+        const importance = (tr.toolName === "write_blog_post" || tr.toolName === "create_artwork") ? 8 : 4;
+        const description = `Used tool ${tr.toolName}: ${JSON.stringify(tr.result).slice(0, 500)}`;
+        await this.storeToolObservation(description, importance, result.toolCalls);
+      }
+
+      // Log budget status (TK.5)
+      const budget = this.budgetManager.getRemainingBudget();
+      this.log("info", `[BUDGET] ${budget.callsLeft}/${budget.totalCalls} calls remaining`);
+
+      return result.text || "";
+    } catch (err) {
+      this.log("warn", `Tool calling failed: ${err}`);
+      return "";
+    }
+  }
+
+  /** Store a tool observation in memory (TK.3) */
+  private async storeToolObservation(
+    description: string,
+    importance: number,
+    toolCalls: Array<{ toolName: string; args: unknown }>,
+  ): Promise<void> {
+    try {
+      let embedding: number[] | undefined;
+      try {
+        embedding = await this.embedding.embed(description);
+      } catch {
+        // Continue without embedding
+      }
+
+      await this.memory.createMemory({
+        agentId: this.config.agentId,
+        type: "observation",
+        description,
+        embedding,
+        importance,
+        emotionalContext: { ...this.emotionEngine.getState() } as Record<string, unknown>,
+        metadata: {
+          toolCalls: toolCalls.map((tc) => ({
+            tool: tc.toolName,
+            input: tc.args,
+          })),
+        },
+      });
+    } catch (err) {
+      this.log("warn", `Failed to store tool observation: ${err}`);
+    }
+  }
+
+  /** Get current interests */
+  getInterests(): string[] {
+    return [...this.interests];
+  }
+
+  /** Update interests (TK.4 — called after reflection) */
+  setInterests(newInterests: string[]): void {
+    this.interests = newInterests.slice(0, 10);
   }
 
   /** Update recent activities list (keep last 20). Mutates in place to avoid GC. */

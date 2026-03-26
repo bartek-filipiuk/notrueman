@@ -119,6 +119,19 @@ Truman's state survives page refreshes. Position, emotions, activity, mood, and 
 
 **Version migration:** Save data has a `version` field. On load, mismatched versions are discarded with a console warning.
 
+## Creative Tools
+
+Truman can autonomously use tools during activities:
+- **Web Search** (Brave API): searches the internet when curious. Triggered by computer/think/read/draw activities.
+- **Blog Posts** (placeholder): writes draft blog posts at the computer. Saved to memory, not published.
+- **Artwork** (placeholder): creates artwork concepts while drawing. Saved to memory, not generated.
+
+Tools are wired into the CognitiveLoop's plan phase. Tool results influence Truman's next decisions and are stored as observations in memory. Interests (`config/truman-config.json`) seed search topics and evolve from reflections.
+
+**Budget:** 20 tool calls per day (configurable). Hard-blocks when exceeded. Resets at midnight UTC. Status logged in console.
+
+**Setup:** Add `BRAVE_SEARCH_API_KEY` to `.env` (free tier: 2000 queries/month at https://api.search.brave.com/).
+
 ## Architecture
 
 ```

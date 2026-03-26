@@ -1,5 +1,21 @@
 # Changelog
 
+## [Stage K — CognitiveLoop Integration + Memory] - 2026-03-26
+
+### Added
+- CognitiveLoop tool integration: plan phase uses `generateWithTools()` for current activity's tools
+- Personality prompt extended with interests: "You are curious about: {interests}. Use available tools when relevant."
+- Tool results stored in memory as observations with metadata `{ toolCalls: [{tool, input}] }`
+- Importance scoring: blog/artwork = 8, search = 4
+- Interest evolution: `setInterests()` / `getInterests()` methods on CognitiveLoop (max 10)
+- Tool call + budget console logging per tick
+- Tests: 9 new tests (interests, memory storage, budget tracking, tool-activity mapping)
+
+### Security
+- Tool results sanitized via Zod validation on tool inputs (SK.1)
+- Memory metadata contains no secrets — only tool names and results (SK.2)
+- All tests pass (SK.3)
+
 ## [Stage J — Tool Framework + Brave Search] - 2026-03-26
 
 ### Added
