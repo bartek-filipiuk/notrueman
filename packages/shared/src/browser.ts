@@ -101,5 +101,9 @@ export {
   calculateOverallMood,
 } from "./utils/emotions";
 
+// Save data (state persistence)
+export { SaveDataSchema, SAVE_DATA_VERSION } from "./types/save-data";
+export type { SaveData } from "./types/save-data";
+
 // NOTE: Queue infrastructure (BullMQ) is NOT exported here.
 // Import from "@nts/shared" (full entry) in Node.js packages only.

@@ -1,5 +1,20 @@
 # Changelog
 
+## [Stage G — State Persistence: SaveManager + REST API] - 2026-03-26
+
+### Added
+- `SaveData` type + Zod schema (`packages/shared/src/types/save-data.ts`) — versioned save format with emotions, position, day counter, session tracking
+- REST endpoints on HealthServer: `POST /state/save` (PostgreSQL via StatePersistence), `GET /state/load/:agentId`
+- `SaveManager` class (`packages/renderer/src/systems/SaveManager.ts`) — dual persistence: REST API primary, localStorage fallback, auto-detects backend
+- Save triggers in browser: `visibilitychange`, `pagehide` (sendBeacon), periodic 30s, activity change
+- Day counter logic: `createdAt` (first-ever run), `dayCount`, `totalTimeAliveMs`, `sessionCount`
+- Tests: SaveData Zod validation (16 tests), state endpoint tests (8 tests), day counter math
+
+### Security
+- CORS on HealthServer restricted to `localhost:*` origins only (SG.1)
+- Zod validation on POST /state/save rejects invalid payloads (SG.2)
+- Agent ID hardcoded to "truman" — user input ignored (SG.3)
+
 ## [Stage 12 — AI Asset Pipeline: Retro Diffusion] - 2026-03-25
 
 ### Added

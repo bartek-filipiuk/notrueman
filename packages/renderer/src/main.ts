@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, GAME_FPS } from "@nts/shared";
+import { GAME_WIDTH, GAME_HEIGHT, GAME_FPS, EMOTION_DEFAULTS, SAVE_DATA_VERSION } from "@nts/shared";
+import type { SaveData } from "@nts/shared";
 import { BootScene } from "./scenes/BootScene";
 import { RoomScene } from "./scenes/RoomScene";
 import { ComputerScene } from "./scenes/ComputerScene";
@@ -19,6 +20,7 @@ import {
 } from "@nts/agent-brain";
 import { ConfigPanel } from "./ui/ConfigPanel";
 import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
+import { SaveManager } from "./systems/SaveManager";
 
 /** Read API key from URL params (?apiKey=sk-or-...) or empty string */
 function getApiKey(): string {
@@ -64,7 +66,9 @@ function startGame(): void {
   // Wait for RoomScene to be ready, then decide mode
   game.events.on("ready", () => {
     // RoomScene starts after BootScene transition (1s delay)
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Init save manager + load existing save before brain starts
+      await initSaveManager();
       initBrain(game);
     }, 1500);
   });
@@ -94,6 +98,8 @@ function initBrain(game: Phaser.Game): void {
     console.log("[main] Add ?apiKey=sk-or-... to URL for AI mode");
     // Demo mode: ActivityManager hardcoded loop already running from RoomScene.create()
     new ConfigPanel(() => ({ mode: "demo", tickCount: 0, currentActivity: "cycling", currentMood: "neutral" }));
+    // Save triggers for demo mode too
+    setupSaveTriggers(roomScene, null, null);
     return;
   }
 
@@ -222,4 +228,150 @@ function initBrain(game: Phaser.Game): void {
     ? `TTS enabled (voice: ${ttsManager.getVoice()})`
     : "TTS disabled (add ?tts=on&openaiKey=sk-... to enable)";
   console.log(`[main] Brain loop started with emotion engine. ${ttsStatus}. Press ~ for debug panel.`);
+
+  // --- State persistence (TG.4 + TG.5) ---
+  setupSaveTriggers(roomScene, brain, emotions);
+}
+
+// =============================================
+// State Persistence — Save triggers + Day counter
+// =============================================
+
+/** Global save manager instance */
+const saveManager = new SaveManager();
+
+/** Track dirty state to avoid unnecessary saves */
+let dirty = false;
+
+/** Session-level state for day counter (TG.5) */
+let saveCreatedAt: number = Date.now();
+let saveTotalTimeAliveMs: number = 0;
+let saveSessionCount: number = 0;
+let saveBrainTickCountBase: number = 0;
+let sessionStartedAt: number = Date.now();
+
+/** Mark state as dirty (something changed) */
+export function markDirty(): void {
+  dirty = true;
+}
+
+/** Collect current SaveData from all game systems */
+function collectSaveData(
+  roomScene: RoomScene,
+  brain: BrainLoop | null,
+  emotions: EmotionEngine | null,
+): SaveData {
+  const truman = roomScene.getTruman();
+  const activityMgr = roomScene.getActivityManager();
+  const now = Date.now();
+  const elapsedThisSession = now - sessionStartedAt;
+  const totalAlive = saveTotalTimeAliveMs + elapsedThisSession;
+  const dayCount = Math.floor((now - saveCreatedAt) / 86_400_000);
+
+  const brainState = brain?.getState();
+  const emotionState = emotions?.getState();
+
+  return {
+    version: SAVE_DATA_VERSION,
+    savedAt: now,
+    createdAt: saveCreatedAt,
+    dayCount,
+    totalTimeAliveMs: totalAlive,
+    sessionCount: saveSessionCount,
+    truman: {
+      x: truman.x,
+      y: truman.y,
+      facing: truman.getFacing(),
+      currentActivity: activityMgr.getCurrentActivity(),
+      currentMood: emotions?.getOverallMood() ?? "neutral",
+    },
+    emotions: emotionState ?? { ...EMOTION_DEFAULTS },
+    physicalState: { energy: 1.0, hunger: 0.0, tiredness: 0.0 },
+    recentActivities: (brainState?.recentActivities ?? []).map((ra) => ({
+      type: ra.activity,
+      at: Date.now() - ra.completedSecondsAgo * 1000,
+    })),
+    brainTickCount: saveBrainTickCountBase + (brainState?.tickCount ?? 0),
+  };
+}
+
+/** Initialize save manager and restore session counters from existing save */
+async function initSaveManager(): Promise<SaveData | null> {
+  await saveManager.init();
+  const save = await saveManager.load();
+
+  if (save) {
+    // Restore session-level counters (TG.5)
+    saveCreatedAt = save.createdAt;
+    saveTotalTimeAliveMs = save.totalTimeAliveMs;
+    saveSessionCount = save.sessionCount + 1; // increment on load
+    saveBrainTickCountBase = save.brainTickCount;
+    sessionStartedAt = Date.now();
+    console.log(`[save] Restored session #${saveSessionCount}, Day ${save.dayCount}, alive ${Math.round(save.totalTimeAliveMs / 3600000)}h`);
+  } else {
+    // First ever run
+    saveCreatedAt = Date.now();
+    saveTotalTimeAliveMs = 0;
+    saveSessionCount = 1;
+    saveBrainTickCountBase = 0;
+    sessionStartedAt = Date.now();
+    console.log("[save] No previous save — starting fresh (Day 0, Session #1)");
+  }
+
+  return save;
+}
+
+/** Set up save triggers: visibilitychange, pagehide, periodic 30s, activity change */
+function setupSaveTriggers(
+  roomScene: RoomScene,
+  brain: BrainLoop | null,
+  emotions: EmotionEngine | null,
+): void {
+  const doSave = async () => {
+    if (!dirty) return;
+    const data = collectSaveData(roomScene, brain, emotions);
+    await saveManager.save(data);
+    dirty = false;
+  };
+
+  const doBeaconSave = () => {
+    const data = collectSaveData(roomScene, brain, emotions);
+    saveManager.saveBeacon(data);
+    dirty = false;
+  };
+
+  // Save when tab becomes hidden
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      doBeaconSave();
+    }
+  });
+
+  // Save on page unload (pagehide preferred over beforeunload)
+  window.addEventListener("pagehide", () => {
+    doBeaconSave();
+  });
+
+  // Periodic save every 30s if dirty
+  setInterval(() => {
+    doSave().catch((e) => console.warn("[save] Periodic save failed:", e));
+  }, 30_000);
+
+  // Activity change → mark dirty (will be saved by periodic or visibility trigger)
+  roomScene.getActivityManager().setOnActivityChange(() => {
+    markDirty();
+  });
+
+  // Mark dirty on each brain tick
+  if (brain) {
+    const origTick = brain.tick.bind(brain);
+    brain.tick = async function () {
+      await origTick();
+      markDirty();
+    };
+  }
+
+  // Expose for debugging
+  (window as any).__saveManager = saveManager;
+  console.log(`[save] Triggers active: visibilitychange, pagehide, 30s periodic, activity change. Backend: ${saveManager.isBackendAvailable ? "PostgreSQL" : "localStorage"}`);
 }

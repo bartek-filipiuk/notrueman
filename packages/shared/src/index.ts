@@ -63,6 +63,10 @@ export type {
   AgentState,
 } from "./types/agent-state.js";
 
+// Save data (state persistence)
+export { SaveDataSchema, SAVE_DATA_VERSION } from "./types/save-data.js";
+export type { SaveData } from "./types/save-data.js";
+
 // Schemas
 export {
   ImportanceScoreSchema,

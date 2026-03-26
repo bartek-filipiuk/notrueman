@@ -270,6 +270,48 @@ Watches `config/truman-config.json` with `fs.watch()`. On change:
 
 ## HTTP Endpoints
 
+### POST /state/save
+
+Save agent state to PostgreSQL. Available on `localhost:3001`.
+
+**Request:**
+```json
+{
+  "agentId": "truman",
+  "state": {
+    "version": 1,
+    "savedAt": 1711500000000,
+    "createdAt": 1711400000000,
+    "dayCount": 1,
+    "totalTimeAliveMs": 86400000,
+    "sessionCount": 3,
+    "truman": { "x": 400, "y": 300, "facing": "right", "currentActivity": "read", "currentMood": "curious" },
+    "emotions": { "happiness": 0.6, "curiosity": 0.7, "anxiety": 0.2, "boredom": 0.3, "excitement": 0.4, "contentment": 0.5, "frustration": 0.1 },
+    "physicalState": { "energy": 0.8, "hunger": 0.3, "tiredness": 0.2 },
+    "recentActivities": [{ "type": "read", "at": 1711499900000 }],
+    "brainTickCount": 42
+  }
+}
+```
+
+**Response:** `200 { "ok": true, "savedAt": 1711500000000 }`
+
+**Errors:**
+- `400` — Invalid save data (Zod validation failed)
+- `503` — StatePersistence not configured
+
+**Security:** Agent ID is hardcoded to "truman" (user input ignored). State validated against `SaveDataSchema`. CORS restricted to `localhost:*` origins.
+
+### GET /state/load/:agentId
+
+Load latest agent state from PostgreSQL. Available on `localhost:3001`.
+
+**Response:** `200 { "agentId": "truman", "state": { ... } }`
+
+**Errors:**
+- `404` — No saved state found
+- `503` — StatePersistence not configured
+
 ### GET /health
 
 Returns JSON with agent status. Available on `localhost:3001`.
@@ -328,6 +370,7 @@ All queues use `concurrency: 1`, `removeOnComplete: { count: 1000 }`, `removeOnF
 | `AgentThinkJobSchema` | @nts/shared | Think queue payload |
 | `AgentActionJobSchema` | @nts/shared | Action queue payload |
 | `RendererCommandJobSchema` | @nts/shared | Renderer command payload |
+| `SaveDataSchema` | @nts/shared | Persisted agent state (position, emotions, day counter) |
 | `TrumanConfigSchema` | @nts/agent-brain | Runtime config validation |
 
 Activity enums in all schemas derive from `ACTIVITY_LIST` in `packages/shared/src/constants.ts`.
