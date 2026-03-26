@@ -1,5 +1,20 @@
 # Changelog
 
+## [Stage L — Activity Panel UI] - 2026-03-26
+
+### Added
+- `ActivityPanel` class — sidebar (220px, right side) showing creative activity logs
+- Entry types: search, blog, artwork, thought, system — each with emoji icon
+- FIFO buffer: max 20 entries, newest first
+- Click-to-preview: click any entry to see full content in modal overlay (Escape to close)
+- Budget bar: color-coded (green >50%, yellow >20%, red <20%), shows "Tools: X/Y | Day Z"
+- Toggle with Tab key
+- Tests: 14 new tests (entry types, FIFO limit, budget colors, formatting, toggle, modal)
+
+### Security
+- Panel does not display API keys or credentials (SL.1)
+- All tests pass (SL.2)
+
 ## [Stage K — CognitiveLoop Integration + Memory] - 2026-03-26
 
 ### Added

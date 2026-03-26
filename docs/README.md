@@ -132,6 +132,14 @@ Tools are wired into the CognitiveLoop's plan phase. Tool results influence Trum
 
 **Setup:** Add `BRAVE_SEARCH_API_KEY` to `.env` (free tier: 2000 queries/month at https://api.search.brave.com/).
 
+## Activity Panel
+
+Press `Tab` to toggle the Activity Panel — a sidebar showing Truman's creative activity in realtime:
+- **Entries:** Search results, blog drafts, artwork concepts, thoughts, system messages
+- **Icons:** \uD83D\uDD0D search, \uD83D\uDCDD blog, \uD83C\uDFA8 artwork, \uD83D\uDCAD thought, \u2699\uFE0F system
+- **Preview:** Click any entry to see full content in a modal (Escape to close)
+- **Budget:** Color-coded bar at bottom shows remaining tool calls and current day
+
 ## Architecture
 
 ```
