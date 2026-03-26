@@ -50,21 +50,11 @@ export class MovementSystem {
       this.totalPathLength = this.calculatePathLength(from, this.waypoints);
       this.distanceTraveled = 0;
 
-      // Anticipation: small "crouch" before moving (100ms)
-      this.scene.tweens.add({
-        targets: this.truman,
-        scaleY: 0.96,
-        scaleX: 1.02,
-        duration: 80,
-        yoyo: true,
-        ease: "Quad.Out",
-        onComplete: () => {
-          this.isMoving = true;
-          const dx = this.waypoints[0]?.x ?? target.x;
-          const direction = dx > this.truman.x ? "right" : "left";
-          this.truman.playWalk(direction);
-        },
-      });
+      // Start moving immediately (no scale tweens on container — they conflict with sprite-level scaling)
+      this.isMoving = true;
+      // Scale managed by TrumanSprite internally
+      const wp = this.waypoints[0] ?? target;
+      this.truman.playWalk(this.getDirection(wp));
     });
   }
 
@@ -102,18 +92,7 @@ export class MovementSystem {
         this.isMoving = false;
         this.truman.playIdle();
 
-        // Squash/stretch on stop — settling effect
-        this.scene.tweens.add({
-          targets: this.truman,
-          scaleY: 0.93,
-          scaleX: 1.06,
-          duration: 80,
-          ease: "Sine.Out",
-          yoyo: true,
-          onComplete: () => {
-            this.truman.setScale(1, 1);
-          },
-        });
+        // Scale reset removed — TrumanSprite.playIdle() handles its own scale
 
         if (this.moveResolve) {
           this.moveResolve();
@@ -123,13 +102,9 @@ export class MovementSystem {
       }
 
       // Update facing for next waypoint
-      const nextDx = this.waypoints[0].x - this.truman.x;
-      if (Math.abs(nextDx) > 1) {
-        const newFacing = nextDx > 0 ? "right" : "left";
-        if (this.truman.getFacing() !== newFacing) {
-          this.truman.playWalk(newFacing);
-        }
-      }
+      // Update direction for next waypoint
+      const newDir = this.getDirection(this.waypoints[0]);
+      this.truman.playWalk(newDir);
       return;
     }
 
@@ -158,13 +133,6 @@ export class MovementSystem {
       this.emitFootstepDust();
     }
 
-    // Update facing direction
-    if (Math.abs(dx) > 1) {
-      const newFacing = dx > 0 ? "right" : "left";
-      if (this.truman.getFacing() !== newFacing) {
-        this.truman.playWalk(newFacing);
-      }
-    }
   }
 
   /** Easing profile: slow start, full speed middle, slow end */
@@ -190,6 +158,17 @@ export class MovementSystem {
       prev = wp;
     }
     return length;
+  }
+
+  /** Determine 4-way direction from current position to target */
+  private getDirection(target: Position): "up" | "down" | "left" | "right" {
+    const dx = target.x - this.truman.x;
+    const dy = target.y - this.truman.y;
+    // Pick dominant axis
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? "right" : "left";
+    }
+    return dy > 0 ? "down" : "up";
   }
 
   getIsMoving(): boolean {

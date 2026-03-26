@@ -193,10 +193,8 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.update();
     this.hud.updateTime();
 
-    // Truman always rendered in front of all furniture
     this.truman.setDepth(900);
 
-    // Day/night cycle lighting update
     this.dayNight?.update();
     // Window view update (sky color/stars)
     this.windowView?.update();

@@ -33,9 +33,19 @@ export class BootScene extends Phaser.Scene {
     for (const mood of moods) {
       this.load.image(`truman_${mood}`, `sprites/truman/${mood}.png`);
     }
-    // Walk cycle sprites (2 frames — used as idle→walk_1→idle→walk_2 loop)
-    this.load.image("truman_walk_1", "sprites/truman/walk_1.png");
-    this.load.image("truman_walk_2", "sprites/truman/walk_2.png");
+    // 4-directional idle sprites
+    const dirs = ["front", "back", "left", "right"];
+    for (const dir of dirs) {
+      this.load.image(`truman_idle_${dir}`, `sprites/truman/idle_${dir}.png`);
+    }
+    // Side walk cycle (25 frames from 5x5 spritesheet)
+    for (let i = 0; i < 25; i++) {
+      this.load.image(`truman_walk_side_${i}`, `sprites/truman/walk_side_${String(i).padStart(2, "0")}.png`);
+    }
+    // Side idle cycle (25 frames from 5x5 spritesheet)
+    for (let i = 0; i < 25; i++) {
+      this.load.image(`truman_idle_side_${i}`, `sprites/truman/idle_side_${String(i).padStart(2, "0")}.png`);
+    }
     // Room backgrounds (3/4 top-down preferred, old side-view as fallback)
     this.load.image("room_background_34", "sprites/room_background_34.png");
     this.load.image("room_background_34_night", "sprites/room_background_34_night.png");
