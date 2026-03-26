@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "@nts/shared";
 import { getVisualConfig } from "../config/VisualConfig";
+import type { RoomScene } from "../scenes/RoomScene";
 
 /**
  * Day/Night cycle — ambient Light2D + soft fill light + vignette + ColorMatrix.
@@ -160,6 +161,13 @@ export class DayNightCycle {
 
   private applyPhase(phase: string): void {
     const cfg = PHASES[phase] ?? PHASES.day;
+
+    // Switch room background texture (day/night)
+    const isNight = phase === "night" || phase === "evening";
+    const roomScene = this.scene as unknown as RoomScene;
+    if (typeof roomScene.setBackgroundTime === "function") {
+      roomScene.setBackgroundTime(isNight);
+    }
 
     this.setAmbient(cfg.ambient);
 

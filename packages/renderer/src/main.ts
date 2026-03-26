@@ -36,9 +36,9 @@ Your inner monologue should be 1-2 sentences, reflective, warm, and occasionally
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
   parent: "game-container",
-  pixelArt: true,
-  antialias: false,
-  roundPixels: true,
+  pixelArt: false,
+  antialias: true,
+  roundPixels: false,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: "#d4c0a0",

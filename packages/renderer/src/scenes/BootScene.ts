@@ -19,6 +19,8 @@ export class BootScene extends Phaser.Scene {
     // Try to load AI-generated PNG sprites. If files don't exist, Phaser
     // silently fails and RoomScene falls back to programmatic sprites.
     for (const obj of ROOM_OBJECTS) {
+      // Modern 3/4 sprites (priority) + old side-view sprites (fallback)
+      this.load.image(`obj_34_${obj.id}`, `sprites/objects_34/${obj.id}.png`);
       this.load.image(`png_${obj.id}`, `sprites/objects/${obj.id}.png`);
     }
     // Truman mood sprites
@@ -34,7 +36,9 @@ export class BootScene extends Phaser.Scene {
     // Walk cycle sprites (2 frames — used as idle→walk_1→idle→walk_2 loop)
     this.load.image("truman_walk_1", "sprites/truman/walk_1.png");
     this.load.image("truman_walk_2", "sprites/truman/walk_2.png");
-    // Room background
+    // Room backgrounds (3/4 top-down preferred, old side-view as fallback)
+    this.load.image("room_background_34", "sprites/room_background_34.png");
+    this.load.image("room_background_34_night", "sprites/room_background_34_night.png");
     this.load.image("room_background", "sprites/room_background.png");
     // Close-up scene assets
     // Close-up scene backgrounds (FLUX generated, Truman baked in)

@@ -13,7 +13,7 @@
     "dev": "turbo run dev"
   },
   "devDependencies": {
-    "sharp": "^0.34.5",
+    "sharp": "^0.33.5",
     "turbo": "^2.7.0",
     "typescript": "^5.7.0"
   },

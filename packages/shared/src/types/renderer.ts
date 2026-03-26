@@ -52,6 +52,8 @@ export interface RoomObject {
   wallMounted: boolean;
   /** Collision box offset relative to object origin (for pathfinding obstacles) */
   collisionBox?: { x: number; y: number; w: number; h: number };
+  /** Rotation angle in degrees (0 = no rotation) */
+  angle?: number;
   label: string;
   zone: RoomZone;
 }

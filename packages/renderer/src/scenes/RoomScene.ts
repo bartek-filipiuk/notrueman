@@ -21,6 +21,7 @@ import { initVisualConfig, getVisualConfig } from "../config/VisualConfig";
 import { TTSManager } from "../systems/TTSManager";
 import { DayNightCycle } from "../systems/DayNightCycle";
 import { IdleAnimator } from "../systems/IdleAnimator";
+import { RoomEditor } from "../systems/RoomEditor";
 
 /** Warm room color palette (SNES / Stardew Valley warmth) */
 const WALL_BASE = 0xd4c5a9;        // warm beige wall
@@ -42,6 +43,7 @@ const FLOOR_Y = ROOM_FLOOR_TOP_Y;
 export const WINDOW_GLOW_COLOR = 0xfdd835;
 
 export class RoomScene extends Phaser.Scene {
+  private bgImage: Phaser.GameObjects.Image | null = null;
   private roomObjects = new Map<InteractiveObjectId, Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle>();
   private truman!: TrumanSprite;
   private movement!: MovementSystem;
@@ -76,6 +78,16 @@ export class RoomScene extends Phaser.Scene {
     this.createRoomObjects();
     this.createTruman();
     this.createNavMeshDebug();
+
+    // Room editor mode: ?edit=true — drag objects, scroll=scale, P=print positions
+    // Also stops Truman from moving and disables activity loop
+    const isEditMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("edit") === "true";
+    if (isEditMode) {
+      this.activityManager.stopLoop();
+      this.truman.setVisible(false);
+      this.drawObjectDebugMarkers();
+      new RoomEditor(this, this.roomObjects);
+    }
   }
 
   /** Debug overlay for navmesh — enabled via ?debug=nav URL param */
@@ -181,9 +193,8 @@ export class RoomScene extends Phaser.Scene {
     this.activityRenderer.update();
     this.hud.updateTime();
 
-    // Depth sort by feet position: Truman Container origin is center,
-    // feet are ~40px below. Objects use origin(0.5,1) so depth=obj.y = bottom edge.
-    this.truman.setDepth(this.truman.y + 40);
+    // Truman always rendered in front of all furniture
+    this.truman.setDepth(900);
 
     // Day/night cycle lighting update
     this.dayNight?.update();
@@ -249,8 +260,7 @@ export class RoomScene extends Phaser.Scene {
     // Day/Night cycle with Light2D point lights
     this.dayNight = new DayNightCycle(this);
 
-    // Window view — sky/clouds/stars behind window object
-    this.windowView = new WindowView(this);
+    // WindowView disabled — window baked into room background
 
     // Idle micro-animations (breathing, blinking, looking around)
     this.idleAnimator = new IdleAnimator(this, this.truman);
@@ -354,12 +364,30 @@ export class RoomScene extends Phaser.Scene {
     return this.musicManager;
   }
 
+  /** Switch room background based on time of day */
+  setBackgroundTime(isNight: boolean): void {
+    if (!this.bgImage) return;
+    const nightKey = "room_background_34_night";
+    const dayKey = "room_background_34";
+    const wantKey = isNight ? nightKey : dayKey;
+    if (this.textures.exists(wantKey) && this.bgImage.texture.key !== wantKey) {
+      this.bgImage.setTexture(wantKey);
+    }
+  }
+
   private createBackground(): void {
-    // Priority: AI-generated 3/4 background > programmatic 3/4
-    if (this.textures.exists("room_background_34")) {
-      const bg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "room_background_34");
-      bg.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-      bg.setDepth(0);
+    // Pick initial background based on current hour
+    const hour = new Date().getHours();
+    const isNight = hour >= 19 || hour < 6;
+    const nightKey = "room_background_34_night";
+    const dayKey = "room_background_34";
+    const bgKey = isNight && this.textures.exists(nightKey) ? nightKey : dayKey;
+
+    if (this.textures.exists(bgKey)) {
+      this.bgImage = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, bgKey);
+      this.bgImage.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+      this.bgImage.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      this.bgImage.setDepth(0);
       return;
     }
 
@@ -445,16 +473,25 @@ export class RoomScene extends Phaser.Scene {
 
       if (texKey) {
         const img = this.add.image(obj.x, obj.y, texKey);
-        img.setDisplaySize(obj.displayWidth, obj.displayHeight);
 
+        // Use LINEAR filtering for AI-generated sprites (smooth downscaling)
+        img.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
+        // Scale to fit displayWidth while preserving aspect ratio
+        const texFrame = img.texture.getSourceImage();
+        const natW = texFrame.width;
+        const natH = texFrame.height;
+        const scale = Math.min(obj.displayWidth / natW, obj.displayHeight / natH);
+        img.setScale(scale);
+
+        // Apply rotation from constants
+        if (obj.angle) img.setAngle(obj.angle);
+
+        // Default origin (0.5, 0.5) — matches edit mode positioning
         if (obj.wallMounted) {
-          // Wall objects: centered origin, fixed depth behind everything
-          img.setOrigin(0.5, 0.5);
           img.setDepth(1);
         } else {
-          // Floor objects: origin at bottom-center for Y-based depth sorting
-          img.setOrigin(0.5, 1);
-          img.setDepth(obj.y);
+          img.setDepth(obj.y + img.displayHeight / 2);
         }
 
         this.roomObjects.set(obj.id, img);
@@ -464,6 +501,55 @@ export class RoomScene extends Phaser.Scene {
         this.roomObjects.set(obj.id, zone as unknown as Phaser.GameObjects.Image);
       }
     }
+  }
+
+  /** Debug: draw crosshair + label at each object's x,y + bounding box */
+  private drawObjectDebugMarkers(): void {
+    const g = this.add.graphics();
+    g.setDepth(96);
+
+    for (const [id, obj] of this.roomObjects.entries()) {
+      if (!(obj instanceof Phaser.GameObjects.Image)) continue;
+      if (obj.x < 0) continue;
+
+      // Crosshair at object origin (x,y)
+      g.lineStyle(2, 0xff0000, 1);
+      g.lineBetween(obj.x - 8, obj.y, obj.x + 8, obj.y);
+      g.lineBetween(obj.x, obj.y - 8, obj.x, obj.y + 8);
+
+      // Bounding box
+      const bounds = obj.getBounds();
+      g.lineStyle(1, 0x00ff00, 0.5);
+      g.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+      // Label
+      this.add.text(obj.x + 10, obj.y - 12, `${id}\n${Math.round(obj.x)},${Math.round(obj.y)}\n${Math.round(obj.displayWidth)}x${Math.round(obj.displayHeight)}\nscale:${obj.scaleX.toFixed(3)}`, {
+        fontSize: "8px",
+        fontFamily: "monospace",
+        color: "#ffff00",
+        backgroundColor: "#000000aa",
+        padding: { x: 2, y: 1 },
+      }).setDepth(97);
+    }
+
+    // Also log to console
+    console.table(
+      ROOM_OBJECTS.filter(o => o.x > 0).map(o => {
+        const img = this.roomObjects.get(o.id);
+        return {
+          id: o.id,
+          "const x": o.x,
+          "const y": o.y,
+          "const dispW": o.displayWidth,
+          "const dispH": o.displayHeight,
+          "actual x": img ? Math.round(img.x) : "?",
+          "actual y": img ? Math.round(img.y) : "?",
+          "actual dispW": img ? Math.round(img.displayWidth) : "?",
+          "actual dispH": img ? Math.round(img.displayHeight) : "?",
+          "texKey": img instanceof Phaser.GameObjects.Image ? img.texture.key : "zone",
+        };
+      }),
+    );
   }
 
   getRoomObject(id: InteractiveObjectId): Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | undefined {
