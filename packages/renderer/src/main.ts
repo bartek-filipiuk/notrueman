@@ -341,13 +341,20 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
 
-    // Post events to backend for WebSocket broadcast
+    // Post detailed events to backend for WebSocket broadcast
+    const tickSummary = state.currentActivity
+      ? `Tick #${state.tickCount}: decided to ${state.currentActivity}${state.lastError ? " (FAILED)" : ""}`
+      : `Tick #${state.tickCount}: idle`;
+
+    // Main tick event (public — shows in mind feed)
     postBrainEvent({
       type: "thought",
       timestamp: Date.now(),
-      data: { thought: state.currentActivity ? `Tick #${state.tickCount}: ${state.currentActivity}` : "Thinking...", mood, activity: state.currentActivity },
+      data: { thought: tickSummary, mood, activity: state.currentActivity, tickCount: state.tickCount, failed: !!state.lastError },
       public: true,
     });
+
+    // Activity change (public)
     if (state.currentActivity) {
       postBrainEvent({
         type: "activity_change",
@@ -356,11 +363,28 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
         public: true,
       });
     }
+
+    // Mood + emotions (public for chart, admin for raw data)
     postBrainEvent({
       type: "mood_change",
       timestamp: Date.now(),
-      data: { mood, emotions: emotions.getState() },
+      data: {
+        mood,
+        emotions: emotions.getState(),
+        recentActivities: state.recentActivities.slice(0, 5).map(a => a.activity),
+      },
       public: true,
+    });
+
+    // Detailed debug event (admin only — full state dump)
+    postBrainEvent({
+      type: "thought",
+      timestamp: Date.now(),
+      data: {
+        thought: `[DEBUG] ${tickSummary} | mood:${mood} | h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)} | recent: ${state.recentActivities.slice(0, 3).map(a => a.activity).join(",")}`,
+        debug: true,
+      },
+      public: false, // admin feed only
     });
   };
 

@@ -69,28 +69,32 @@ export function createLLMClient(config: LLMClientConfig): LLMClient {
 
   return {
     async generateText(params: GenerateTextParams): Promise<GenerateTextResult> {
+      const start = Date.now();
+      console.log(`[LLM:${params.model}] generateText — prompt: ${params.prompt.substring(0, 100)}...`);
       const result = await aiGenerateText({
         model: models[params.model],
         prompt: params.prompt,
         system: params.system,
       });
-      return {
-        text: result.text,
-        usage: result.usage as GenerateTextResult["usage"],
-      };
+      const ms = Date.now() - start;
+      const usage = result.usage as GenerateTextResult["usage"];
+      console.log(`[LLM:${params.model}] → ${ms}ms | ${usage?.inputTokens ?? "?"}in/${usage?.outputTokens ?? "?"}out | "${result.text.substring(0, 80)}..."`);
+      return { text: result.text, usage };
     },
 
     async generateObject<T>(params: GenerateObjectParams<T>): Promise<GenerateObjectResult<T>> {
+      const start = Date.now();
+      console.log(`[LLM:${params.model}] generateObject — prompt: ${params.prompt.substring(0, 100)}...`);
       const result = await aiGenerateObject({
         model: models[params.model],
         prompt: params.prompt,
         schema: params.schema,
         system: params.system,
       });
-      return {
-        object: result.object as T,
-        usage: result.usage as GenerateObjectResult<T>["usage"],
-      };
+      const ms = Date.now() - start;
+      const usage = result.usage as GenerateObjectResult<T>["usage"];
+      console.log(`[LLM:${params.model}] → ${ms}ms | ${usage?.inputTokens ?? "?"}in/${usage?.outputTokens ?? "?"}out | result:`, JSON.stringify(result.object).substring(0, 120));
+      return { object: result.object as T, usage };
     },
 
     async generateWithTools(params: GenerateWithToolsParams): Promise<GenerateWithToolsResult> {
