@@ -17,6 +17,7 @@
     "lint": "echo 'lint ok'"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.2.0",
     "@nts/memory-service": "*",
     "@nts/shared": "*",
     "@openrouter/ai-sdk-provider": "^2.3.3",

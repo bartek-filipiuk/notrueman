@@ -1,7 +1,10 @@
 import Fastify from "fastify";
+import websocket from "@fastify/websocket";
 import { register, Gauge, Counter } from "prom-client";
-import { SaveDataSchema } from "@nts/shared";
+import { SaveDataSchema, filterForPublicFeed } from "@nts/shared";
+import type { MindFeedEvent } from "@nts/shared";
 import type { StatePersistence } from "@nts/memory-service";
+import type { WebSocket } from "ws";
 
 export interface HealthStatus {
   status: "ok" | "degraded" | "error";
@@ -17,6 +20,8 @@ export interface HealthServerDeps {
   getStatus: () => HealthStatus;
   /** Optional StatePersistence for save/load endpoints */
   statePersistence?: StatePersistence;
+  /** Optional JWT verification function for admin WebSocket */
+  verifyJWT?: (token: string) => boolean;
 }
 
 export interface HealthServerOptions {
@@ -132,9 +137,122 @@ export async function createHealthServer(
     return reply.send({ agentId, state });
   });
 
+  // --- WebSocket Mind Feed (TM.3) ---
+  await app.register(websocket);
+
+  const MAX_PUBLIC_CONNECTIONS = 100;
+  const MAX_ADMIN_CONNECTIONS = 5;
+  const publicClients = new Set<WebSocket>();
+  const adminClients = new Set<WebSocket>();
+  const ipConnections = new Map<string, number>();
+  const MAX_CONNECTIONS_PER_IP = 10;
+
+  function getClientIP(request: { ip: string }): string {
+    return request.ip;
+  }
+
+  function checkIPLimit(ip: string): boolean {
+    const count = ipConnections.get(ip) ?? 0;
+    return count < MAX_CONNECTIONS_PER_IP;
+  }
+
+  function trackIPConnection(ip: string, delta: number): void {
+    const current = ipConnections.get(ip) ?? 0;
+    const next = current + delta;
+    if (next <= 0) {
+      ipConnections.delete(ip);
+    } else {
+      ipConnections.set(ip, next);
+    }
+  }
+
+  /** Public mind feed — streams filtered events (TM.4) */
+  app.get("/ws/mind-feed", { websocket: true }, (socket, request) => {
+    const ip = getClientIP(request);
+
+    if (publicClients.size >= MAX_PUBLIC_CONNECTIONS || !checkIPLimit(ip)) {
+      socket.close(1013, "Too many connections");
+      return;
+    }
+
+    publicClients.add(socket);
+    trackIPConnection(ip, 1);
+
+    socket.on("close", () => {
+      publicClients.delete(socket);
+      trackIPConnection(ip, -1);
+    });
+
+    // Send initial status
+    const status = deps.getStatus();
+    socket.send(JSON.stringify({
+      type: "status",
+      data: { connected: true, brainOnline: status.status !== "error" },
+    }));
+  });
+
+  /** Admin feed — streams ALL events, requires JWT (TM.5) */
+  app.get("/ws/admin-feed", { websocket: true }, (socket, request) => {
+    const url = new URL(request.url ?? "", "http://localhost");
+    const token = url.searchParams.get("token");
+
+    if (!token || !deps.verifyJWT?.(token)) {
+      socket.close(1008, "Unauthorized");
+      return;
+    }
+
+    const ip = getClientIP(request);
+    if (adminClients.size >= MAX_ADMIN_CONNECTIONS || !checkIPLimit(ip)) {
+      socket.close(1013, "Too many connections");
+      return;
+    }
+
+    adminClients.add(socket);
+    trackIPConnection(ip, 1);
+
+    socket.on("close", () => {
+      adminClients.delete(socket);
+      trackIPConnection(ip, -1);
+    });
+
+    socket.send(JSON.stringify({
+      type: "status",
+      data: { connected: true, admin: true },
+    }));
+  });
+
+  /**
+   * Broadcast a MindFeedEvent to connected WebSocket clients.
+   * Public clients get filtered events; admin clients get everything.
+   */
+  function broadcastEvent(event: MindFeedEvent): void {
+    // Admin feed: send raw event
+    const adminMsg = JSON.stringify(event);
+    for (const client of adminClients) {
+      if (client.readyState === 1) {
+        client.send(adminMsg);
+      }
+    }
+
+    // Public feed: filter sensitive data
+    const publicEvent = filterForPublicFeed(event);
+    if (publicEvent) {
+      const publicMsg = JSON.stringify(publicEvent);
+      for (const client of publicClients) {
+        if (client.readyState === 1) {
+          client.send(publicMsg);
+        }
+      }
+    }
+  }
+
   if (options.port > 0) {
     await app.listen({ port: options.port, host: options.host ?? "localhost" });
   }
 
-  return app;
+  return Object.assign(app, {
+    broadcastEvent,
+    getPublicClientCount: () => publicClients.size,
+    getAdminClientCount: () => adminClients.size,
+  });
 }
