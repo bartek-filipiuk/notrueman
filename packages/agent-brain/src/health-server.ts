@@ -22,6 +22,8 @@ export interface HealthServerDeps {
   statePersistence?: StatePersistence;
   /** Optional JWT verification function for admin WebSocket */
   verifyJWT?: (token: string) => boolean;
+  /** Optional CognitiveLoop event source — listens for 'mindFeedEvent' */
+  brainEvents?: { on(event: string, listener: (...args: unknown[]) => void): void };
 }
 
 export interface HealthServerOptions {
@@ -245,6 +247,33 @@ export async function createHealthServer(
       }
     }
   }
+
+  // Wire brain events → WebSocket broadcast (TM.7)
+  if (deps.brainEvents) {
+    deps.brainEvents.on("mindFeedEvent", (event: unknown) => {
+      broadcastEvent(event as MindFeedEvent);
+    });
+  }
+
+  // Periodically send brain status to public clients when no events flowing
+  const brainStatusInterval = setInterval(() => {
+    if (publicClients.size === 0 && adminClients.size === 0) return;
+    const status = deps.getStatus();
+    const isOnline = status.status !== "error";
+    if (!isOnline) {
+      const msg = JSON.stringify({
+        type: "status",
+        data: { brainOnline: false, message: "brain offline" },
+      });
+      for (const client of publicClients) {
+        if (client.readyState === 1) client.send(msg);
+      }
+    }
+  }, 30_000);
+
+  app.addHook("onClose", async () => {
+    clearInterval(brainStatusInterval);
+  });
 
   if (options.port > 0) {
     await app.listen({ port: options.port, host: options.host ?? "localhost" });
