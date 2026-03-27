@@ -238,10 +238,18 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     console.log(`[save] Restored brain: tick #${save.brainTickCount}, mood ${save.truman.currentMood}, ${save.recentActivities.length} recent activities`);
   }
 
-  // Patch bridge.executeAction to sometimes produce speech bubbles (30% chance)
-  // Per visual-spec S7.1: speech = speaking aloud (with TTS), thought = internal monologue
+  // Patch bridge.executeAction to:
+  // 1. Pass brain context to ActivityManager for scene use
+  // 2. Sometimes produce speech bubbles (30% chance)
   const originalExecuteAction = bridge.executeAction.bind(bridge);
   bridge.executeAction = async function (activity, thought, mood) {
+    // Set brain context for the next zoom scene
+    const activityMgr = roomScene.getActivityManager();
+    activityMgr.setSceneContext({
+      thought: thought || undefined,
+      mood: mood || undefined,
+    });
+
     // Override: randomly make some thoughts into spoken-aloud speech
     if (thought && ttsManager.isEnabled() && Math.random() < 0.3) {
       // Execute everything except bubble, then show speech bubble

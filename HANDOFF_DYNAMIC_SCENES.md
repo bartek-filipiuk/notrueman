@@ -50,31 +50,31 @@ Stage R (8 Dynamic Scenes + New Backgrounds)
 
 ### Taski:
 
-- [ ] TQ.1: ActivitySceneData extension — w `packages/renderer/src/scenes/ActivitySceneBase.ts` rozszerzyć `ActivitySceneData` interface: dodać `context?: { thought?: string, reason?: string, mood?: string, toolResults?: Array<{ tool: string, query?: string, title?: string, content?: string, description?: string }>, recentMemory?: string }`. Backwards compatible (optional). (implement → test types)
-- [ ] TQ.2: ActivityManager context passing — w `packages/renderer/src/systems/ActivityManager.ts` metoda `launchZoomScene()`: zamiast `mood: "neutral"` przekazywać aktualny mood z brain. Dodać opcjonalne pole `sceneContext` w ActivityManager ustawiane przez brain bridge. `doActivity()` → `launchZoomScene(type, context)`. (implement → verify context flows)
-- [ ] TQ.3: Brain bridge → scene context — w `packages/renderer/src/main.ts` (AI mode): po brain tick, przed activity execution: zbierz context `{ thought, reason, mood, toolResults }` z ActionCommand i tool call results. Zapisz w ActivityManager via `setSceneContext(context)`. Następna scena użyje tego contextu. (implement → verify data passes)
-- [ ] TQ.4: ActivitySceneBase dynamic content area — w ActivitySceneBase.create(): jeśli `context` present → wywołaj `displayContent(context)` (nowa metoda, overridable). Domyślna implementacja: tekst myśli na dole sceny (semi-transparent bar, 80% width, font Inter 11px, max 3 linie). Subklasy mogą override. (implement → verify text visible)
-- [ ] TQ.5: Mood-based scene styling — ActivitySceneBase: jeśli `context.mood` present → adjust scene tint/overlay color. Mapping: happy=warm gold, curious=cyan, anxious=red tint, excited=bright, content=green, frustrated=orange, bored=grey. Subtle (10-15% tint), nie przytłaczający. (implement → verify mood affects visuals)
-- [ ] TQ.6: Dynamic duration — zamiast hardcoded 12s: jeśli `context.toolResults` present (brain jest aktywny twórczo) → 18s. Jeśli sleep → 15s. Default 12s. Configurable w truman-config.json: `sceneDuration: { default: 12, creative: 18, sleep: 15 }`. (implement → test durations)
-- [ ] TQ.7: Testy — ActivitySceneData z context, context pipeline (brain → manager → scene), mood tint mapping, dynamic duration. `turbo test` zielone. (test → verify green)
+- [x] TQ.1: ActivitySceneData extension — w `packages/renderer/src/scenes/ActivitySceneBase.ts` rozszerzyć `ActivitySceneData` interface: dodać `context?: { thought?: string, reason?: string, mood?: string, toolResults?: Array<{ tool: string, query?: string, title?: string, content?: string, description?: string }>, recentMemory?: string }`. Backwards compatible (optional). (implement → test types)
+- [x] TQ.2: ActivityManager context passing — w `packages/renderer/src/systems/ActivityManager.ts` metoda `launchZoomScene()`: zamiast `mood: "neutral"` przekazywać aktualny mood z brain. Dodać opcjonalne pole `sceneContext` w ActivityManager ustawiane przez brain bridge. `doActivity()` → `launchZoomScene(type, context)`. (implement → verify context flows)
+- [x] TQ.3: Brain bridge → scene context — w `packages/renderer/src/main.ts` (AI mode): po brain tick, przed activity execution: zbierz context `{ thought, reason, mood, toolResults }` z ActionCommand i tool call results. Zapisz w ActivityManager via `setSceneContext(context)`. Następna scena użyje tego contextu. (implement → verify data passes)
+- [x] TQ.4: ActivitySceneBase dynamic content area — w ActivitySceneBase.create(): jeśli `context` present → wywołaj `displayContent(context)` (nowa metoda, overridable). Domyślna implementacja: tekst myśli na dole sceny (semi-transparent bar, 80% width, font Inter 11px, max 3 linie). Subklasy mogą override. (implement → verify text visible)
+- [x] TQ.5: Mood-based scene styling — ActivitySceneBase: jeśli `context.mood` present → adjust scene tint/overlay color. Mapping: happy=warm gold, curious=cyan, anxious=red tint, excited=bright, content=green, frustrated=orange, bored=grey. Subtle (10-15% tint), nie przytłaczający. (implement → verify mood affects visuals)
+- [x] TQ.6: Dynamic duration — zamiast hardcoded 12s: jeśli `context.toolResults` present (brain jest aktywny twórczo) → 18s. Jeśli sleep → 15s. Default 12s. Configurable w truman-config.json: `sceneDuration: { default: 12, creative: 18, sleep: 15 }`. (implement → test durations)
+- [x] TQ.7: Testy — ActivitySceneData z context, context pipeline (brain → manager → scene), mood tint mapping, dynamic duration. `turbo test` zielone. (test → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SQ.1: Brain text sanitized — context.thought/content escaped. Brak innerHTML. Phaser Text only. (verify)
-- [ ] SQ.2: `turbo test` przechodzi. (verify)
+- [x] SQ.1: Brain text sanitized — context.thought/content escaped. Brak innerHTML. Phaser Text only. (verify)
+- [x] SQ.2: `turbo test` przechodzi. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DQ.1: Update `docs/CHANGELOG.md` — wpis Stage Q.
-- [ ] DQ.2: Update `docs/API.md` — ActivitySceneData context interface.
+- [x] DQ.1: Update `docs/CHANGELOG.md` — wpis Stage Q.
+- [x] DQ.2: Update `docs/API.md` — ActivitySceneData context interface.
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCQ.1: Self-check — sceny otrzymują brain context (console.log w scene).
-- [ ] SCQ.2: Self-check — mood tint widoczny (np. happy = ciepłe kolory).
-- [ ] SCQ.3: Self-check — domyślny tekst myśli na dole sceny.
-- [ ] SCQ.4: Self-check — testy zielone.
-- [ ] SCQ.5: Zaktualizuj HANDOFF → [x].
+- [x] SCQ.1: Self-check — sceny otrzymują brain context (console.log w scene).
+- [x] SCQ.2: Self-check — mood tint widoczny (np. happy = ciepłe kolory).
+- [x] SCQ.3: Self-check — domyślny tekst myśli na dole sceny.
+- [x] SCQ.4: Self-check — testy zielone.
+- [x] SCQ.5: Zaktualizuj HANDOFF → [x].
 
 **Stage Q DoD:** Brain generuje "Researching quantum physics..." → Truman idzie do komputera → close-up scena pokazuje tę myśl na dole + mood tint. Context pipeline działa end-to-end.
 

@@ -4,6 +4,7 @@ import { ACTIVITY_LIST, ROOM_OBJECTS, ACTIVITY_ANCHORS } from "@nts/shared";
 import { MovementSystem } from "./MovementSystem";
 import { ActivityRenderer } from "./ActivityRenderer";
 import { TrumanSprite } from "../entities/TrumanSprite";
+import type { SceneContext } from "../scenes/ActivitySceneBase";
 
 /** Maps activity types to the room object where they take place */
 const ACTIVITY_OBJECTS: Record<ActivityType, InteractiveObjectId> = {
@@ -17,8 +18,10 @@ const ACTIVITY_OBJECTS: Record<ActivityType, InteractiveObjectId> = {
   draw: "easel",
 };
 
-/** Activity durations in ms for the test/demo loop */
-const ACTIVITY_DURATION_MS = 12_000;
+/** Default scene durations in ms */
+const DEFAULT_DURATION_MS = 12_000;
+const CREATIVE_DURATION_MS = 18_000;
+const SLEEP_DURATION_MS = 15_000;
 const MOVE_TO_IDLE_MS = 1_000;
 
 type ActivityState = "idle" | "moving" | "performing";
@@ -37,6 +40,7 @@ export class ActivityManager {
   private currentActivity: ActivityType | null = null;
   private activityIndex = 0;
   private activityTimer?: Phaser.Time.TimerEvent;
+  private sceneContext: SceneContext | null = null;
 
   private onActivityChange?: (activity: ActivityType | null, state: ActivityState) => void;
 
@@ -50,6 +54,16 @@ export class ActivityManager {
     this.truman = truman;
     this.movement = movement;
     this.activityRenderer = activityRenderer;
+  }
+
+  /** Set brain context for the next scene launch */
+  setSceneContext(context: SceneContext): void {
+    this.sceneContext = context;
+  }
+
+  /** Get current scene context */
+  getSceneContext(): SceneContext | null {
+    return this.sceneContext;
   }
 
   /** Start the automated activity loop */
@@ -102,6 +116,14 @@ export class ActivityManager {
     this.truman.setActivityPose(type);
   }
 
+  /** Compute scene duration based on context */
+  private getSceneDuration(type: ActivityType): number {
+    if (type === "sleep") return SLEEP_DURATION_MS;
+    // Creative activities with tool results get longer duration
+    if (this.sceneContext?.toolResults?.length) return CREATIVE_DURATION_MS;
+    return DEFAULT_DURATION_MS;
+  }
+
   /** Launch a close-up zoom scene for the activity */
   private async launchZoomScene(type: ActivityType): Promise<void> {
     this.state = "performing";
@@ -117,16 +139,20 @@ export class ActivityManager {
       return;
     }
 
+    const duration = this.getSceneDuration(type);
+    const context = this.sceneContext;
+
     return new Promise<void>((resolve) => {
       // Fade out room
       this.scene.cameras.main.fadeOut(400, 0, 0, 0);
       this.scene.cameras.main.once("camerafadeoutcomplete", () => {
         // Sleep room scene (preserves state)
         this.scene.scene.sleep("RoomScene");
-        // Launch close-up scene
+        // Launch close-up scene with brain context
         this.scene.scene.launch(sceneKey, {
-          duration: ACTIVITY_DURATION_MS,
-          mood: "neutral",
+          duration,
+          mood: context?.mood ?? "neutral",
+          context: context ?? undefined,
           onComplete: () => {
             // Stop close-up scene
             this.scene.scene.stop(sceneKey);
@@ -155,8 +181,9 @@ export class ActivityManager {
     this.activityTimer = this.scene.time.delayedCall(MOVE_TO_IDLE_MS, () => {
       this.doActivity(activity)
         .then(() => {
-          // After performing, schedule end
-          this.activityTimer = this.scene.time.delayedCall(ACTIVITY_DURATION_MS, () => {
+          // After performing, schedule end (use dynamic duration)
+          const duration = this.getSceneDuration(activity);
+          this.activityTimer = this.scene.time.delayedCall(duration, () => {
             this.activityRenderer.stopActivity();
             this.truman.setActivityPose(null); // revert to idle sprite
             this.truman.playIdle();

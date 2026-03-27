@@ -455,6 +455,78 @@ const MindFeedEventSchema = z.object({
 });
 ```
 
+## Scene Context Pipeline (Stage Q)
+
+### ActivitySceneData
+
+Data passed to close-up activity scenes when launched:
+
+```typescript
+interface ActivitySceneData {
+  duration: number;           // Scene display time in ms
+  mood: string;               // Current mood (from brain)
+  onComplete: () => void;     // Callback when scene ends
+  context?: SceneContext;     // Brain context (optional, backwards compatible)
+}
+```
+
+### SceneContext
+
+Brain-generated context passed to activity scenes for dynamic content:
+
+```typescript
+interface SceneContext {
+  thought?: string;           // LLM-generated thought text
+  reason?: string;            // Why this activity was chosen
+  mood?: string;              // Current mood (affects tinting)
+  toolResults?: SceneToolResult[];  // Results from tool calls
+  recentMemory?: string;      // Recent memory for context
+}
+
+interface SceneToolResult {
+  tool: string;               // Tool name (web_search, write_blog_post, etc.)
+  query?: string;             // Search query (if applicable)
+  title?: string;             // Result title
+  content?: string;           // Result content
+  description?: string;       // Result description
+}
+```
+
+### Context Pipeline Flow
+
+```
+Brain tick → executeAction(activity, thought, mood)
+    → ActivityManager.setSceneContext({ thought, mood, ... })
+    → launchZoomScene(type) passes context to scene
+    → ActivitySceneBase.init() captures context
+    → ActivitySceneBase.create() calls:
+        1. applyMoodTint() — subtle 10-15% color overlay
+        2. addOverlays() — activity-specific effects
+        3. displayContent(context) — thought text bar at bottom
+```
+
+### Mood Tint Mapping
+
+| Mood | Tint Color | Hex |
+|---|---|---|
+| happy | Warm gold | `#ffd700` |
+| curious | Cyan | `#00bcd4` |
+| anxious | Red | `#ff4444` |
+| excited | Bright yellow | `#ffeb3b` |
+| content | Green | `#4caf50` |
+| frustrated | Orange | `#ff9800` |
+| bored | Grey | `#9e9e9e` |
+| contemplative | Muted blue | `#7986cb` |
+| neutral | No tint | — |
+
+### Dynamic Duration
+
+| Condition | Duration |
+|---|---|
+| Default | 12s |
+| Sleep activity | 15s |
+| Creative (with tool results) | 18s |
+
 ## BullMQ Queues
 
 | Queue | Job Schema | Description |

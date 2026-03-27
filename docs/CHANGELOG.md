@@ -1,5 +1,24 @@
 # Changelog
 
+## [Stage Q — Scene Architecture: Brain Context Pipeline] - 2026-03-27
+
+### Added
+- `SceneContext` and `SceneToolResult` interfaces for passing brain data to activity scenes
+- `ActivitySceneBase.displayContent()` — overridable method for rendering brain context in scenes
+- Mood-based scene tinting (10-15% alpha overlay, color mapped per mood)
+- `ActivityManager.setSceneContext()` — stores brain context for next zoom scene launch
+- Dynamic scene duration: 12s default, 15s sleep, 18s creative (with tool results)
+- Brain context pipeline: brain tick → executeAction → ActivityManager → zoom scene → display
+
+### Changed
+- `ActivitySceneData` extended with optional `context: SceneContext` field (backwards compatible)
+- `ActivityManager.launchZoomScene()` passes real mood and context instead of hardcoded `"neutral"`
+- Scene durations are now dynamic based on activity type and brain state
+
+### Technical
+- All changes use Phaser Text only (no innerHTML) for brain-generated content (SQ.1)
+- Context fields are all optional — scenes gracefully handle missing context
+
 ## [V1.0 — Stage P: Security Audit + Deployment] - 2026-03-27
 
 ### Security
