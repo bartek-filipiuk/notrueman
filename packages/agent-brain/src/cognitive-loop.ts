@@ -1,4 +1,5 @@
-import type { ActivityType, ActionCommand } from "@nts/shared";
+import { EventEmitter } from "node:events";
+import type { ActivityType, ActionCommand, MindFeedEvent, MindFeedEventType } from "@nts/shared";
 import { ACTIVITY_LIST, REFLECTION_THRESHOLD } from "@nts/shared";
 import type { LLMClient } from "./llm-client.js";
 import type { RendererBridge } from "./renderer-bridge.js";
@@ -84,7 +85,7 @@ export interface CognitiveLoopState {
  * Sequential processing (tick lock prevents overlap).
  * Configurable tick interval.
  */
-export class CognitiveLoop {
+export class CognitiveLoop extends EventEmitter {
   private llm: LLMClient;
   private bridge: RendererBridge;
   private memory: MemoryAdapter;
@@ -102,6 +103,7 @@ export class CognitiveLoop {
   private tickLock = false;
 
   constructor(deps: CognitiveLoopDeps) {
+    super();
     this.llm = deps.llm;
     this.bridge = deps.bridge;
     this.memory = deps.memory;
@@ -124,6 +126,21 @@ export class CognitiveLoop {
       lastError: null,
       importanceAccumulator: 0,
     };
+  }
+
+  /** Emit a MindFeedEvent to all listeners */
+  emitMindFeedEvent(
+    type: MindFeedEventType,
+    data: Record<string, unknown>,
+    isPublic: boolean,
+  ): void {
+    const event: MindFeedEvent = {
+      type,
+      timestamp: Date.now(),
+      data,
+      public: isPublic,
+    };
+    this.emit("mindFeedEvent", event);
   }
 
   /** Start the cognitive loop */
@@ -238,6 +255,9 @@ export class CognitiveLoop {
         }),
       );
 
+      // Emit thought event
+      this.emitMindFeedEvent("thought", { text: thought }, true);
+
       // 5. Check for failure
       const failure = await checkActivityFailure(
         this.llm,
@@ -266,10 +286,21 @@ export class CognitiveLoop {
       await this.storeObservation(observationText);
 
       // 8. UPDATE STATE
+      const prevActivity = this.state.currentActivity;
       this.updateRecentActivities(action.activity);
       this.state.currentActivity = action.activity;
 
+      // Emit activity_change if activity changed
+      if (prevActivity !== action.activity) {
+        this.emitMindFeedEvent(
+          "activity_change",
+          { activity: action.activity, prevActivity: prevActivity ?? "idle" },
+          true,
+        );
+      }
+
       // Update emotions
+      const prevMood = this.state.currentMood;
       this.emotionEngine.applyTimeDrift();
       if (failure.failed) {
         this.emotionEngine.applyDelta({ frustration: 0.08, happiness: -0.03 });
@@ -277,6 +308,15 @@ export class CognitiveLoop {
         this.emotionEngine.applyDelta({ happiness: 0.03, contentment: 0.02 });
       }
       this.state.currentMood = this.emotionEngine.getOverallMood();
+
+      // Emit mood_change if mood changed
+      if (prevMood !== this.state.currentMood) {
+        this.emitMindFeedEvent(
+          "mood_change",
+          { mood: this.state.currentMood, prevMood },
+          true,
+        );
+      }
 
       this.log(
         "info",
@@ -299,6 +339,16 @@ export class CognitiveLoop {
       }
 
       this.state.importanceAccumulator += importance;
+
+      // Emit reflection event when threshold reached
+      if (this.state.importanceAccumulator >= this.config.reflectionThreshold) {
+        this.emitMindFeedEvent(
+          "reflection",
+          { insight: description, importance, accumulator: this.state.importanceAccumulator },
+          true,
+        );
+        this.state.importanceAccumulator = 0;
+      }
 
       // Generate embedding
       let embedding: number[] | undefined;
@@ -395,6 +445,12 @@ export class CognitiveLoop {
         const tracked = this.budgetManager.trackCall(tc.toolName);
         if (!tracked) break;
         this.log("info", `[TOOL] ${tc.toolName} called`);
+        // Emit tool_call event (public gets tool name + topic only)
+        this.emitMindFeedEvent(
+          "tool_call",
+          { tool: tc.toolName, topic: String((tc.args as Record<string, unknown>)?.topic ?? ""), args: tc.args },
+          true,
+        );
       }
 
       // Store tool results in memory (TK.3)
@@ -402,6 +458,23 @@ export class CognitiveLoop {
         const importance = (tr.toolName === "write_blog_post" || tr.toolName === "create_artwork") ? 8 : 4;
         const description = `Used tool ${tr.toolName}: ${JSON.stringify(tr.result).slice(0, 500)}`;
         await this.storeToolObservation(description, importance, result.toolCalls);
+
+        // Emit blog/artwork creation events
+        if (tr.toolName === "write_blog_post") {
+          const res = tr.result as Record<string, unknown>;
+          this.emitMindFeedEvent(
+            "blog_created",
+            { title: res?.title ?? "Untitled", tags: res?.tags ?? [], content: res?.content ?? "" },
+            true,
+          );
+        } else if (tr.toolName === "create_artwork") {
+          const res = tr.result as Record<string, unknown>;
+          this.emitMindFeedEvent(
+            "artwork_created",
+            { title: res?.title ?? "Untitled", style: res?.style ?? "", description: res?.description ?? "" },
+            true,
+          );
+        }
       }
 
       // Log budget status (TK.5)

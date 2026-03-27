@@ -262,3 +262,138 @@ describe("CognitiveLoop (T4.2)", () => {
     expect(typeof state.currentMood).toBe("string");
   });
 });
+
+describe("CognitiveLoop EventEmitter (TM.2)", () => {
+  let handler: RendererHandler;
+  let deps: CognitiveLoopDeps;
+  let loop: CognitiveLoop;
+  const silentLog = () => {};
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    handler = createMockHandler();
+
+    const client = createLLMClient({
+      apiKey: "test-key",
+      thinkModel: "deepseek/deepseek-chat",
+      classifyModel: "mistralai/mistral-small-latest",
+    });
+
+    deps = {
+      llm: client,
+      bridge: new RendererBridge(handler),
+      memory: createMockMemory(),
+      embedding: createMockEmbedding(),
+      retrieval: createMockRetrieval(),
+      config: {
+        tickIntervalMs: 30000,
+        failureRate: 0.0,
+        maxRetries: 1,
+        systemPrompt: "You are Truman.",
+        agentId: "truman",
+        reflectionThreshold: 150,
+      },
+      log: silentLog,
+    };
+
+    loop = new CognitiveLoop(deps);
+  });
+
+  it("is an instance of EventEmitter", () => {
+    expect(typeof loop.on).toBe("function");
+    expect(typeof loop.emit).toBe("function");
+  });
+
+  it("emitMindFeedEvent emits a MindFeedEvent with correct structure", () => {
+    const events: any[] = [];
+    loop.on("mindFeedEvent", (e: any) => events.push(e));
+
+    loop.emitMindFeedEvent("thought", { text: "hello" }, true);
+
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe("thought");
+    expect(events[0].data.text).toBe("hello");
+    expect(events[0].public).toBe(true);
+    expect(typeof events[0].timestamp).toBe("number");
+  });
+
+  it("emits thought event during tick", async () => {
+    setupLLMMocks();
+
+    const events: any[] = [];
+    loop.on("mindFeedEvent", (e: any) => {
+      if (e.type === "thought") events.push(e);
+    });
+
+    await loop.tick();
+
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0].data.text).toBeDefined();
+    expect(events[0].public).toBe(true);
+  });
+
+  it("emits activity_change event when activity changes", async () => {
+    setupLLMMocks();
+
+    const events: any[] = [];
+    loop.on("mindFeedEvent", (e: any) => {
+      if (e.type === "activity_change") events.push(e);
+    });
+
+    await loop.tick();
+
+    // First tick: null → "read" should emit activity_change
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0].data.activity).toBe("read");
+    expect(events[0].data.prevActivity).toBe("idle");
+  });
+
+  it("does not emit activity_change when same activity repeats", async () => {
+    setupLLMMocks();
+
+    const events: any[] = [];
+    loop.on("mindFeedEvent", (e: any) => {
+      if (e.type === "activity_change") events.push(e);
+    });
+
+    await loop.tick();
+    const countAfterFirst = events.length;
+
+    await loop.tick();
+    // Same activity "read" → should not emit again
+    expect(events.length).toBe(countAfterFirst);
+  });
+
+  it("emits reflection event when importance threshold reached", async () => {
+    // Use low threshold so it triggers
+    deps.config.reflectionThreshold = 1;
+    loop = new CognitiveLoop(deps);
+
+    setupLLMMocks();
+    vi.mocked(generateObject).mockImplementation(async (params: any) => {
+      const promptStr = String(params.prompt ?? "");
+      if (promptStr.includes("rate the importance")) {
+        return { object: { score: 8 } } as any;
+      }
+      return {
+        object: {
+          activity: "read",
+          durationSeconds: 120,
+          thought: "Let me read.",
+          reason: "Feeling curious",
+        },
+      } as any;
+    });
+
+    const events: any[] = [];
+    loop.on("mindFeedEvent", (e: any) => {
+      if (e.type === "reflection") events.push(e);
+    });
+
+    await loop.tick();
+
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0].data.insight).toBeDefined();
+    expect(events[0].public).toBe(true);
+  });
+});
