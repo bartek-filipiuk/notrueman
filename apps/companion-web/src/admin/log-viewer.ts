@@ -1,30 +1,27 @@
 /**
- * Admin log viewer — realtime event log from admin WebSocket feed.
- * Filterable by type, searchable, auto-scroll toggle.
+ * Admin log viewer — DB-backed, HTTP polling.
+ * Merges memories + LLM calls, sorted by timestamp.
+ * Filterable by type, searchable, auto-refresh 10s.
  */
 
 import { getStoredToken, getApiBase } from "./login.js";
-import { MindFeedClient, type MindFeedClientEvent } from "../ws-client.js";
 
 interface LogEntry {
   timestamp: number;
   type: string;
+  source: "memory" | "llm";
   content: string;
   raw: Record<string, unknown>;
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  thought: "#9b59b6",
-  mood_change: "#00d2ff",
-  tool_call: "#f39c12",
-  activity_change: "#2ecc71",
-  blog_created: "#27ae60",
-  artwork_created: "#e91e63",
-  reflection: "#3498db",
-  status: "#95a5a6",
+  observation: "#3498db",
+  reflection: "#9b59b6",
+  plan: "#2ecc71",
+  generateText: "#f39c12",
+  generateObject: "#e67e22",
+  generateWithTools: "#e91e63",
 };
-
-const MAX_ENTRIES = 200;
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString();
@@ -37,8 +34,6 @@ function escapeHtml(text: string): string {
 }
 
 export function renderLogViewer(container: HTMLElement): void {
-  const entries: LogEntry[] = [];
-  let autoScroll = true;
   let filterType = "all";
   let searchText = "";
 
@@ -57,19 +52,17 @@ export function renderLogViewer(container: HTMLElement): void {
       <div class="log-controls">
         <select id="log-filter" class="log-select">
           <option value="all">All types</option>
-          <option value="thought">Thought</option>
-          <option value="mood_change">Mood Change</option>
-          <option value="tool_call">Tool Call</option>
-          <option value="activity_change">Activity Change</option>
-          <option value="blog_created">Blog</option>
-          <option value="artwork_created">Artwork</option>
+          <option value="memory">Memories only</option>
+          <option value="llm">LLM calls only</option>
+          <option value="observation">Observation</option>
           <option value="reflection">Reflection</option>
+          <option value="plan">Plan</option>
+          <option value="generateText">generateText</option>
+          <option value="generateObject">generateObject</option>
+          <option value="generateWithTools">generateWithTools</option>
         </select>
         <input id="log-search" type="text" placeholder="Search logs..." class="log-search" />
-        <label class="log-autoscroll">
-          <input type="checkbox" id="log-autoscroll-toggle" checked />
-          Auto-scroll
-        </label>
+        <span id="log-status" class="log-status">Loading...</span>
       </div>
       <div id="log-entries" class="log-entries"></div>
     </div>
@@ -78,7 +71,9 @@ export function renderLogViewer(container: HTMLElement): void {
   const entriesEl = container.querySelector("#log-entries") as HTMLDivElement;
   const filterEl = container.querySelector("#log-filter") as HTMLSelectElement;
   const searchEl = container.querySelector("#log-search") as HTMLInputElement;
-  const autoScrollEl = container.querySelector("#log-autoscroll-toggle") as HTMLInputElement;
+  const statusEl = container.querySelector("#log-status") as HTMLSpanElement;
+
+  let allEntries: LogEntry[] = [];
 
   filterEl.addEventListener("change", () => {
     filterType = filterEl.value;
@@ -90,59 +85,81 @@ export function renderLogViewer(container: HTMLElement): void {
     renderEntries();
   });
 
-  autoScrollEl.addEventListener("change", () => {
-    autoScroll = autoScrollEl.checked;
-  });
-
   function renderEntries(): void {
-    const filtered = entries.filter(e => {
-      if (filterType !== "all" && e.type !== filterType) return false;
+    const filtered = allEntries.filter(e => {
+      if (filterType === "memory" && e.source !== "memory") return false;
+      if (filterType === "llm" && e.source !== "llm") return false;
+      if (!["all", "memory", "llm"].includes(filterType) && e.type !== filterType) return false;
       if (searchText && !e.content.toLowerCase().includes(searchText)) return false;
       return true;
     });
 
     entriesEl.innerHTML = filtered.map(e => {
       const color = TYPE_COLORS[e.type] ?? "#888";
+      const sourceTag = e.source === "llm" ? "LLM" : "MEM";
       return `<div class="log-entry">
         <span class="log-time">${formatTime(e.timestamp)}</span>
+        <span class="log-source-badge log-source-${e.source}">${sourceTag}</span>
         <span class="log-type-badge" style="background:${color}">${e.type}</span>
         <span class="log-content">${escapeHtml(e.content)}</span>
       </div>`;
     }).join("");
 
-    if (autoScroll) {
-      entriesEl.scrollTop = entriesEl.scrollHeight;
-    }
+    entriesEl.scrollTop = entriesEl.scrollHeight;
   }
 
-  function addEntry(event: MindFeedClientEvent): void {
-    const content = summarizeEvent(event);
-    entries.push({
-      timestamp: event.timestamp ?? Date.now(),
-      type: event.type,
-      content,
-      raw: event.data,
-    });
-
-    if (entries.length > MAX_ENTRIES) {
-      entries.splice(0, entries.length - MAX_ENTRIES);
-    }
-
-    renderEntries();
-  }
-
-  // Connect to admin WebSocket
   const token = getStoredToken();
-  const apiBase = getApiBase();
-  const wsHost = apiBase ? new URL(apiBase).host : window.location.host;
-  const wsProtocol = (apiBase ? new URL(apiBase).protocol : window.location.protocol) === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${wsProtocol}//${wsHost}/ws/admin-feed?token=${token}`;
 
-  const client = new MindFeedClient({
-    url: wsUrl,
-    onEvent: addEntry,
-  });
-  client.connect();
+  async function fetchLogs(): Promise<void> {
+    try {
+      const [memRes, llmRes] = await Promise.all([
+        fetch(`${getApiBase()}/api/admin/memories?limit=50`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${getApiBase()}/api/admin/llm-calls?limit=50`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const entries: LogEntry[] = [];
+
+      if (memRes.ok) {
+        const memData = await memRes.json();
+        for (const m of memData.memories ?? []) {
+          entries.push({
+            timestamp: new Date(m.createdAt ?? m.created_at).getTime(),
+            type: m.type,
+            source: "memory",
+            content: (m.description ?? "").slice(0, 200),
+            raw: m,
+          });
+        }
+      }
+
+      if (llmRes.ok) {
+        const llmData = await llmRes.json();
+        for (const c of llmData.calls ?? []) {
+          entries.push({
+            timestamp: new Date(c.createdAt ?? c.created_at).getTime(),
+            type: c.callType ?? c.call_type,
+            source: "llm",
+            content: `[${(c.model ?? "").split("/").pop()}] ${(c.promptPreview ?? c.prompt_preview ?? "").slice(0, 120)}`,
+            raw: c,
+          });
+        }
+      }
+
+      entries.sort((a, b) => b.timestamp - a.timestamp);
+      allEntries = entries;
+      statusEl.textContent = `${entries.length} entries | Last refresh: ${new Date().toLocaleTimeString()}`;
+      renderEntries();
+    } catch {
+      statusEl.textContent = "Fetch failed";
+    }
+  }
+
+  fetchLogs();
+  const pollInterval = setInterval(fetchLogs, 10_000);
 
   container.querySelector("#admin-logout")?.addEventListener("click", () => {
     localStorage.removeItem("nts_admin_token");
@@ -150,19 +167,5 @@ export function renderLogViewer(container: HTMLElement): void {
     window.location.reload();
   });
 
-  (container as any)._cleanup = () => client.disconnect();
-}
-
-function summarizeEvent(event: MindFeedClientEvent): string {
-  const d = event.data;
-  switch (event.type) {
-    case "thought": return String(d.text ?? "");
-    case "mood_change": return `${d.prevMood} → ${d.mood}`;
-    case "tool_call": return `${d.tool}: ${d.topic ?? ""}`;
-    case "activity_change": return `${d.prevActivity} → ${d.activity}`;
-    case "blog_created": return `Blog: ${d.title}`;
-    case "artwork_created": return `Art: ${d.title} (${d.style})`;
-    case "reflection": return String(d.insight ?? "");
-    default: return JSON.stringify(d).slice(0, 200);
-  }
+  (container as any)._cleanup = () => clearInterval(pollInterval);
 }
