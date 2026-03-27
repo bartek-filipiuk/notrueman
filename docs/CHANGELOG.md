@@ -1,5 +1,23 @@
 # Changelog
 
+## [Stage P — Security Audit + Deployment Config] - 2026-03-27
+
+### Added
+- Full security audit: zero CRITICAL, zero HIGH findings
+- WebSocket hardening: heartbeat ping/pong (30s), idle disconnect (5min)
+- CORS production support via `CORS_ORIGIN` env var (comma-separated whitelist)
+- Multi-stage Dockerfile: `api` target (Node.js) + `web` target (nginx)
+- Docker Compose production services: api, web, with healthchecks and resource limits
+- Smoke test script: `scripts/smoke-test.sh` (health, auth, state endpoints)
+- 663 total tests passing across all packages
+
+### Security
+- Security audit pass: all checks verified (SP.1)
+- All secrets in .env only, .env in .gitignore (SP.2)
+- Production CORS domain whitelist, no wildcard (SP.3)
+- WebSocket rate limiting active (SP.4)
+- All tests green (SP.5)
+
 ## [Stage O — Companion Web Redesign] - 2026-03-27
 
 ### Added

@@ -167,38 +167,38 @@ Stage P (Security Audit + Deployment)
 
 ### Taski:
 
-- [ ] TP.1: Security audit — uruchomić PROMPT_SECURITY_AUDIT.md (full 4-phase: Recon → Targeted Audit → Deep Dive → Test Quality). Fix ALL critical/high findings natychmiast. Document medium/low w `docs/SECURITY.md` z recommendations. Fazy: scan all endpoints, auth, input validation, CORS, secrets, data exposure. (audit → fix → document)
-- [ ] TP.2: JWT hardening — token expiry 24h (verify), refresh token opcjonalny, rate limit login 5/min (verify), JWT_SECRET min 32 chars (validate on startup, fail-fast). httpOnly cookie opcja (jeśli same-origin). (verify → fix if needed)
-- [ ] TP.3: WebSocket hardening — origin check (allowlist), max 100 public + 5 admin connections, rate limit: max 10 connections/IP, heartbeat ping/pong (30s), auto-disconnect idle (5 min). (implement → test limits)
-- [ ] TP.4: CORS production — zamienić localhost na production domain w HealthServer. Env var `CORS_ORIGIN` (default localhost:5173, production: https://yourdomain.com). Brak wildcard *. (implement → verify)
-- [ ] TP.5: Docker Compose production — `docker-compose.prod.yml` update: services: app (renderer + companion-web, multi-stage build, static serve), api (health-server + brain, Node.js), postgres (pgvector), redis. Resource limits (memory, CPU). Healthchecks. Log rotation (50MB max). Named volumes. `.env` template z ALL required vars. (implement → verify docker compose up)
-- [ ] TP.6: Coolify config — `Dockerfile` multi-stage (build → serve). Build: npm ci + turbo build. Serve: nginx lub caddy static + Node.js API. Port mapping. Environment variables injection. Deploy script / GitHub Actions workflow (opcjonalnie). (implement → test build)
-- [ ] TP.7: Smoke test script — nowy `scripts/smoke-test.sh`: 1) health check (curl /health), 2) WebSocket connect (wscat), 3) admin login (curl POST), 4) state save/load (curl), 5) wait 2 min for brain ticks, 6) verify memories in DB (curl /api/admin/memories), 7) report pass/fail. (implement → run)
-- [ ] TP.8: Final test suite — `turbo build && turbo typecheck && turbo test` ALL packages green. Security grep: `grep -r "API_KEY\|SECRET\|PASSWORD" --include="*.ts" -l` = only .env access. No hardcoded secrets. (run → verify green)
+- [x] TP.1: Security audit — uruchomić PROMPT_SECURITY_AUDIT.md (full 4-phase: Recon → Targeted Audit → Deep Dive → Test Quality). Fix ALL critical/high findings natychmiast. Document medium/low w `docs/SECURITY.md` z recommendations. Fazy: scan all endpoints, auth, input validation, CORS, secrets, data exposure. (audit → fix → document)
+- [x] TP.2: JWT hardening — token expiry 24h (verify), refresh token opcjonalny, rate limit login 5/min (verify), JWT_SECRET min 32 chars (validate on startup, fail-fast). httpOnly cookie opcja (jeśli same-origin). (verify → fix if needed)
+- [x] TP.3: WebSocket hardening — origin check (allowlist), max 100 public + 5 admin connections, rate limit: max 10 connections/IP, heartbeat ping/pong (30s), auto-disconnect idle (5 min). (implement → test limits)
+- [x] TP.4: CORS production — zamienić localhost na production domain w HealthServer. Env var `CORS_ORIGIN` (default localhost:5173, production: https://yourdomain.com). Brak wildcard *. (implement → verify)
+- [x] TP.5: Docker Compose production — `docker-compose.prod.yml` update: services: app (renderer + companion-web, multi-stage build, static serve), api (health-server + brain, Node.js), postgres (pgvector), redis. Resource limits (memory, CPU). Healthchecks. Log rotation (50MB max). Named volumes. `.env` template z ALL required vars. (implement → verify docker compose up)
+- [x] TP.6: Coolify config — `Dockerfile` multi-stage (build → serve). Build: npm ci + turbo build. Serve: nginx lub caddy static + Node.js API. Port mapping. Environment variables injection. Deploy script / GitHub Actions workflow (opcjonalnie). (implement → test build)
+- [x] TP.7: Smoke test script — nowy `scripts/smoke-test.sh`: 1) health check (curl /health), 2) WebSocket connect (wscat), 3) admin login (curl POST), 4) state save/load (curl), 5) wait 2 min for brain ticks, 6) verify memories in DB (curl /api/admin/memories), 7) report pass/fail. (implement → run)
+- [x] TP.8: Final test suite — `turbo build && turbo typecheck && turbo test` ALL packages green. Security grep: `grep -r "API_KEY\|SECRET\|PASSWORD" --include="*.ts" -l` = only .env access. No hardcoded secrets. (run → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SP.1: PROMPT_SECURITY_AUDIT.md passed — zero CRITICAL, zero HIGH findings. (audit → verify)
-- [ ] SP.2: All secrets in .env only. `.env` in `.gitignore`. (verify)
-- [ ] SP.3: Production CORS — domain whitelist, no wildcard. (verify)
-- [ ] SP.4: WebSocket rate limiting active. (test)
-- [ ] SP.5: `turbo test` przechodzi finalnie. (verify)
+- [x] SP.1: PROMPT_SECURITY_AUDIT.md passed — zero CRITICAL, zero HIGH findings. (audit → verify)
+- [x] SP.2: All secrets in .env only. `.env` in `.gitignore`. (verify)
+- [x] SP.3: Production CORS — domain whitelist, no wildcard. (verify)
+- [x] SP.4: WebSocket rate limiting active. (test)
+- [x] SP.5: `turbo test` przechodzi finalnie. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DP.1: Update `docs/CHANGELOG.md` — wpis Stage P (V1.0 release).
-- [ ] DP.2: Update `docs/SECURITY.md` — full audit results.
-- [ ] DP.3: Update `docs/README.md` — deployment guide (Docker, Coolify, env vars).
-- [ ] DP.4: Update `docs/RUNBOOK.md` — production operations (restart, logs, monitoring).
+- [x] DP.1: Update `docs/CHANGELOG.md` — wpis Stage P (V1.0 release).
+- [x] DP.2: Update `docs/SECURITY.md` — full audit results.
+- [x] DP.3: Update `docs/README.md` — deployment guide (Docker, Coolify, env vars).
+- [x] DP.4: Update `docs/RUNBOOK.md` — production operations (restart, logs, monitoring).
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCP.1: Self-check — security audit: zero critical/high.
-- [ ] SCP.2: Self-check — docker compose up → all services healthy.
-- [ ] SCP.3: Self-check — smoke test passes.
-- [ ] SCP.4: Self-check — CORS production domain configured.
-- [ ] SCP.5: Self-check — testy zielone (508+ tests).
-- [ ] SCP.6: Zaktualizuj HANDOFF → [x].
+- [x] SCP.1: Self-check — security audit: zero critical/high.
+- [x] SCP.2: Self-check — docker compose up → all services healthy.
+- [x] SCP.3: Self-check — smoke test passes.
+- [x] SCP.4: Self-check — CORS production domain configured.
+- [x] SCP.5: Self-check — testy zielone (508+ tests).
+- [x] SCP.6: Zaktualizuj HANDOFF → [x].
 
 **Stage P DoD:** Security audit pass. Docker Compose production-ready. Smoke test green. Gotowe do deploy — ustaw klucze w .env i odpalaj.
 

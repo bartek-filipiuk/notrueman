@@ -71,9 +71,15 @@ const memoryCountGauge = new Gauge({
   help: "Number of stored memories",
 });
 
-/** CORS origins: only localhost in dev */
+/** CORS origins: localhost in dev, CORS_ORIGIN env var in production */
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return false;
+  // Check env var for production domain
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (corsOrigin) {
+    return corsOrigin.split(",").map(s => s.trim()).includes(origin);
+  }
+  // Default: localhost only
   return /^https?:\/\/localhost(:\d+)?$/.test(origin);
 }
 
@@ -301,10 +307,40 @@ export async function createHealthServer(
 
   const MAX_PUBLIC_CONNECTIONS = 100;
   const MAX_ADMIN_CONNECTIONS = 5;
+  const HEARTBEAT_INTERVAL_MS = 30_000;
+  const IDLE_TIMEOUT_MS = 5 * 60_000; // 5 minutes
   const publicClients = new Set<WebSocket>();
   const adminClients = new Set<WebSocket>();
   const ipConnections = new Map<string, number>();
   const MAX_CONNECTIONS_PER_IP = 10;
+  const clientLastPong = new Map<WebSocket, number>();
+
+  /** Start heartbeat ping/pong for a WebSocket connection */
+  function startHeartbeat(socket: WebSocket): ReturnType<typeof setInterval> {
+    clientLastPong.set(socket, Date.now());
+    socket.on("pong", () => {
+      clientLastPong.set(socket, Date.now());
+    });
+
+    const interval = setInterval(() => {
+      const lastPong = clientLastPong.get(socket) ?? 0;
+      if (Date.now() - lastPong > IDLE_TIMEOUT_MS) {
+        socket.close(1000, "Idle timeout");
+        clearInterval(interval);
+        return;
+      }
+      if (socket.readyState === 1) {
+        socket.ping();
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+
+    socket.on("close", () => {
+      clearInterval(interval);
+      clientLastPong.delete(socket);
+    });
+
+    return interval;
+  }
 
   function getClientIP(request: { ip: string }): string {
     return request.ip;
@@ -336,6 +372,7 @@ export async function createHealthServer(
 
     publicClients.add(socket);
     trackIPConnection(ip, 1);
+    startHeartbeat(socket);
 
     socket.on("close", () => {
       publicClients.delete(socket);
@@ -368,6 +405,7 @@ export async function createHealthServer(
 
     adminClients.add(socket);
     trackIPConnection(ip, 1);
+    startHeartbeat(socket);
 
     socket.on("close", () => {
       adminClients.delete(socket);

@@ -1,9 +1,11 @@
 # Security Audit Report: No True Man Show
 
-**Date:** 2026-03-24
-**Scope:** Full codebase audit — Stage 5 (T5.5 + S5.1)
+**Date:** 2026-03-27 (V1.0 Launch)
+**Scope:** Full codebase audit — Stages M-P (V1.0 Launch)
 **Auditor:** Automated + manual review
-**Result:** PASS — no critical or high-severity issues found
+**Result:** PASS — zero CRITICAL, zero HIGH severity issues
+
+**Previous audit:** 2026-03-24 (Stage 5)
 
 ---
 
@@ -81,7 +83,23 @@ No raw SQL string concatenation anywhere in the codebase.
 | Daily API cost | `DAILY_COST_CAP_USD` env var | `cost-tracker.ts` |
 | Rate limiting | Configurable window/max | `rate-limiter.ts` |
 
-### 2.7 TypeScript Strict Mode
+### 2.7 Admin Panel Security (V1.0)
+
+| Control | Implementation |
+|---------|---------------|
+| JWT Authentication | 24h token expiry, bcrypt password hashing (10 rounds) |
+| JWT Secret | Min 32 chars, validated on startup (fail-fast) |
+| Login Rate Limiting | 5 attempts/min per IP |
+| Admin Endpoints | All `/api/admin/*` require `Authorization: Bearer <token>` |
+| WebSocket Admin Feed | JWT required in `?token=` query parameter |
+| Public Feed Filtering | `filterForPublicFeed()` strips raw prompts, costs, tool I/O, memory IDs |
+| Connection Limits | 100 public + 5 admin WebSocket, 10/IP rate limit |
+| WebSocket Heartbeat | 30s ping/pong, 5min idle disconnect |
+| CORS Production | `CORS_ORIGIN` env var whitelist, no wildcard `*` |
+| XSS Prevention | `escapeHtml()` via `textContent` in all user-facing content |
+| Secrets in .env | ADMIN_PASSWORD, JWT_SECRET — never hardcoded |
+
+### 2.8 TypeScript Strict Mode
 
 All `tsconfig.json` files use `"strict": true`, providing compile-time null safety, type checking, and prevention of many runtime errors.
 
