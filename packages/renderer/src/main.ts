@@ -207,6 +207,7 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     apiKey,
     thinkModel: "deepseek/deepseek-chat",
     classifyModel: "deepseek/deepseek-chat",
+    logEndpoint: "/api/llm-log",
   });
 
   // Create emotion engine — drives mood in HUD and thought bubbles
@@ -240,7 +241,7 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
   // Create and start brain loop
   const brain = new BrainLoop(llmClient, bridge, {
-    tickIntervalMs: 60000,
+    tickIntervalMs: 45000,
     failureRate: 0.25,
     maxRetries: 2,
     systemPrompt: PERSONALITY,

@@ -2,7 +2,6 @@
  * No True Man Show — Public Dashboard
  * Tabbed layout: Feed | Timeline | Gallery | Emotions
  * Data from DB via /api/public/* endpoints (polling every 10s)
- * XSS-safe: uses textContent/DOM API only — no innerHTML with raw data
  */
 
 const POLL_INTERVAL = 10_000;
@@ -18,6 +17,12 @@ function timeAgo(date: string | number): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+function esc(text: unknown): string {
+  return String(text ?? "").replace(/[<>&"]/g, c =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c] ?? c
+  );
+}
+
 function truncate(text: string, max: number): string {
   return text.length > max ? text.substring(0, max - 3) + "..." : text;
 }
@@ -30,39 +35,21 @@ async function fetchJSON<T>(url: string): Promise<T | null> {
   } catch { return null; }
 }
 
-/** Create a DOM element with optional classes and textContent */
-function el(tag: string, cls?: string, text?: string): HTMLElement {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
 // === MODAL ===
 
-function showModal(header: string, bodyBuilder: (container: HTMLElement) => void, jsonData?: unknown): void {
+function showModal(header: string, bodyHtml: string, jsonData?: unknown): void {
   const overlay = document.getElementById("modal-overlay")!;
   const headerEl = document.getElementById("modal-header")!;
   const bodyEl = document.getElementById("modal-body")!;
   const copyBtn = document.getElementById("modal-copy")!;
-
   headerEl.textContent = header;
-  bodyEl.textContent = "";
-  bodyBuilder(bodyEl);
+  bodyEl.innerHTML = bodyHtml;
   overlay.hidden = false;
 
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(JSON.stringify(jsonData ?? {}, null, 2))
-      .then(() => { copyBtn.textContent = "\u2705 Copied!"; setTimeout(() => { copyBtn.textContent = "\uD83D\uDCCB Copy JSON"; }, 1500); });
+      .then(() => { copyBtn.textContent = "✅ Copied!"; setTimeout(() => { copyBtn.textContent = "📋 Copy JSON"; }, 1500); });
   };
-}
-
-/** Add a labeled pre block to a container (safe — uses textContent) */
-function addLabeledPre(container: HTMLElement, label: string, content: string): void {
-  const lbl = el("div", "label", label);
-  const pre = el("pre", undefined, content);
-  container.appendChild(lbl);
-  container.appendChild(pre);
 }
 
 function closeModal(): void {
@@ -89,125 +76,26 @@ async function updateStats(): Promise<void> {
 
   // Live badge
   const badge = document.getElementById("nav-live-badge")!;
-  const dot = badge.querySelector(".live-dot");
-  const textNode = dot?.nextSibling;
-  if (stats.callsToday && Number(stats.callsToday) > 0) {
+  // If we got stats data, backend is alive
+  if (stats) {
     badge.className = "nav-live-badge online";
-    if (textNode) textNode.textContent = " LIVE";
+    badge.innerHTML = '<span class="live-dot"></span> LIVE';
   } else {
     badge.className = "nav-live-badge";
-    if (textNode) textNode.textContent = " OFFLINE";
+    badge.innerHTML = '<span class="live-dot"></span> OFFLINE';
   }
 }
 
 // === FEED TAB ===
 
-type FeedItem = { source: string; data: Record<string, unknown>; createdAt: string };
-let feedData: FeedItem[] = [];
+let feedData: Array<{ source: string; data: Record<string, unknown>; createdAt: string }> = [];
 
 async function loadFeed(): Promise<void> {
-  const result = await fetchJSON<{ items: FeedItem[] }>("/api/public/feed?limit=50");
+  const result = await fetchJSON<{ items: typeof feedData }>("/api/public/feed?limit=50");
   if (result?.items) feedData = result.items;
 }
 
-function classifyFeedItem(item: FeedItem): { badgeClass: string; badgeText: string } {
-  const d = item.data;
-  const isLLM = item.source === "llm_call";
-  const meta = d.metadata ? JSON.stringify(d.metadata) : "";
-  const isBlog = !isLLM && meta.includes("write_blog");
-  const isArt = !isLLM && meta.includes("create_artwork");
-  const isSearch = !isLLM && meta.includes("web_search");
-  const isError = isLLM && d.success === false;
-
-  let badgeClass = isLLM ? "llm" : isBlog ? "blog" : isArt ? "art" : isSearch ? "search" : "memory";
-  if (isError) badgeClass = "error";
-  const badgeText = isLLM ? "\uD83E\uDD16 LLM" : isBlog ? "\uD83D\uDCDD Blog" : isArt ? "\uD83C\uDFA8 Art" : isSearch ? "\uD83D\uDD0D Search" : "\uD83D\uDCAD Memory";
-
-  return { badgeClass, badgeText };
-}
-
-function buildFeedEntry(item: FeedItem): HTMLElement {
-  const d = item.data;
-  const isLLM = item.source === "llm_call";
-  const { badgeClass, badgeText } = classifyFeedItem(item);
-
-  const entry = el("div", "feed-entry");
-
-  // Badge
-  const badge = el("span", `feed-badge ${badgeClass}`, badgeText);
-  entry.appendChild(badge);
-
-  // Content
-  const content = el("div", "feed-content");
-  const mainText = isLLM
-    ? truncate(String(d.responsePreview ?? d.promptPreview ?? d.response_preview ?? d.prompt_preview ?? "LLM call"), 120)
-    : truncate(String(d.description ?? ""), 120);
-  const contentMain = el("div", "feed-content-main", mainText);
-  content.appendChild(contentMain);
-
-  const metaText = isLLM
-    ? `${d.model ?? "?"} \u00B7 ${d.durationMs ?? d.duration_ms ?? "?"}ms \u00B7 ${d.inputTokens ?? d.input_tokens ?? "?"}in/${d.outputTokens ?? d.output_tokens ?? "?"}out \u00B7 $${Number(d.costUsd ?? d.cost_usd ?? 0).toFixed(4)}`
-    : `importance: ${d.importance ?? "?"} \u00B7 type: ${d.type ?? "observation"}`;
-  const contentMeta = el("div", "feed-content-meta", metaText);
-  content.appendChild(contentMeta);
-  entry.appendChild(content);
-
-  // Time
-  const time = el("span", "feed-time", timeAgo(item.createdAt));
-  entry.appendChild(time);
-
-  // Copy button
-  const copyBtn = el("button", "feed-copy", "\uD83D\uDCCB");
-  copyBtn.title = "Copy JSON";
-  copyBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(JSON.stringify(item, null, 2));
-    copyBtn.textContent = "\u2705";
-    setTimeout(() => { copyBtn.textContent = "\uD83D\uDCCB"; }, 1000);
-  });
-  entry.appendChild(copyBtn);
-
-  // Click → detail modal
-  entry.addEventListener("click", () => showFeedDetailModal(item));
-
-  return entry;
-}
-
-function showFeedDetailModal(item: FeedItem): void {
-  const d = item.data;
-  const isLLM = item.source === "llm_call";
-
-  const header = isLLM
-    ? `\uD83E\uDD16 LLM Call \u2014 ${d.model ?? "unknown"}`
-    : `\uD83D\uDCAD ${d.type ?? "Memory"}`;
-
-  showModal(header, (body) => {
-    if (isLLM) {
-      addLabeledPre(body, "Prompt Preview", String(d.promptPreview ?? d.prompt_preview ?? "N/A"));
-      if (d.systemPreview ?? d.system_preview) {
-        addLabeledPre(body, "System Preview", String(d.systemPreview ?? d.system_preview));
-      }
-      addLabeledPre(body, "Response Preview", String(d.responsePreview ?? d.response_preview ?? "N/A"));
-      addLabeledPre(body, "Details",
-        `Model: ${d.model ?? "?"}\nType: ${d.callType ?? d.call_type ?? "?"}\nDuration: ${d.durationMs ?? d.duration_ms ?? "?"}ms\nTokens: ${d.inputTokens ?? d.input_tokens ?? "?"}in / ${d.outputTokens ?? d.output_tokens ?? "?"}out\nCost: $${Number(d.costUsd ?? d.cost_usd ?? 0).toFixed(4)}\nSuccess: ${d.success}${d.error ? `\nError: ${d.error}` : ""}`
-      );
-    } else {
-      addLabeledPre(body, "Description", String(d.description ?? ""));
-      addLabeledPre(body, "Type", String(d.type ?? "observation"));
-      addLabeledPre(body, "Importance", `${d.importance ?? "?"}/10`);
-      const emoCtx = d.emotional_context ?? d.emotionalContext;
-      if (emoCtx && typeof emoCtx === "object" && Object.keys(emoCtx as object).length > 0) {
-        addLabeledPre(body, "Emotional Context", JSON.stringify(emoCtx, null, 2));
-      }
-      if (d.metadata && typeof d.metadata === "object" && Object.keys(d.metadata as object).length > 0) {
-        addLabeledPre(body, "Metadata", JSON.stringify(d.metadata, null, 2));
-      }
-    }
-  }, item);
-}
-
-function renderFeedList(container: HTMLElement, filter: string, search: string): void {
-  container.textContent = "";
+function renderFeed(filter: string, search: string): string {
   let items = feedData;
   if (filter !== "all") {
     items = items.filter(i => {
@@ -221,75 +109,118 @@ function renderFeedList(container: HTMLElement, filter: string, search: string):
     items = items.filter(i => JSON.stringify(i.data).toLowerCase().includes(q));
   }
 
-  if (items.length === 0) {
-    container.appendChild(el("div", "tab-loading", "No entries yet. Waiting for brain activity..."));
-    return;
-  }
+  if (items.length === 0) return '<div class="tab-loading">No entries yet. Waiting for brain activity...</div>';
 
-  for (const item of items) {
-    container.appendChild(buildFeedEntry(item));
-  }
+  return items.map(item => {
+    const d = item.data;
+    const isLLM = item.source === "llm_call";
+    const isBlog = !isLLM && d.metadata && JSON.stringify(d.metadata).includes("write_blog");
+    const isArt = !isLLM && d.metadata && JSON.stringify(d.metadata).includes("create_artwork");
+    const isSearch = !isLLM && d.metadata && JSON.stringify(d.metadata).includes("web_search");
+    const isError = isLLM && d.success === false;
+
+    let badgeClass = isLLM ? "llm" : isBlog ? "blog" : isArt ? "art" : isSearch ? "search" : "memory";
+    if (isError) badgeClass = "error";
+    const badgeText = isLLM ? "🤖 LLM" : isBlog ? "📝 Blog" : isArt ? "🎨 Art" : isSearch ? "🔍 Search" : "💭 Memory";
+
+    const mainText = isLLM
+      ? truncate(String(d.response_preview ?? d.prompt_preview ?? "LLM call"), 120)
+      : truncate(String(d.description ?? ""), 120);
+
+    const meta = isLLM
+      ? `${d.model ?? "?"} · ${d.duration_ms ?? "?"}ms · ${d.input_tokens ?? "?"}in/${d.output_tokens ?? "?"}out · $${Number(d.cost_usd ?? 0).toFixed(4)}`
+      : `importance: ${d.importance ?? "?"} · type: ${d.type ?? "observation"}`;
+
+    return `<div class="feed-entry" data-json='${esc(JSON.stringify(item))}'>
+      <span class="feed-badge ${badgeClass}">${badgeText}</span>
+      <div class="feed-content">
+        <div class="feed-content-main">${esc(mainText)}</div>
+        <div class="feed-content-meta">${esc(meta)}</div>
+      </div>
+      <span class="feed-time">${timeAgo(item.createdAt)}</span>
+      <button class="feed-copy" title="Copy JSON">📋</button>
+    </div>`;
+  }).join("");
 }
 
 function initFeedTab(): void {
   const container = document.getElementById("tab-content")!;
-  container.textContent = "";
-
-  // Controls
-  const controls = el("div", "feed-controls");
-
-  const filterSelect = document.createElement("select");
-  filterSelect.className = "feed-filter";
-  filterSelect.id = "feed-filter";
-  for (const [val, label] of [["all", "All"], ["llm", "\uD83E\uDD16 LLM Calls"], ["memory", "\uD83D\uDCAD Memories"]]) {
-    const opt = document.createElement("option");
-    opt.value = val;
-    opt.textContent = label;
-    filterSelect.appendChild(opt);
-  }
-  controls.appendChild(filterSelect);
-
-  const searchInput = document.createElement("input");
-  searchInput.className = "feed-search";
-  searchInput.id = "feed-search";
-  searchInput.placeholder = "Search...";
-  controls.appendChild(searchInput);
-
-  const refreshBtn = el("button", "feed-refresh", "\u21BB Refresh");
-  refreshBtn.id = "feed-refresh";
-  controls.appendChild(refreshBtn);
-
-  container.appendChild(controls);
-
-  const list = el("div", "feed-list");
-  list.id = "feed-list";
-  container.appendChild(list);
+  container.innerHTML = `
+    <div class="feed-controls">
+      <select class="feed-filter" id="feed-filter">
+        <option value="all">All</option>
+        <option value="llm">🤖 LLM Calls</option>
+        <option value="memory">💭 Memories</option>
+      </select>
+      <input class="feed-search" id="feed-search" placeholder="Search..." />
+      <button class="feed-refresh" id="feed-refresh">↻ Refresh</button>
+    </div>
+    <div class="feed-list" id="feed-list"></div>
+  `;
 
   const update = () => {
-    renderFeedList(list, filterSelect.value, searchInput.value);
+    const filter = (document.getElementById("feed-filter") as HTMLSelectElement).value;
+    const search = (document.getElementById("feed-search") as HTMLInputElement).value;
+    document.getElementById("feed-list")!.innerHTML = renderFeed(filter, search);
   };
 
   loadFeed().then(update);
-  filterSelect.addEventListener("change", update);
-  searchInput.addEventListener("input", update);
-  refreshBtn.addEventListener("click", () => loadFeed().then(update));
+  document.getElementById("feed-filter")!.addEventListener("change", update);
+  document.getElementById("feed-search")!.addEventListener("input", update);
+  document.getElementById("feed-refresh")!.addEventListener("click", () => loadFeed().then(update));
+
+  // Click entry → modal
+  container.addEventListener("click", (e) => {
+    const entry = (e.target as HTMLElement).closest(".feed-entry") as HTMLElement;
+    if (!entry) return;
+
+    // Copy button
+    const copyBtn = (e.target as HTMLElement).closest(".feed-copy");
+    if (copyBtn) {
+      e.stopPropagation();
+      const json = entry.getAttribute("data-json") ?? "{}";
+      navigator.clipboard.writeText(json);
+      copyBtn.textContent = "✅";
+      setTimeout(() => { copyBtn.textContent = "📋"; }, 1000);
+      return;
+    }
+
+    // Detail modal
+    const item = JSON.parse(entry.getAttribute("data-json") ?? "{}");
+    const d = item.data ?? {};
+    const isLLM = item.source === "llm_call";
+
+    const header = isLLM ? `🤖 LLM Call — ${d.model ?? "unknown"}` : `💭 ${d.type ?? "Memory"}`;
+
+    let body = "";
+    if (isLLM) {
+      body += `<div class="label">Prompt Preview</div><pre>${esc(d.prompt_preview ?? "N/A")}</pre>`;
+      if (d.system_preview) body += `<div class="label">System Preview</div><pre>${esc(d.system_preview)}</pre>`;
+      body += `<div class="label">Response Preview</div><pre>${esc(d.response_preview ?? "N/A")}</pre>`;
+      body += `<div class="label">Details</div><pre>Model: ${esc(d.model)}\nType: ${esc(d.call_type)}\nDuration: ${d.duration_ms}ms\nTokens: ${d.input_tokens}in / ${d.output_tokens}out\nCost: $${Number(d.cost_usd ?? 0).toFixed(4)}\nSuccess: ${d.success}\n${d.error ? `Error: ${d.error}` : ""}</pre>`;
+    } else {
+      body += `<div class="label">Description</div><pre>${esc(d.description ?? "")}</pre>`;
+      body += `<div class="label">Type</div><pre>${esc(d.type ?? "observation")}</pre>`;
+      body += `<div class="label">Importance</div><pre>${d.importance ?? "?"}/10</pre>`;
+      if (d.emotional_context || d.emotionalContext) {
+        body += `<div class="label">Emotional Context</div><pre>${JSON.stringify(d.emotional_context ?? d.emotionalContext, null, 2)}</pre>`;
+      }
+      if (d.metadata && Object.keys(d.metadata).length > 0) {
+        body += `<div class="label">Metadata</div><pre>${JSON.stringify(d.metadata, null, 2)}</pre>`;
+      }
+    }
+    showModal(header, body, item);
+  });
 }
 
 // === TIMELINE TAB ===
 
 async function initTimelineTab(): Promise<void> {
   const container = document.getElementById("tab-content")!;
-  container.textContent = "";
-
-  const result = await fetchJSON<{ items: FeedItem[] }>("/api/public/feed?limit=100");
+  const result = await fetchJSON<{ items: Array<{ source: string; data: Record<string, unknown>; createdAt: string }> }>("/api/public/feed?limit=100");
   const items = result?.items ?? [];
 
-  const activityColors: Record<string, string> = {
-    read: "var(--accent-blue)", cook: "var(--accent-amber)", sleep: "#7c3aed",
-    draw: "var(--accent-pink)", computer: "var(--accent-cyan)", exercise: "var(--accent-green)",
-    think: "#fbbf24", eat: "var(--accent-red)", idle: "var(--text-muted)",
-  };
-
+  // Extract activities from memories
   const activities = items
     .filter(i => i.source === "memory" && i.data.description)
     .map(i => {
@@ -303,222 +234,164 @@ async function initTimelineTab(): Promise<void> {
     .sort((a, b) => a.time - b.time);
 
   if (activities.length === 0) {
-    container.appendChild(el("div", "tab-loading", "No activity data yet."));
+    container.innerHTML = '<div class="tab-loading">No activity data yet.</div>';
     return;
   }
 
-  const tlContainer = el("div", "timeline-container");
+  const activityColors: Record<string, string> = {
+    read: "var(--accent-blue)", cook: "var(--accent-amber)", sleep: "#7c3aed",
+    draw: "var(--accent-pink)", computer: "var(--accent-cyan)", exercise: "var(--accent-green)",
+    think: "#fbbf24", eat: "var(--accent-red)", idle: "var(--text-muted)",
+  };
 
-  // Track
-  const track = el("div", "timeline-track");
-  for (const a of activities) {
-    const block = el("div", "timeline-block");
-    block.dataset.activity = a.activity;
-    block.title = a.thought;
-    block.style.background = activityColors[a.activity] ?? activityColors.idle;
+  const blocks = activities.map(a =>
+    `<div class="timeline-block" data-activity="${a.activity}" title="${esc(a.thought)}" style="background: ${activityColors[a.activity] ?? activityColors.idle}">
+      <div class="timeline-tooltip">${esc(a.thought)}</div>
+    </div>`
+  ).join("");
 
-    const tooltip = el("div", "timeline-tooltip", a.thought);
-    block.appendChild(tooltip);
-    track.appendChild(block);
-  }
-  tlContainer.appendChild(track);
+  const legend = Object.entries(activityColors).map(([name, color]) =>
+    `<div class="timeline-legend-item"><div class="timeline-legend-dot" style="background: ${color}"></div>${name}</div>`
+  ).join("");
 
-  // Labels
-  const labels = el("div", "timeline-labels");
   const first = new Date(activities[0].time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const last = new Date(activities[activities.length - 1].time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  labels.appendChild(el("span", undefined, first));
-  labels.appendChild(el("span", undefined, last));
-  tlContainer.appendChild(labels);
 
-  // Legend
-  const legend = el("div", "timeline-legend");
-  for (const [name, color] of Object.entries(activityColors)) {
-    const item = el("div", "timeline-legend-item");
-    const dot = el("div", "timeline-legend-dot");
-    dot.style.background = color;
-    item.appendChild(dot);
-    item.appendChild(document.createTextNode(name));
-    legend.appendChild(item);
-  }
-  tlContainer.appendChild(legend);
-
-  container.appendChild(tlContainer);
+  container.innerHTML = `
+    <div class="timeline-container">
+      <div class="timeline-track">${blocks}</div>
+      <div class="timeline-labels"><span>${first}</span><span>${last}</span></div>
+      <div class="timeline-legend">${legend}</div>
+    </div>
+  `;
 }
 
 // === GALLERY TAB ===
 
 async function initGalleryTab(): Promise<void> {
   const container = document.getElementById("tab-content")!;
-  container.textContent = "";
-
   const result = await fetchJSON<{ items: Array<Record<string, unknown>> }>("/api/public/gallery?limit=30");
   const items = result?.items ?? [];
 
   if (items.length === 0) {
-    container.appendChild(el("div", "gallery-empty", "\uD83C\uDFA8 No creative works yet. Truman hasn't written any blogs or created artwork."));
+    container.innerHTML = '<div class="gallery-empty">🎨 No creative works yet. Truman hasn\'t written any blogs or created artwork.</div>';
     return;
   }
 
-  const grid = el("div", "gallery-grid");
-
-  for (const item of items) {
+  const cards = items.map(item => {
     const isBlog = item.type === "blog";
-    const card = el("div", "gallery-card");
+    const tags = Array.isArray(item.tags) ? item.tags.map((t: unknown) => `<span class="gallery-tag">${esc(t)}</span>`).join("") : "";
 
-    const typeEl = el("div", `gallery-card-type ${isBlog ? "blog" : "art"}`, isBlog ? "\uD83D\uDCDD Blog Post" : "\uD83C\uDFA8 Artwork");
-    card.appendChild(typeEl);
+    return `<div class="gallery-card" data-json='${esc(JSON.stringify(item))}'>
+      <div class="gallery-card-type ${isBlog ? "blog" : "art"}">${isBlog ? "📝 Blog Post" : "🎨 Artwork"}</div>
+      <div class="gallery-card-title">${esc(item.title ?? "Untitled")}</div>
+      <div class="gallery-card-preview">${esc(truncate(String(item.content ?? item.description ?? ""), 120))}</div>
+      ${tags ? `<div class="gallery-card-tags">${tags}</div>` : ""}
+      <div class="gallery-card-time">${item.createdAt ? timeAgo(String(item.createdAt)) : ""}</div>
+    </div>`;
+  }).join("");
 
-    const title = el("div", "gallery-card-title", String(item.title ?? "Untitled"));
-    card.appendChild(title);
+  container.innerHTML = `<div class="gallery-grid">${cards}</div>`;
 
-    const preview = el("div", "gallery-card-preview", truncate(String(item.content ?? item.description ?? ""), 120));
-    card.appendChild(preview);
-
-    if (Array.isArray(item.tags) && item.tags.length > 0) {
-      const tagsDiv = el("div", "gallery-card-tags");
-      for (const t of item.tags) {
-        tagsDiv.appendChild(el("span", "gallery-tag", String(t)));
-      }
-      card.appendChild(tagsDiv);
-    }
-
-    if (item.createdAt) {
-      card.appendChild(el("div", "gallery-card-time", timeAgo(String(item.createdAt))));
-    }
-
-    card.addEventListener("click", () => {
-      showModal(
-        `${isBlog ? "\uD83D\uDCDD" : "\uD83C\uDFA8"} ${item.title ?? "Untitled"}`,
-        (body) => {
-          addLabeledPre(body, isBlog ? "Content" : "Description", String(item.content ?? item.description ?? ""));
-          if (item.style) addLabeledPre(body, "Style", String(item.style));
-          if (item.tags) addLabeledPre(body, "Tags", JSON.stringify(item.tags));
-        },
-        item,
-      );
-    });
-
-    grid.appendChild(card);
-  }
-
-  container.appendChild(grid);
+  container.addEventListener("click", (e) => {
+    const card = (e.target as HTMLElement).closest(".gallery-card") as HTMLElement;
+    if (!card) return;
+    const item = JSON.parse(card.getAttribute("data-json") ?? "{}");
+    const isBlog = item.type === "blog";
+    showModal(
+      `${isBlog ? "📝" : "🎨"} ${item.title ?? "Untitled"}`,
+      `<div class="label">${isBlog ? "Content" : "Description"}</div><pre>${esc(item.content ?? item.description ?? "")}</pre>
+       ${item.style ? `<div class="label">Style</div><pre>${esc(item.style)}</pre>` : ""}
+       ${item.tags ? `<div class="label">Tags</div><pre>${esc(JSON.stringify(item.tags))}</pre>` : ""}`,
+      item,
+    );
+  });
 }
 
 // === EMOTIONS TAB ===
 
 async function initEmotionsTab(): Promise<void> {
   const container = document.getElementById("tab-content")!;
-  container.textContent = "";
-
   const result = await fetchJSON<{ points: Array<Record<string, number | string>> }>("/api/public/emotions?limit=100");
   const points = result?.points ?? [];
 
   if (points.length < 2) {
-    container.appendChild(el("div", "tab-loading", "Not enough emotion data yet. Need at least 2 data points."));
+    container.innerHTML = '<div class="tab-loading">Not enough emotion data yet. Need at least 2 data points.</div>';
     return;
   }
 
   const dims = ["happiness", "curiosity", "anxiety", "boredom", "excitement", "contentment", "frustration"];
   const colors = ["#ffd700", "#00d2ff", "#e74c3c", "#9e9e9e", "#fbbf24", "#2ecc71", "#ff9800"];
 
-  const chartContainer = el("div", "emotions-chart-container");
+  container.innerHTML = `
+    <div class="emotions-chart-container">
+      <canvas class="emotions-canvas" id="emotions-canvas"></canvas>
+      <div class="emotions-legend">
+        ${dims.map((d, i) => `<div class="emotions-legend-item"><div class="emotions-legend-dot" style="background: ${colors[i]}"></div>${d}</div>`).join("")}
+      </div>
+    </div>
+  `;
 
-  const canvas = document.createElement("canvas");
-  canvas.className = "emotions-canvas";
-  canvas.id = "emotions-canvas";
-  chartContainer.appendChild(canvas);
+  const canvas = document.getElementById("emotions-canvas") as HTMLCanvasElement;
+  const ctx = canvas.getContext("2d")!;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  ctx.scale(2, 2);
+  const w = rect.width;
+  const h = rect.height;
 
-  // Legend
-  const legendDiv = el("div", "emotions-legend");
-  dims.forEach((d, i) => {
-    const item = el("div", "emotions-legend-item");
-    const dot = el("div", "emotions-legend-dot");
-    dot.style.background = colors[i];
-    item.appendChild(dot);
-    item.appendChild(document.createTextNode(d));
-    legendDiv.appendChild(item);
-  });
-  chartContainer.appendChild(legendDiv);
+  const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
 
-  container.appendChild(chartContainer);
+  // Draw grid
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.lineWidth = 1;
+  for (let y = 0; y <= 1; y += 0.25) {
+    const py = pad.top + plotH * (1 - y);
+    ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(pad.left + plotW, py); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.font = "10px Inter";
+    ctx.textAlign = "right";
+    ctx.fillText(y.toFixed(1), pad.left - 6, py + 4);
+  }
 
-  // Draw chart after DOM insertion
-  requestAnimationFrame(() => {
-    const ctx = canvas.getContext("2d")!;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
-    ctx.scale(2, 2);
-    const w = rect.width;
-    const h = rect.height;
+  // Draw lines per emotion
+  dims.forEach((dim, di) => {
+    ctx.strokeStyle = colors[di];
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
 
-    const pad = { top: 20, right: 20, bottom: 30, left: 40 };
-    const plotW = w - pad.left - pad.right;
-    const plotH = h - pad.top - pad.bottom;
-
-    // Grid
-    ctx.strokeStyle = "rgba(255,255,255,0.05)";
-    ctx.lineWidth = 1;
-    for (let y = 0; y <= 1; y += 0.25) {
-      const py = pad.top + plotH * (1 - y);
-      ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(pad.left + plotW, py); ctx.stroke();
-      ctx.fillStyle = "rgba(255,255,255,0.2)";
-      ctx.font = "10px Inter";
-      ctx.textAlign = "right";
-      ctx.fillText(y.toFixed(1), pad.left - 6, py + 4);
-    }
-
-    // Lines per emotion
-    dims.forEach((dim, di) => {
-      ctx.strokeStyle = colors[di];
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = 0.8;
-      ctx.beginPath();
-
-      points.forEach((p, pi) => {
-        const x = pad.left + (pi / (points.length - 1)) * plotW;
-        const val = Number(p[dim] ?? 0);
-        const y = pad.top + plotH * (1 - val);
-        if (pi === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+    points.forEach((p, pi) => {
+      const x = pad.left + (pi / (points.length - 1)) * plotW;
+      const val = Number(p[dim] ?? 0);
+      const y = pad.top + plotH * (1 - val);
+      if (pi === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     });
-
-    // Time labels
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.font = "10px 'JetBrains Mono'";
-    ctx.textAlign = "center";
-    const firstTime = new Date(String(points[0].timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const lastTime = new Date(String(points[points.length - 1].timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    ctx.fillText(firstTime, pad.left, h - 6);
-    ctx.fillText(lastTime, pad.left + plotW, h - 6);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   });
+
+  // Time labels
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.font = "10px 'JetBrains Mono'";
+  ctx.textAlign = "center";
+  const firstTime = new Date(String(points[0].timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const lastTime = new Date(String(points[points.length - 1].timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  ctx.fillText(firstTime, pad.left, h - 6);
+  ctx.fillText(lastTime, pad.left + plotW, h - 6);
 }
 
-// === TAB ROUTING (hash-based) ===
+// === TAB ROUTING ===
 
 let currentTab = "feed";
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 
-const VALID_TABS = ["feed", "timeline", "gallery", "emotions"];
-
-function getTabFromHash(): string {
-  const hash = window.location.hash.replace("#", "");
-  return VALID_TABS.includes(hash) ? hash : "feed";
-}
-
 function switchTab(tab: string): void {
-  if (!VALID_TABS.includes(tab)) tab = "feed";
   currentTab = tab;
-
-  // Update hash without triggering hashchange
-  if (window.location.hash !== `#${tab}`) {
-    history.replaceState(null, "", `#${tab}`);
-  }
-
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
   });
@@ -531,7 +404,7 @@ function switchTab(tab: string): void {
         const filter = (document.getElementById("feed-filter") as HTMLSelectElement)?.value ?? "all";
         const search = (document.getElementById("feed-search") as HTMLInputElement)?.value ?? "";
         const list = document.getElementById("feed-list");
-        if (list) renderFeedList(list, filter, search);
+        if (list) list.innerHTML = renderFeed(filter, search);
       });
     }, POLL_INTERVAL);
   } else if (tab === "timeline") {
@@ -548,16 +421,7 @@ function switchTab(tab: string): void {
 document.addEventListener("DOMContentLoaded", () => {
   // Tab buttons
   document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tab = btn.getAttribute("data-tab") ?? "feed";
-      window.location.hash = tab;
-      switchTab(tab);
-    });
-  });
-
-  // Hash navigation
-  window.addEventListener("hashchange", () => {
-    switchTab(getTabFromHash());
+    btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab") ?? "feed"));
   });
 
   // Modal close
@@ -569,7 +433,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initial load
   updateStats();
-  switchTab(getTabFromHash());
+  switchTab("feed");
 
   // Poll stats
   setInterval(updateStats, POLL_INTERVAL);
