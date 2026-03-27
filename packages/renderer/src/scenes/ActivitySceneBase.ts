@@ -55,12 +55,18 @@ export abstract class ActivitySceneBase extends Phaser.Scene {
   protected abstract labelColor: string;
 
   init(data: ActivitySceneData): void {
+    // Clean stale overlays from any previous scene
+    document.querySelectorAll(".scene-html-overlay, #scene-text-overlay").forEach(el => el.remove());
+
     this.duration = data?.duration || 12000;
     this.onComplete = data?.onComplete || null;
     this.context = data?.context || null;
   }
 
   create(): void {
+    // Aggressively clean up any leftover HTML overlays from previous scenes
+    this.cleanupAllOverlays();
+
     // Background
     if (this.textures.exists(this.bgKey)) {
       this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, this.bgKey)
@@ -90,10 +96,17 @@ export abstract class ActivitySceneBase extends Phaser.Scene {
     // Fade in
     this.cameras.main.fadeIn(400, 0, 0, 0);
 
+    // Cleanup all HTML overlays when scene stops (belt-and-suspenders)
+    this.events.once("shutdown", () => this.cleanupAllOverlays());
+    this.events.once("destroy", () => this.cleanupAllOverlays());
+
     // End timer
     this.activityTimer = this.time.delayedCall(this.duration, () => {
+      // Fade out all overlays before scene transition
+      this.fadeOutAllOverlays();
       this.cameras.main.fadeOut(400, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.cleanupAllOverlays();
         this.onComplete?.();
       });
     });
@@ -124,35 +137,104 @@ export abstract class ActivitySceneBase extends Phaser.Scene {
     });
   }
 
+  /** HTML overlay element for crisp text rendering (bypasses canvas DPI limit) */
+  private htmlOverlay: HTMLDivElement | null = null;
+
   /**
-   * Display brain context on the scene. Default: thought text bar at bottom.
-   * Subclasses can override for custom rendering.
+   * Display brain context via HTML overlay — renders at native screen DPI
+   * so text is always crisp regardless of canvas resolution.
    */
   protected displayContent(context: SceneContext): void {
     if (!context.thought) return;
 
-    // Semi-transparent bar at bottom
-    const barY = GAME_HEIGHT - 50;
-    const barHeight = 45;
-    this.add.rectangle(
-      GAME_WIDTH / 2, barY + barHeight / 2,
-      GAME_WIDTH * 0.85, barHeight,
-      0x000000, 0.5,
-    ).setOrigin(0.5, 0.5);
+    // Create HTML overlay positioned over the game canvas
+    this.htmlOverlay = document.createElement("div");
+    this.htmlOverlay.id = "scene-text-overlay";
+    this.htmlOverlay.style.cssText = `
+      position: fixed;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 80%;
+      padding: 14px 24px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e8e8e8;
+      font-family: 'Space Grotesk', Inter, sans-serif;
+      font-size: 17px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: center;
+      z-index: 500;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+    `;
 
-    // Truncate thought to ~120 chars for display
-    const displayText = context.thought.length > 120
-      ? context.thought.substring(0, 117) + "..."
+    const displayText = context.thought.length > 180
+      ? context.thought.substring(0, 177) + "..."
       : context.thought;
 
-    this.add.text(GAME_WIDTH / 2, barY + barHeight / 2, displayText, {
-      fontSize: "11px",
-      fontFamily: "Inter, 'Segoe UI', sans-serif",
-      color: "#e0e0e0",
-      wordWrap: { width: GAME_WIDTH * 0.80 },
-      align: "center",
-      lineSpacing: 2,
-    }).setOrigin(0.5, 0.5).setAlpha(0.9);
+    this.htmlOverlay.textContent = displayText;
+    document.body.appendChild(this.htmlOverlay);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      if (this.htmlOverlay) this.htmlOverlay.style.opacity = "1";
+    });
+  }
+
+  /** Remove ALL HTML overlays (main + any subclass overlays) */
+  protected cleanupAllOverlays(): void {
+    if (this.htmlOverlay) {
+      this.htmlOverlay.remove();
+      this.htmlOverlay = null;
+    }
+    // Remove ALL scene overlays (covers subclass overlays like dream text)
+    document.querySelectorAll(".scene-html-overlay, #scene-text-overlay").forEach(el => el.remove());
+  }
+
+  /** Fade out all overlays before scene exit */
+  private fadeOutAllOverlays(): void {
+    if (this.htmlOverlay) this.htmlOverlay.style.opacity = "0";
+    document.querySelectorAll(".scene-html-overlay, #scene-text-overlay").forEach(el => {
+      (el as HTMLElement).style.opacity = "0";
+    });
+  }
+
+  /** Add a centered HTML text element (crisp, above canvas). Returns element for cleanup. */
+  protected addHtmlText(text: string, opts: {
+    top?: string; bottom?: string; color?: string; fontSize?: string;
+    italic?: boolean; maxWidth?: string; animation?: string;
+  } = {}): HTMLDivElement {
+    const el = document.createElement("div");
+    el.className = "scene-html-overlay";
+    el.style.cssText = `
+      position: fixed;
+      ${opts.top ? `top: ${opts.top};` : ""}
+      ${opts.bottom ? `bottom: ${opts.bottom};` : ""}
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: ${opts.maxWidth || "70%"};
+      padding: 8px 16px;
+      color: ${opts.color || "#e0e0e0"};
+      font-family: 'Space Grotesk', Inter, sans-serif;
+      font-size: ${opts.fontSize || "16px"};
+      ${opts.italic ? "font-style: italic;" : ""}
+      line-height: 1.5;
+      text-align: center;
+      z-index: 501;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      ${opts.animation || ""}
+    `;
+    el.textContent = text;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.opacity = "1"; });
+    return el;
   }
 
   /** Override to add activity-specific visual effects */
@@ -169,5 +251,6 @@ export abstract class ActivitySceneBase extends Phaser.Scene {
 
   shutdown(): void {
     this.activityTimer?.destroy();
+    this.cleanupAllOverlays();
   }
 }

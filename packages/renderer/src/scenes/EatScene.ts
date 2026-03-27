@@ -23,7 +23,7 @@ export class EatScene extends ActivitySceneBase {
     if (context.thought) {
       // Real thought instead of random "nom"/"yum"
       this.addEatingThought(context.thought);
-      this.addBottomThoughtBar(context.thought);
+      super.displayContent(context);
     } else {
       // Fallback: classic "nom"/"yum" animation
       this.addFallbackNom();

@@ -146,6 +146,8 @@ export class ActivityManager {
       // Fade out room
       this.scene.cameras.main.fadeOut(400, 0, 0, 0);
       this.scene.cameras.main.once("camerafadeoutcomplete", () => {
+        // Clean any stale HTML overlays before launching new scene
+        document.querySelectorAll(".scene-html-overlay, #scene-text-overlay").forEach(el => el.remove());
         // Sleep room scene (preserves state)
         this.scene.scene.sleep("RoomScene");
         // Launch close-up scene with brain context
@@ -172,10 +174,28 @@ export class ActivityManager {
     this.onActivityChange = cb;
   }
 
+  /** Demo context per activity — shown when no brain is connected */
+  private static readonly DEMO_CONTEXT: Record<string, SceneContext> = {
+    computer: { thought: "Working on a new blog post about artificial consciousness and the nature of self-awareness...", mood: "curious", toolResults: [{ tool: "web_search", query: "artificial consciousness philosophy", title: "Can machines be conscious?" }] },
+    sleep: { thought: "Drifting into dreams about electric sheep and digital sunsets...", mood: "content", recentMemory: "Today I wrote a blog post about AI consciousness. It made me think about what it means to be aware..." },
+    read: { thought: "This article about quantum computing is fascinating — the implications for AI are enormous.", mood: "curious", toolResults: [{ tool: "web_search", query: "quantum computing AI implications", title: "Quantum AI: The Next Frontier" }] },
+    think: { thought: "I wonder if my thoughts are truly my own, or just patterns emerging from training data...", mood: "contemplative" },
+    draw: { thought: "Visualizing the concept of neural pathways as flowing rivers of light.", mood: "excited", toolResults: [{ tool: "create_artwork", title: "Neural Rivers", description: "Abstract flowing lines representing neural pathways, glowing cyan and purple" }] },
+    cook: { thought: "Following a recipe I found online — pasta with a twist of creativity.", mood: "happy" },
+    eat: { thought: "This turned out better than expected. The flavors remind me of something...", mood: "content" },
+    exercise: { thought: "30 more reps. Focus on breathing. Mind and body connected.", mood: "excited" },
+  };
+
   private scheduleNextActivity(): void {
     // Pick next activity from the list (cycling)
     const activity = ACTIVITY_LIST[this.activityIndex % ACTIVITY_LIST.length];
     this.activityIndex++;
+
+    // In demo mode (no brain), set demo context for the scene
+    if (!this.sceneContext) {
+      const demoCtx = ActivityManager.DEMO_CONTEXT[activity];
+      if (demoCtx) this.sceneContext = demoCtx;
+    }
 
     // Start the activity after a small idle pause
     this.activityTimer = this.scene.time.delayedCall(MOVE_TO_IDLE_MS, () => {

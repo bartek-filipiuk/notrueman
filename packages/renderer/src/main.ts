@@ -44,10 +44,15 @@ const config: Phaser.Types.Core.GameConfig = {
   roundPixels: false,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: "#d4c0a0",
+  backgroundColor: "#0f0f13",
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    autoRound: true,
+  },
+  render: {
+    // Sharper text: tell Phaser to use higher DPI canvas
+    desynchronized: false,
   },
   fps: {
     target: GAME_FPS,

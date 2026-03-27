@@ -35,7 +35,7 @@ export class DrawScene extends ActivitySceneBase {
 
     // Bottom thought bar
     if (context.thought) {
-      this.addBottomThoughtBar(context.thought);
+      super.displayContent(context);
     }
   }
 

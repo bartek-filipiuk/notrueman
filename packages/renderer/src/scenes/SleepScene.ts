@@ -41,44 +41,58 @@ export class SleepScene extends ActivitySceneBase {
 
     // Bottom thought bar: what they're dreaming about
     if (context.thought) {
-      this.addBottomThoughtBar(context.thought);
+      super.displayContent(context);
     }
   }
 
-  /** Floating dream text with alpha pulse */
+  /** Dream text element for cleanup */
+  private dreamOverlay: HTMLDivElement | null = null;
+
+  /** Floating dream text as HTML overlay — crisp at any resolution */
   private addDreamText(text: string): void {
-    const displayText = text.length > 80
-      ? text.substring(0, 77) + "..."
+    const displayText = text.length > 100
+      ? text.substring(0, 97) + "..."
       : text;
 
-    const dreamLabel = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.35, `Dream: ${displayText}`, {
-      fontSize: "9px",
-      fontFamily: "Inter, 'Segoe UI', sans-serif",
-      color: "#b39ddb",
-      wordWrap: { width: GAME_WIDTH * 0.6 },
-      align: "center",
-      lineSpacing: 4,
-    }).setOrigin(0.5, 0.5).setAlpha(0.3);
+    this.dreamOverlay = document.createElement("div");
+    this.dreamOverlay.className = "scene-html-overlay";
+    this.dreamOverlay.style.cssText = `
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 60%;
+      padding: 10px 20px;
+      color: #b39ddb;
+      font-family: 'Space Grotesk', Inter, sans-serif;
+      font-size: 18px;
+      font-style: italic;
+      line-height: 1.6;
+      text-align: center;
+      z-index: 500;
+      pointer-events: none;
+      animation: dreamPulse 3s ease-in-out infinite, dreamFloat 4s ease-in-out infinite;
+    `;
+    this.dreamOverlay.textContent = `Dream: ${displayText}`;
 
-    // Dreamlike alpha pulse (0.3 → 0.7)
-    this.tweens.add({
-      targets: dreamLabel,
-      alpha: { from: 0.3, to: 0.7 },
-      duration: 3000,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    // Add CSS animation keyframes if not already present
+    if (!document.getElementById("dream-keyframes")) {
+      const style = document.createElement("style");
+      style.id = "dream-keyframes";
+      style.textContent = `
+        @keyframes dreamPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+        @keyframes dreamFloat { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-10px); } }
+      `;
+      document.head.appendChild(style);
+    }
 
-    // Gentle float
-    this.tweens.add({
-      targets: dreamLabel,
-      y: dreamLabel.y - 10,
-      duration: 4000,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    document.body.appendChild(this.dreamOverlay);
+  }
+
+  shutdown(): void {
+    super.shutdown();
+    // dreamOverlay cleaned by base class cleanupAllOverlays() via .scene-html-overlay class
+    this.dreamOverlay = null;
   }
 
   /** Bottom thought bar */

@@ -31,7 +31,7 @@ export class ExerciseScene extends ActivitySceneBase {
 
   protected displayContent(context: SceneContext): void {
     if (context.thought) {
-      this.addBottomThoughtBar(context.thought);
+      super.displayContent(context);
     }
   }
 

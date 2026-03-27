@@ -72,16 +72,16 @@ export class BootScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
-    // Dark background
     this.cameras.main.setBackgroundColor("#0a0a1a");
 
     // Title with warm glow
     const title = this.add
-      .text(cx, cy - 40, "No True Man Show", {
-        fontSize: "20px",
-        fontFamily: "'Press Start 2P', monospace",
+      .text(cx, cy - 50, "No True Man Show", {
+        fontSize: "32px",
+        fontFamily: "'Space Grotesk', Inter, sans-serif",
         color: "#ffd93d",
         align: "center",
+        fontStyle: "bold",
       })
       .setOrigin(0.5)
       .setAlpha(0);
@@ -89,18 +89,19 @@ export class BootScene extends Phaser.Scene {
     // Subtitle
     const subtitle = this.add
       .text(cx, cy, "a life, observed", {
-        fontSize: "10px",
-        fontFamily: "'Press Start 2P', monospace",
+        fontSize: "16px",
+        fontFamily: "Inter, 'Segoe UI', sans-serif",
         color: "#6ec6ff",
+        fontStyle: "italic",
       })
       .setOrigin(0.5)
       .setAlpha(0);
 
     // Loading dots (animated)
     const loading = this.add
-      .text(cx, cy + 50, "...", {
-        fontSize: "12px",
-        fontFamily: "monospace",
+      .text(cx, cy + 55, "...", {
+        fontSize: "18px",
+        fontFamily: "'JetBrains Mono', monospace",
         color: "#555555",
       })
       .setOrigin(0.5)
@@ -109,10 +110,10 @@ export class BootScene extends Phaser.Scene {
     // Random tip
     const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
     const tipText = this.add
-      .text(cx, GAME_HEIGHT - 40, tip, {
-        fontSize: "8px",
-        fontFamily: "'Press Start 2P', monospace",
-        color: "#444444",
+      .text(cx, GAME_HEIGHT - 25, tip, {
+        fontSize: "12px",
+        fontFamily: "Inter, 'Segoe UI', sans-serif",
+        color: "#555555",
       })
       .setOrigin(0.5)
       .setAlpha(0);

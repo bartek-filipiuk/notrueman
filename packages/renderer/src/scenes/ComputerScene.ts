@@ -29,10 +29,8 @@ export class ComputerScene extends ActivitySceneBase {
     const monitorLines = this.getMonitorLines(context);
     this.addScrollingMonitorText(monitorLines);
 
-    // Thought text at bottom (from base class pattern)
-    if (context.thought) {
-      this.addBottomThoughtBar(context.thought);
-    }
+    // Crisp thought text via HTML overlay (from base class)
+    super.displayContent(context);
   }
 
   /** Extract display lines from brain context */

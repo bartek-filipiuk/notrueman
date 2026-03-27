@@ -53,7 +53,7 @@ export class HUD {
     // Mood icon (large, colored)
     this.moodIcon = scene.add
       .text(12, 6, MOOD_ICONS.neutral, {
-        fontSize: "18px",
+        fontSize: "20px",
         fontFamily: "monospace",
         color: MOOD_COLORS.neutral,
       })
@@ -61,18 +61,18 @@ export class HUD {
 
     // Mood label (beside icon)
     this.moodLabel = scene.add
-      .text(34, 10, "neutral", {
-        fontSize: "11px",
-        fontFamily: "'Press Start 2P', monospace",
+      .text(36, 9, "neutral", {
+        fontSize: "13px",
+        fontFamily: "'Space Grotesk', Inter, sans-serif",
         color: "#e0e0e0",
       })
       .setDepth(100);
 
     // Time (top-right, larger)
     this.timeText = scene.add
-      .text(GAME_WIDTH - 10, 6, "00:00", {
-        fontSize: "14px",
-        fontFamily: "'Press Start 2P', monospace",
+      .text(GAME_WIDTH - 10, 5, "00:00", {
+        fontSize: "16px",
+        fontFamily: "'JetBrains Mono', monospace",
         color: "#ffd93d",
         align: "right",
       })
@@ -82,18 +82,18 @@ export class HUD {
     // Activity label (below time)
     this.activityText = scene.add
       .text(GAME_WIDTH - 10, 24, "Idle", {
-        fontSize: "9px",
-        fontFamily: "'Press Start 2P', monospace",
+        fontSize: "11px",
+        fontFamily: "'Space Grotesk', Inter, sans-serif",
         color: "#b0bec5",
         align: "right",
       })
       .setOrigin(1, 0)
       .setDepth(100);
 
-    // Mute/unmute button (speaker icon, center-right of HUD bar)
+    // Mute/unmute button
     this.muteBtn = scene.add
-      .text(GAME_WIDTH / 2, 8, "\u266B", {
-        fontSize: "16px",
+      .text(GAME_WIDTH / 2, 7, "\u266B", {
+        fontSize: "18px",
         fontFamily: "monospace",
         color: "#81c784",
       })
@@ -102,11 +102,11 @@ export class HUD {
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => this.onMuteToggle());
 
-    // Day counter (bottom-left corner) — TI.1
+    // Day counter (bottom-left)
     this.dayCounterText = scene.add
-      .text(12, GAME_HEIGHT - 24, "Day 0", {
-        fontSize: "10px",
-        fontFamily: "'Press Start 2P', monospace",
+      .text(12, GAME_HEIGHT - 22, "Day 0", {
+        fontSize: "12px",
+        fontFamily: "'JetBrains Mono', monospace",
         color: "#e0e0e0",
       })
       .setDepth(100)

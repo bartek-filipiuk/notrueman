@@ -4,7 +4,7 @@ import Phaser from "phaser";
 export const SHADOW_ALPHA = 0.25;
 
 /** Target display height for Truman sprite */
-const TARGET_HEIGHT = 110;
+const TARGET_HEIGHT = 145;
 
 /**
  * Truman character — extends Image directly (no Container overhead).
