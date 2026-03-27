@@ -127,34 +127,34 @@ Stage P (Security Audit + Deployment)
 
 ### Taski:
 
-- [ ] TO.1: Layout redesign — `apps/companion-web/index.html` + `src/style.css` przebudowa. Desktop: lewo = game canvas (iframe, 16:9, border glow purple→cyan gradient), prawo = mind feed sidebar (chat-style, dark, scrollable, 350px). Góra: nav bar z logo "No True Man Show" + status badges + "Admin" link. Dół (pod game): emotion bar + budget + day counter. (implement → verify layout)
-- [ ] TO.2: Mind feed UI — `apps/companion-web/src/mind-feed.ts`. Chat-style feed (jak Twitch chat ale myśli). Karty z gradient border per type: 💭 thought (purple #9b59b6), 😊 mood (cyan #00d2ff), 🔍 search (amber #f39c12), 📝 blog (green #2ecc71), 🎨 artwork (pink #e91e63). Slide-in animation (translateX), auto-scroll z "scroll to bottom" button. Max 50 entries (FIFO). Timestamp relative ("2m ago"). (implement → verify animations)
-- [ ] TO.3: Status bar — `apps/companion-web/src/status-bar.ts`. Badge style: "🟢 LIVE Day 3" (pulsujący green dot animation), "🧠 curious" (mood z ikoną), "📖 reading" (activity), "⚡ 15/20" (budget). Dark gradient bg. Updated z WebSocket events. Sticky position between game and feed. (implement → verify badges update)
-- [ ] TO.4: Emotion visualization — `apps/companion-web/src/emotion-chart.ts`. Radial/spider chart (7 dims: happiness, curiosity, anxiety, boredom, excitement, contentment, frustration). CSS-only lub lightweight canvas. Neonowe kolory per dimension. Animated transitions na zmianę. Tooltip on hover. Umieszczony w sidebar pod status. (implement → verify chart renders)
-- [ ] TO.5: Blog/artwork preview — kliknięcie wpisu w feed → glassmorphism modal (backdrop blur, dark bg, gradient border). Blog: title + full content + tags. Artwork: title + description + style. Close: Escape lub klik poza. Fade-in animation. (implement → verify modal)
-- [ ] TO.6: Mobile responsive — breakpoint 768px: stack vertical. Game full width (aspect ratio preserved). Status bar horizontal scroll. Mind feed below game, full width. Touch-friendly cards (min 44px tap targets). No horizontal scroll. (implement → verify mobile)
-- [ ] TO.7: Styling polish — `apps/companion-web/src/style.css` overhaul: CSS custom properties (--color-bg, --color-accent, etc.), transitions na hover (0.2s ease), focus states (outline glow), scrollbar styling (thin, dark), selection color. Font loading: Inter (Google Fonts) + system monospace. (implement → verify design quality)
-- [ ] TO.8: Testy — layout render at desktop/mobile breakpoints, WebSocket connection + card display, badge update from events, modal open/close. `turbo test` zielone. (test → verify green)
+- [x] TO.1: Layout redesign — `apps/companion-web/index.html` + `src/style.css` przebudowa. Desktop: lewo = game canvas (iframe, 16:9, border glow purple→cyan gradient), prawo = mind feed sidebar (chat-style, dark, scrollable, 350px). Góra: nav bar z logo "No True Man Show" + status badges + "Admin" link. Dół (pod game): emotion bar + budget + day counter. (implement → verify layout)
+- [x] TO.2: Mind feed UI — `apps/companion-web/src/mind-feed.ts`. Chat-style feed (jak Twitch chat ale myśli). Karty z gradient border per type: 💭 thought (purple #9b59b6), 😊 mood (cyan #00d2ff), 🔍 search (amber #f39c12), 📝 blog (green #2ecc71), 🎨 artwork (pink #e91e63). Slide-in animation (translateX), auto-scroll z "scroll to bottom" button. Max 50 entries (FIFO). Timestamp relative ("2m ago"). (implement → verify animations)
+- [x] TO.3: Status bar — `apps/companion-web/src/status-bar.ts`. Badge style: "🟢 LIVE Day 3" (pulsujący green dot animation), "🧠 curious" (mood z ikoną), "📖 reading" (activity), "⚡ 15/20" (budget). Dark gradient bg. Updated z WebSocket events. Sticky position between game and feed. (implement → verify badges update)
+- [x] TO.4: Emotion visualization — `apps/companion-web/src/emotion-chart.ts`. Radial/spider chart (7 dims: happiness, curiosity, anxiety, boredom, excitement, contentment, frustration). CSS-only lub lightweight canvas. Neonowe kolory per dimension. Animated transitions na zmianę. Tooltip on hover. Umieszczony w sidebar pod status. (implement → verify chart renders)
+- [x] TO.5: Blog/artwork preview — kliknięcie wpisu w feed → glassmorphism modal (backdrop blur, dark bg, gradient border). Blog: title + full content + tags. Artwork: title + description + style. Close: Escape lub klik poza. Fade-in animation. (implement → verify modal)
+- [x] TO.6: Mobile responsive — breakpoint 768px: stack vertical. Game full width (aspect ratio preserved). Status bar horizontal scroll. Mind feed below game, full width. Touch-friendly cards (min 44px tap targets). No horizontal scroll. (implement → verify mobile)
+- [x] TO.7: Styling polish — `apps/companion-web/src/style.css` overhaul: CSS custom properties (--color-bg, --color-accent, etc.), transitions na hover (0.2s ease), focus states (outline glow), scrollbar styling (thin, dark), selection color. Font loading: Inter (Google Fonts) + system monospace. (implement → verify design quality)
+- [x] TO.8: Testy — layout render at desktop/mobile breakpoints, WebSocket connection + card display, badge update from events, modal open/close. `turbo test` zielone. (test → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SO.1: Game iframe sandbox — `sandbox="allow-scripts allow-same-origin"`. Brak allow-forms, allow-popups. (verify)
-- [ ] SO.2: Mind feed content escaped — brak innerHTML z raw event data. TextContent only. (verify)
-- [ ] SO.3: `turbo test` przechodzi. (verify)
+- [x] SO.1: Game iframe sandbox — `sandbox="allow-scripts allow-same-origin"`. Brak allow-forms, allow-popups. (verify)
+- [x] SO.2: Mind feed content escaped — brak innerHTML z raw event data. TextContent only. (verify)
+- [x] SO.3: `turbo test` przechodzi. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DO.1: Update `docs/CHANGELOG.md` — wpis Stage O.
-- [ ] DO.2: Update `docs/README.md` — sekcja "Public Website" (URL, features).
+- [x] DO.1: Update `docs/CHANGELOG.md` — wpis Stage O.
+- [x] DO.2: Update `docs/README.md` — sekcja "Public Website" (URL, features).
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCO.1: Self-check — strona desktop: game + mind feed + status wygląda premium.
-- [ ] SCO.2: Self-check — mind feed streamuje thoughts w realtime.
-- [ ] SCO.3: Self-check — mobile layout działa (brak horizontal scroll).
-- [ ] SCO.4: Self-check — emotion chart animuje się.
-- [ ] SCO.5: Self-check — testy zielone.
-- [ ] SCO.6: Zaktualizuj HANDOFF → [x].
+- [x] SCO.1: Self-check — strona desktop: game + mind feed + status wygląda premium.
+- [x] SCO.2: Self-check — mind feed streamuje thoughts w realtime.
+- [x] SCO.3: Self-check — mobile layout działa (brak horizontal scroll).
+- [x] SCO.4: Self-check — emotion chart animuje się.
+- [x] SCO.5: Self-check — testy zielone.
+- [x] SCO.6: Zaktualizuj HANDOFF → [x].
 
 **Stage O DoD:** Otwierasz stronę → gaming dark layout z game po lewej, mind feed po prawej, status badges. Thoughts pojawiają się live z animacją slide-in. Emocje na radar chart. Mobile: stack vertical. PREMIUM feel.
 

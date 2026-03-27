@@ -140,6 +140,29 @@ Press `Tab` to toggle the Activity Panel — a sidebar showing Truman's creative
 - **Preview:** Click any entry to see full content in a modal (Escape to close)
 - **Budget:** Color-coded bar at bottom shows remaining tool calls and current day
 
+## Public Website
+
+The companion website shows Truman's game canvas with a live mind feed sidebar.
+
+**URL:** `http://localhost:5175` (dev mode)
+
+### Features
+
+- **Game Canvas**: 16:9 iframe with gradient glow border (purple → cyan)
+- **Mind Feed**: Real-time stream of Truman's thoughts, mood changes, activities, and creative works
+- **Status Bar**: Live indicator (pulsing green dot), current mood, activity, budget
+- **Emotion Chart**: 7-dimension animated bar chart with neon colors
+- **Preview Modal**: Click blog/artwork entries for full content in glassmorphism overlay
+- **Mobile**: Responsive layout, stacked vertical, touch-friendly (44px targets)
+
+### Design
+
+Dark gaming/Twitch aesthetic:
+- Background: `#0f0f13`
+- Accents: Purple (`#9b59b6`) → Cyan (`#00d2ff`) gradient
+- Font: Inter + monospace
+- Glassmorphism cards, subtle glow effects, slide-in animations
+
 ## Admin Panel
 
 Access the admin panel at `/admin.html` (or `/admin.html#/admin/login`).

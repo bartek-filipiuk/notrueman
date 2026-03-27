@@ -1,5 +1,23 @@
 # Changelog
 
+## [Stage O — Companion Web Redesign] - 2026-03-27
+
+### Added
+- Complete public website redesign with gaming/Twitch dark aesthetic
+- Desktop layout: game canvas (left, 16:9 with gradient glow border) + mind feed sidebar (right, 350px)
+- Mobile layout: stacked vertical, no horizontal scroll, 44px touch targets
+- Mind feed: Twitch-chat style sidebar with slide-in animations, type-colored badges, auto-scroll
+- Status bar: live dot (pulsing green), mood, activity, budget badges
+- Emotion chart: 7-dimension animated bars with neon glow colors
+- Blog/artwork preview modal: glassmorphism overlay with backdrop blur, tags, Escape to close
+- CSS custom properties, transitions, focus states, styled scrollbars
+- Font: Inter (Google Fonts) + system monospace
+- Color scheme: #0f0f13 bg, purple (#9b59b6) → cyan (#00d2ff) gradient accents
+
+### Security
+- Mind feed uses textContent for escaping (SO.2)
+- All tests pass (SO.3)
+
 ## [Stage N — Admin Panel] - 2026-03-27
 
 ### Added
