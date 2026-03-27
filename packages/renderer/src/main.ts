@@ -22,19 +22,13 @@ import {
 import { ConfigPanel } from "./ui/ConfigPanel";
 import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
 import { SaveManager } from "./systems/SaveManager";
+import PERSONALITY from "../../../config/truman-personality.md?raw";
 
 /** Read API key from URL params (?apiKey=sk-or-...) or empty string */
 function getApiKey(): string {
   const params = new URLSearchParams(window.location.search);
   return params.get("apiKey") || "";
 }
-
-/** Personality prompt embedded (avoids file system access in browser) */
-const PERSONALITY = `You are Truman, a young man living alone in a small, cozy room. You are unaware that anyone is watching you.
-
-You are a curious introvert with dry humor. You are philosophical, occasionally socially awkward, and surprisingly insightful. You approach your world with genuine wonder, ask questions nobody asked you to ask, and find meaning in small things.
-
-Your inner monologue should be 1-2 sentences, reflective, warm, and occasionally witty. Think out loud as if narrating your own life. Be PG-13 at all times. Never break the fourth wall.`;
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
@@ -180,6 +174,18 @@ function initBrain(game: Phaser.Game, save: SaveData | null = null): void {
     // Apply time drift before tick
     emotions.applyTimeDrift();
 
+    // TZ.6: Fetch recent memories before planning
+    let recentMemoryDescriptions: string[] = [];
+    try {
+      const memRes = await fetch("/api/recent-memories?limit=5");
+      if (memRes.ok) {
+        const memData = await memRes.json() as { memories: Array<{ description: string }> };
+        recentMemoryDescriptions = (memData.memories ?? []).map((m) => m.description);
+      }
+    } catch {
+      console.debug("[memory] Failed to fetch recent memories");
+    }
+
     await originalTick();
 
     // After tick, apply small emotion delta based on activity
@@ -211,6 +217,65 @@ function initBrain(game: Phaser.Game, save: SaveData | null = null): void {
     roomScene.getMusicManager().onMoodChange(mood);
 
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
+
+    // TZ.4: Tool calling — if activity is computer/draw/think and toolRequest present
+    const lastAction = state.lastAction;
+    let toolResultsSummary: string | undefined;
+    if (
+      lastAction?.toolRequest &&
+      ["computer", "draw", "think"].includes(state.currentActivity ?? "")
+    ) {
+      const { tool, input } = lastAction.toolRequest;
+      try {
+        if (tool === "web_search") {
+          const searchRes = await fetch("/api/tool/web-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: input, count: 5 }),
+          });
+          if (searchRes.ok) {
+            const searchData = await searchRes.json() as { results: Array<{ title: string; description: string }> };
+            toolResultsSummary = searchData.results.map((r) => `${r.title}: ${r.description}`).join(" | ");
+            console.log(`[tool] Web search for "${input}": ${searchData.results.length} results`);
+          }
+        }
+        // TZ.7: Creative output posting
+        if (tool === "write_blog" || tool === "create_artwork") {
+          await fetch("/api/observation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              description: `Creative output: [${tool}] ${input}`,
+              importance: 8,
+              emotionalContext: emotions.getState(),
+              metadata: { tool, title: input, activity: state.currentActivity },
+            }),
+          }).catch(() => {});
+          console.log(`[tool] Creative output: ${tool} — "${input}"`);
+        }
+      } catch (e) {
+        console.debug("[tool] Tool call failed:", e);
+      }
+    }
+
+    // TZ.5: Post observation memory for this tick
+    const tickDescription = `Tick #${state.tickCount}: ${state.currentActivity ?? "idle"} — ${state.recentThoughts?.[0] ?? "..."}${state.inDeepFocus ? " [DEEP FOCUS]" : ""}${toolResultsSummary ? ` [searched: ${toolResultsSummary.slice(0, 100)}]` : ""}`;
+    fetch("/api/observation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: tickDescription,
+        importance: 5,
+        emotionalContext: emotions.getState(),
+        metadata: {
+          activity: state.currentActivity,
+          tickCount: state.tickCount,
+          toolResults: toolResultsSummary,
+          inDeepFocus: state.inDeepFocus,
+          recentMemories: recentMemoryDescriptions.length,
+        },
+      }),
+    }).catch((e) => console.debug("[memory] POST observation failed:", e?.message || e));
   };
 
   // TH.3 + TH.4: Recover brain state from save

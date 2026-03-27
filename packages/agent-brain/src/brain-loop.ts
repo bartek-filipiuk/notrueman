@@ -8,7 +8,7 @@ import { checkActivityFailure } from "./failure-mechanic.js";
 import { getTimeOfDay, sleep } from "./utils.js";
 
 export interface BrainLoopConfig {
-  tickIntervalMs: number;   // 30000-60000 ms
+  tickIntervalMs: number;   // 30000-60000 ms (base interval)
   failureRate: number;       // 0.0-1.0
   maxRetries: number;        // LLM retry count
   systemPrompt: string;
@@ -22,6 +22,16 @@ export interface BrainLoopState {
   tickCount: number;
   lastTickAt: Date | null;
   lastError: string | null;
+  /** When the current activity started (ms timestamp) */
+  currentActivityStartedAt: number | null;
+  /** How long Truman plans to stay in the current activity (minutes) */
+  currentActivityDuration: number | null;
+  /** Whether Truman is in deep focus mode */
+  inDeepFocus: boolean;
+  /** Recent thoughts for context (last 3) */
+  recentThoughts: string[];
+  /** Last action command from LLM */
+  lastAction: ActionCommand | null;
 }
 
 type LogFn = (level: "info" | "warn" | "error", message: string) => void;
@@ -37,6 +47,11 @@ const DEFAULT_LOG: LogFn = (level, message) => {
   }
 };
 
+/** Deep focus tick interval (slower — less interruption) */
+const DEEP_FOCUS_TICK_MS = 90_000;
+/** Idle tick interval (faster — quick decision making) */
+const IDLE_TICK_MS = 30_000;
+
 /**
  * Main brain loop orchestrator.
  * Runs brain.tick() on an interval, commanding the renderer.
@@ -46,7 +61,7 @@ export class BrainLoop {
   private bridge: RendererBridge;
   private config: BrainLoopConfig;
   private state: BrainLoopState;
-  private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private intervalHandle: ReturnType<typeof setTimeout> | null = null;
   private log: LogFn;
 
   constructor(
@@ -67,21 +82,39 @@ export class BrainLoop {
       tickCount: 0,
       lastTickAt: null,
       lastError: null,
+      currentActivityStartedAt: null,
+      currentActivityDuration: null,
+      inDeepFocus: false,
+      recentThoughts: [],
+      lastAction: null,
     };
+  }
+
+  /** Get the current dynamic tick interval based on deep focus state */
+  private getTickInterval(): number {
+    if (this.state.inDeepFocus) return DEEP_FOCUS_TICK_MS;
+    if (!this.state.currentActivity) return IDLE_TICK_MS;
+    return this.config.tickIntervalMs;
+  }
+
+  /** Schedule the next tick with dynamic interval */
+  private scheduleNextTick(): void {
+    if (!this.state.isRunning) return;
+    if (this.intervalHandle) clearTimeout(this.intervalHandle);
+    const interval = this.getTickInterval();
+    this.intervalHandle = setTimeout(() => {
+      void this.tick().then(() => this.scheduleNextTick());
+    }, interval);
   }
 
   /** Start the brain loop */
   start(): void {
     if (this.state.isRunning) return;
     this.state.isRunning = true;
-    this.log("info", `Brain loop started (tick every ${this.config.tickIntervalMs}ms)`);
+    this.log("info", `Brain loop started (base tick every ${this.config.tickIntervalMs}ms)`);
 
-    // Run first tick immediately
-    void this.tick();
-
-    this.intervalHandle = setInterval(() => {
-      void this.tick();
-    }, this.config.tickIntervalMs);
+    // Run first tick immediately, then schedule dynamically
+    void this.tick().then(() => this.scheduleNextTick());
   }
 
   /** Stop the brain loop */
@@ -89,7 +122,7 @@ export class BrainLoop {
     if (!this.state.isRunning) return;
     this.state.isRunning = false;
     if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
+      clearTimeout(this.intervalHandle);
       this.intervalHandle = null;
     }
     this.log("info", "Brain loop stopped");
@@ -123,6 +156,11 @@ export class BrainLoop {
 
     const timeOfDay = getTimeOfDay();
 
+    // Calculate how long current activity has been going (in minutes)
+    const currentActivityMinutes = this.state.currentActivityStartedAt
+      ? Math.round((Date.now() - this.state.currentActivityStartedAt) / 60_000)
+      : undefined;
+
     try {
       // 1. Plan next action (with retries)
       const action = await this.withRetry(() =>
@@ -130,19 +168,46 @@ export class BrainLoop {
           timeOfDay,
           currentMood: this.state.currentMood,
           recentActivities: this.state.recentActivities,
+          recentThoughts: this.state.recentThoughts.length > 0 ? this.state.recentThoughts : undefined,
+          currentActivity: this.state.currentActivity,
+          currentActivityMinutes,
         }),
       );
 
-      // 2. Generate thought
+      this.state.lastAction = action;
+
+      // 2. Handle continue/switch logic
+      if (action.continuePrevious && this.state.currentActivity) {
+        // Deep focus: continue current activity
+        this.state.inDeepFocus = true;
+        if (action.durationMinutes) {
+          this.state.currentActivityDuration = action.durationMinutes;
+        }
+        this.log("info", `Tick #${this.state.tickCount}: CONTINUE ${this.state.currentActivity} (deep focus, ${currentActivityMinutes ?? 0}m in)`);
+      } else {
+        // Switch to new activity
+        this.state.inDeepFocus = false;
+        this.state.currentActivityStartedAt = Date.now();
+        this.state.currentActivityDuration = action.durationMinutes ?? null;
+      }
+
+      // 3. Generate thought
       const thought = await this.withRetry(() =>
         generateThought(this.client, this.config.systemPrompt, {
           activity: action.activity,
           mood: this.state.currentMood,
           timeOfDay,
+          recentThought: this.state.recentThoughts[0],
         }),
       );
 
-      // 3. Check for failure
+      // Track recent thoughts (keep last 3)
+      this.state.recentThoughts.unshift(thought);
+      if (this.state.recentThoughts.length > 3) {
+        this.state.recentThoughts = this.state.recentThoughts.slice(0, 3);
+      }
+
+      // 4. Check for failure
       const failure = await checkActivityFailure(
         this.client,
         this.config.systemPrompt,
@@ -151,7 +216,7 @@ export class BrainLoop {
         { failureRate: this.config.failureRate },
       );
 
-      // 4. Execute via renderer bridge
+      // 5. Execute via renderer bridge
       const displayThought = failure.failed && failure.reaction
         ? failure.reaction
         : thought;
@@ -162,13 +227,13 @@ export class BrainLoop {
         this.state.currentMood,
       );
 
-      // 5. Update state
+      // 6. Update state
       this.updateRecentActivities(action.activity);
       this.state.currentActivity = action.activity;
 
-      this.log("info", `Tick #${this.state.tickCount}: ${action.activity}${failure.failed ? " (FAILED)" : ""}`);
+      this.log("info", `Tick #${this.state.tickCount}: ${action.activity}${failure.failed ? " (FAILED)" : ""}${this.state.inDeepFocus ? " [DEEP FOCUS]" : ""}`);
     } catch (error) {
-      this.handleTickError(error, timeOfDay);
+      this.handleTickError(error);
     }
   }
 
@@ -191,7 +256,7 @@ export class BrainLoop {
   }
 
   /** Handle tick errors with fallback to random activity */
-  private handleTickError(error: unknown, timeOfDay: string): void {
+  private handleTickError(error: unknown): void {
     const errorMsg = error instanceof Error ? error.message : String(error);
     this.state.lastError = errorMsg;
     this.log("error", `Tick #${this.state.tickCount} failed: ${errorMsg}`);
@@ -210,6 +275,7 @@ export class BrainLoop {
     });
 
     this.state.currentActivity = fallbackActivity;
+    this.state.inDeepFocus = false;
   }
 
   /** Update recent activities list (keep last 10) */
@@ -217,7 +283,7 @@ export class BrainLoop {
     // Age existing activities
     this.state.recentActivities = this.state.recentActivities.map((a) => ({
       ...a,
-      completedSecondsAgo: a.completedSecondsAgo + this.config.tickIntervalMs / 1000,
+      completedSecondsAgo: a.completedSecondsAgo + this.getTickInterval() / 1000,
     }));
 
     // Add new one
@@ -232,4 +298,3 @@ export class BrainLoop {
     }
   }
 }
-

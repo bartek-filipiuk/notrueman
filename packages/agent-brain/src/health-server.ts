@@ -17,6 +17,19 @@ export interface HealthServerDeps {
   getStatus: () => HealthStatus;
   /** Optional StatePersistence for save/load endpoints */
   statePersistence?: StatePersistence;
+  /** Memory repository for direct memory creation (Stage Z) */
+  createMemory?: (memory: {
+    agentId: string;
+    type: string;
+    description: string;
+    importance: number;
+    emotionalContext?: Record<string, number>;
+    metadata?: Record<string, unknown>;
+  }) => Promise<unknown>;
+  /** Query recent memories */
+  queryMemories?: (params: {
+    limit?: number;
+  }) => Promise<unknown[]>;
 }
 
 export interface HealthServerOptions {
@@ -49,7 +62,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 /**
  * Create a Fastify health/metrics server (T4.7).
  * Exposes /health (JSON), /metrics (Prometheus format),
- * and state persistence endpoints POST /state/save, GET /state/load/:agentId.
+ * state persistence endpoints, and Stage Z endpoints for observations, memories, and web search.
  * Does NOT expose secrets (API keys, DB credentials).
  */
 export async function createHealthServer(
@@ -130,6 +143,103 @@ export async function createHealthServer(
     }
 
     return reply.send({ agentId, state });
+  });
+
+  // --- Stage Z: Observation + Memory + Tool endpoints ---
+
+  /** POST /api/observation — insert a memory observation (TZ.1) */
+  app.post("/api/observation", async (request, reply) => {
+    if (!deps.createMemory) {
+      return reply.status(503).send({ error: "Memory service not configured" });
+    }
+    const body = request.body as {
+      description?: string;
+      importance?: number;
+      emotionalContext?: Record<string, number>;
+      metadata?: Record<string, unknown>;
+    } | null;
+
+    if (!body?.description || typeof body.description !== "string") {
+      return reply.status(400).send({ error: "description required" });
+    }
+
+    const importance = typeof body.importance === "number"
+      ? Math.max(1, Math.min(10, Math.round(body.importance)))
+      : 5;
+
+    try {
+      const memory = await deps.createMemory({
+        agentId: "truman",
+        type: "observation",
+        description: body.description.slice(0, 2000),
+        importance,
+        emotionalContext: body.emotionalContext,
+        metadata: body.metadata,
+      });
+      return reply.send({ ok: true, memory });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      return reply.status(500).send({ error: msg });
+    }
+  });
+
+  /** GET /api/recent-memories — get last N memories (TZ.2) */
+  app.get("/api/recent-memories", async (request, reply) => {
+    if (!deps.queryMemories) {
+      return reply.status(503).send({ error: "Memory service not configured" });
+    }
+    const query = request.query as Record<string, string>;
+    const limit = Math.min(Math.max(1, Number(query.limit) || 10), 50);
+
+    try {
+      const memories = await deps.queryMemories({ limit });
+      return reply.send({ memories });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      return reply.status(500).send({ error: msg });
+    }
+  });
+
+  /** POST /api/tool/web-search — Brave Search API proxy (TZ.3) */
+  app.post("/api/tool/web-search", async (request, reply) => {
+    const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+    if (!apiKey) {
+      return reply.status(503).send({ error: "BRAVE_SEARCH_API_KEY not configured" });
+    }
+
+    const body = request.body as { query?: string; count?: number } | null;
+    if (!body?.query || typeof body.query !== "string") {
+      return reply.status(400).send({ error: "query required" });
+    }
+
+    const count = Math.min(Math.max(1, body.count ?? 5), 20);
+
+    try {
+      const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(body.query)}&count=${count}`;
+      const response = await fetch(url, {
+        headers: {
+          "Accept": "application/json",
+          "Accept-Encoding": "gzip",
+          "X-Subscription-Token": apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        return reply.status(response.status).send({ error: `Brave API error: ${response.statusText}` });
+      }
+
+      const data = await response.json() as { web?: { results?: Array<{ title: string; url: string; description: string }> } };
+      const results = (data.web?.results ?? []).map((r) => ({
+        title: r.title,
+        url: r.url,
+        description: r.description,
+      }));
+
+      return reply.send({ results });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      return reply.status(500).send({ error: msg });
+    }
   });
 
   if (options.port > 0) {
