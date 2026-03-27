@@ -1,5 +1,5 @@
 {
-  "tickIntervalMs": 45000,
+  "tickIntervalMs": 60000,
   "models": {
     "think": "deepseek/deepseek-v3.2",
     "classify": "google/gemini-3.1-flash-lite-preview"

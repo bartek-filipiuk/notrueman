@@ -446,6 +446,20 @@ export async function createHealthServer(
     }));
   });
 
+  // === EVENT BRIDGE: Browser brain → POST /api/events → WebSocket broadcast ===
+  app.post("/api/events", async (request, reply) => {
+    try {
+      const event = request.body as MindFeedEvent;
+      if (!event || !event.type || !event.timestamp) {
+        return reply.status(400).send({ error: "Invalid event" });
+      }
+      broadcastEvent(event);
+      return reply.send({ ok: true });
+    } catch {
+      return reply.status(400).send({ error: "Invalid event data" });
+    }
+  });
+
   /**
    * Broadcast a MindFeedEvent to connected WebSocket clients.
    * Public clients get filtered events; admin clients get everything.

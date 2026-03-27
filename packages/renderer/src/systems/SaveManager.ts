@@ -16,7 +16,7 @@ export class SaveManager {
   private backendUrl: string;
   private backendAvailable = false;
 
-  constructor(config: SaveManagerConfig = { backendUrl: "http://localhost:3001" }) {
+  constructor(config: SaveManagerConfig = { backendUrl: "" }) {
     this.backendUrl = config.backendUrl;
   }
 

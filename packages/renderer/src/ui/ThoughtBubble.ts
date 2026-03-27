@@ -60,7 +60,7 @@ export class ThoughtBubble {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    this.container = scene.add.container(0, 0).setDepth(90).setAlpha(0);
+    this.container = scene.add.container(0, 0).setDepth(950).setAlpha(0);
 
     this.bg = scene.add.graphics();
     this.container.add(this.bg);

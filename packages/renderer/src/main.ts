@@ -202,8 +202,8 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
   // Create LLM client — models from config/truman-config.json
   const llmClient = createLLMClient({
     apiKey,
-    thinkModel: "deepseek/deepseek-v3.2",
-    classifyModel: "google/gemini-3.1-flash-lite-preview",
+    thinkModel: "deepseek/deepseek-chat",
+    classifyModel: "deepseek/deepseek-chat",
   });
 
   // Create emotion engine — drives mood in HUD and thought bubbles
@@ -237,7 +237,7 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
   // Create and start brain loop
   const brain = new BrainLoop(llmClient, bridge, {
-    tickIntervalMs: 30000,
+    tickIntervalMs: 60000,
     failureRate: 0.25,
     maxRetries: 2,
     systemPrompt: PERSONALITY,
@@ -270,6 +270,16 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
       mood: mood || undefined,
     });
 
+    // Post thought event with ACTUAL thought text for mind feed + admin
+    if (thought) {
+      postBrainEvent({
+        type: "thought",
+        timestamp: Date.now(),
+        data: { thought, mood, activity },
+        public: true,
+      });
+    }
+
     // Use ActivityManager.doActivity() to trigger zoom scenes + proper flow
     await activityMgr.doActivity(activity as import("@nts/shared").ActivityType);
 
@@ -286,6 +296,10 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
   // After each tick, update emotions based on activity outcome
   const originalTick = brain.tick.bind(brain);
   brain.tick = async function () {
+    // Show thinking indicator during LLM call
+    roomScene.showThought("...", "contemplative");
+    postBrainEvent({ type: "thought", timestamp: Date.now(), data: { thought: "Thinking..." }, public: true });
+
     // Apply time drift before tick
     emotions.applyTimeDrift();
 
@@ -320,6 +334,28 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     roomScene.getMusicManager().onMoodChange(mood);
 
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
+
+    // Post events to backend for WebSocket broadcast
+    postBrainEvent({
+      type: "thought",
+      timestamp: Date.now(),
+      data: { thought: state.currentActivity ? `Tick #${state.tickCount}: ${state.currentActivity}` : "Thinking...", mood, activity: state.currentActivity },
+      public: true,
+    });
+    if (state.currentActivity) {
+      postBrainEvent({
+        type: "activity_change",
+        timestamp: Date.now(),
+        data: { activity: state.currentActivity, mood },
+        public: true,
+      });
+    }
+    postBrainEvent({
+      type: "mood_change",
+      timestamp: Date.now(),
+      data: { mood, emotions: emotions.getState() },
+      public: true,
+    });
   };
 
   brain.start();
@@ -595,4 +631,13 @@ async function performReset(
 
   // Reload page to apply cleanly
   window.location.reload();
+}
+
+/** Post brain event to backend for WebSocket broadcast */
+function postBrainEvent(event: { type: string; timestamp: number; data: Record<string, unknown>; public: boolean }): void {
+  fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+  }).catch(() => { /* ignore — best effort */ });
 }
