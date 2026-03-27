@@ -1,15 +1,14 @@
-# Production Docker Compose — Full 24/7 streaming stack
+# Production Docker Compose — V1.0 Web App + Brain API
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #
-# Requires .env with: RTMP_URL, OPENROUTER_API_KEY, and other secrets
-# See .env.example for all available variables
+# Requires .env with all secrets. See .env.example for all variables.
 
 services:
-  # === Renderer + Brain (serves the Phaser game) ===
+  # === Companion Web + Renderer (static files) ===
   app:
     build:
       context: .
-      dockerfile: packages/renderer/Dockerfile
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
@@ -18,23 +17,28 @@ services:
         condition: service_healthy
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-truman}:${POSTGRES_PASSWORD:-truman}@postgres:5432/${POSTGRES_DB:-truman}
       - REDIS_URL=redis://redis:6379
       - TTS_BASE_URL=${TTS_BASE_URL:-}
       - TTS_API_KEY=${TTS_API_KEY:-}
       - DAILY_COST_CAP_USD=${DAILY_COST_CAP_USD:-5.00}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
     ports:
       - "5173:5173"
+      - "3001:3001"
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512M
+          cpus: "2.0"
+          memory: 1G
         reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.5"
+          memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5173/ || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -57,7 +61,7 @@ services:
     environment:
       - DISPLAY=:99
       - STREAM_URL=http://app:5173/?apiKey=${OPENROUTER_API_KEY}&tts=${TTS_ENABLED:-off}&openaiKey=${TTS_API_KEY:-}&voice=${TTS_VOICE:-echo}
-      - RTMP_URL=${RTMP_URL:?RTMP_URL is required}
+      - RTMP_URL=${RTMP_URL:-}
       - RESOLUTION=${STREAM_RESOLUTION:-960x540}
       - FRAMERATE=${STREAM_FRAMERATE:-30}
       - VIDEO_BITRATE=${STREAM_VIDEO_BITRATE:-4500k}
@@ -66,6 +70,8 @@ services:
       - MAX_MEMORY_MB=${BROWSER_MAX_MEMORY_MB:-2048}
       - CHROME_FLAGS=${CHROME_FLAGS:-}
     shm_size: "2gb"
+    profiles:
+      - streaming
     deploy:
       resources:
         limits:
@@ -111,8 +117,10 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  # === Override dev-only settings for production ===
+  # === PostgreSQL with pgvector (internal only) ===
   postgres:
+    # No external ports — internal network only
+    ports: !reset []
     deploy:
       resources:
         limits:
@@ -127,8 +135,11 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  # === Redis (internal only) ===
   redis:
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # No external ports — internal network only
+    ports: !reset []
     deploy:
       resources:
         limits:

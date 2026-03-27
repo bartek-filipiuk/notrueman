@@ -275,45 +275,68 @@ Any model available on OpenRouter can be used.
 
 Emotion defaults, floors, and ceilings are in `packages/shared/src/constants.ts`. Runtime overrides via `config/truman-config.json` `emotions` field.
 
-## Production Deployment (24/7 Streaming)
+## Production Deployment
 
 ### Prerequisites
 - VPS: Hetzner CPX31 (4 vCPU, 8 GB RAM) or equivalent
 - Docker + Docker Compose
-- Twitch/YouTube stream key
+- Domain name (optional, for auto-HTTPS via Caddy)
 
-### Deploy
+### Deploy (V1.0 Web App)
 ```bash
 # Configure
 cp .env.example .env
-# Edit .env: set RTMP_URL, OPENROUTER_API_KEY, TWITCH_* credentials
+# Edit .env — required variables:
+#   OPENROUTER_API_KEY    — LLM provider
+#   ADMIN_PASSWORD        — admin panel password
+#   JWT_SECRET            — JWT signing secret (32+ chars)
+#   POSTGRES_PASSWORD     — database password (change from default!)
+#   CORS_ORIGIN           — your domain (e.g., https://yourdomain.com)
+#   DOMAIN                — your domain for Caddy auto-HTTPS
 
 # Harden VPS (firewall, fail2ban, SSH hardening)
 sudo bash scripts/harden-vps.sh
 
-# Start production stack
+# Start production stack (web app + brain API)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 # Verify all services are healthy
 docker compose ps
+
+# Run smoke tests
+bash scripts/smoke-test.sh http://localhost:3001 "$ADMIN_PASSWORD"
+```
+
+### Deploy with Streaming (optional)
+```bash
+# Add streaming profile (Chromium + FFmpeg → RTMP)
+# Also set RTMP_URL in .env
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile streaming up -d --build
 ```
 
 ### Production Services
-| Service | Purpose |
-|---------|---------|
-| `app` | Phaser game + AI brain (port 5173) |
-| `streamer` | Chromium + FFmpeg → RTMP stream |
-| `caddy` | Reverse proxy with auto-HTTPS |
-| `postgres` | Memory & state persistence |
-| `redis` | BullMQ job queue |
+| Service | Purpose | Port |
+|---------|---------|------|
+| `app` | Companion web (static) + brain API | 5173, 3001 |
+| `caddy` | Reverse proxy, auto-HTTPS | 80, 443 |
+| `postgres` | Memory & state persistence | internal |
+| `redis` | BullMQ job queue | internal |
+| `streamer` | Chromium + FFmpeg → RTMP (optional) | - |
 
-### Streaming Features
-- **Twitch bot**: `!status`, `!mood`, `!activity` commands
-- **Channel Points**: "Change weather", "Send letter"
-- **Viewer voting**: Time-windowed activity votes
-- **3-layer chat sanitizer**: profanity, spam, injection detection
-- **Browser recycling**: Auto-restart Chromium every 4-8h for stability
-- **Companion website**: Stream embed, live status, AI disclosure
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENROUTER_API_KEY` | Yes | LLM API key from OpenRouter |
+| `ADMIN_PASSWORD` | Yes | Admin panel password |
+| `JWT_SECRET` | Yes | JWT signing secret (min 32 chars) |
+| `POSTGRES_PASSWORD` | Yes | Database password |
+| `CORS_ORIGIN` | Prod | Comma-separated allowed origins |
+| `DOMAIN` | Prod | Domain for Caddy auto-HTTPS |
+| `BRAVE_SEARCH_API_KEY` | No | Web search (free tier: 2000/mo) |
+| `DAILY_COST_CAP_USD` | No | Max daily API spend (default $5) |
+
+See `.env.example` for all available variables.
 
 See [Runbook](RUNBOOK.md) for full operational procedures.
 

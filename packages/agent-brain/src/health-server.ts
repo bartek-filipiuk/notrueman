@@ -71,10 +71,31 @@ const memoryCountGauge = new Gauge({
   help: "Number of stored memories",
 });
 
-/** CORS origins: only localhost in dev */
+/** CORS origins: configurable via CORS_ORIGIN env var */
+function getAllowedOrigins(): string[] {
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (corsOrigin) {
+    return corsOrigin.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  // Default: localhost only (dev)
+  return ["http://localhost:5173", "http://localhost:3001"];
+}
+
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return false;
-  return /^https?:\/\/localhost(:\d+)?$/.test(origin);
+  const allowed = getAllowedOrigins();
+  // Exact match against whitelist — no wildcards
+  if (allowed.includes(origin)) return true;
+  // Also allow any localhost origin in dev (when no CORS_ORIGIN set)
+  if (!process.env.CORS_ORIGIN) {
+    return /^https?:\/\/localhost(:\d+)?$/.test(origin);
+  }
+  return false;
+}
+
+/** WebSocket origin check */
+function isAllowedWSOrigin(origin: string | undefined): boolean {
+  return isAllowedOrigin(origin);
 }
 
 /**
@@ -325,8 +346,35 @@ export async function createHealthServer(
     }
   }
 
+  const HEARTBEAT_INTERVAL_MS = 30_000;
+  const IDLE_TIMEOUT_MS = 5 * 60_000; // 5 minutes
+
+  function setupHeartbeat(socket: WebSocket, onTimeout: () => void): NodeJS.Timeout {
+    let lastPong = Date.now();
+    socket.on("pong", () => { lastPong = Date.now(); });
+    const interval = setInterval(() => {
+      if (Date.now() - lastPong > IDLE_TIMEOUT_MS) {
+        clearInterval(interval);
+        onTimeout();
+        return;
+      }
+      if (socket.readyState === 1) {
+        socket.ping();
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+    socket.on("close", () => clearInterval(interval));
+    return interval;
+  }
+
   /** Public mind feed — streams filtered events (TM.4) */
   app.get("/ws/mind-feed", { websocket: true }, (socket, request) => {
+    // Origin check (TP.3)
+    const origin = request.headers.origin;
+    if (process.env.CORS_ORIGIN && !isAllowedWSOrigin(origin)) {
+      socket.close(1008, "Origin not allowed");
+      return;
+    }
+
     const ip = getClientIP(request);
 
     if (publicClients.size >= MAX_PUBLIC_CONNECTIONS || !checkIPLimit(ip)) {
@@ -336,6 +384,11 @@ export async function createHealthServer(
 
     publicClients.add(socket);
     trackIPConnection(ip, 1);
+
+    // Heartbeat + idle disconnect (TP.3)
+    setupHeartbeat(socket, () => {
+      socket.close(1000, "Idle timeout");
+    });
 
     socket.on("close", () => {
       publicClients.delete(socket);
@@ -352,6 +405,13 @@ export async function createHealthServer(
 
   /** Admin feed — streams ALL events, requires JWT (TM.5) */
   app.get("/ws/admin-feed", { websocket: true }, (socket, request) => {
+    // Origin check (TP.3)
+    const origin = request.headers.origin;
+    if (process.env.CORS_ORIGIN && !isAllowedWSOrigin(origin)) {
+      socket.close(1008, "Origin not allowed");
+      return;
+    }
+
     const url = new URL(request.url ?? "", "http://localhost");
     const token = url.searchParams.get("token");
 
@@ -368,6 +428,11 @@ export async function createHealthServer(
 
     adminClients.add(socket);
     trackIPConnection(ip, 1);
+
+    // Heartbeat + idle disconnect (TP.3)
+    setupHeartbeat(socket, () => {
+      socket.close(1000, "Idle timeout");
+    });
 
     socket.on("close", () => {
       adminClients.delete(socket);

@@ -27,15 +27,21 @@ docker compose ps           # All services "Up (healthy)"
 docker compose logs -f app  # Check app is serving
 ```
 
+### Smoke Test
+```bash
+# Run after deploy to verify all endpoints
+bash scripts/smoke-test.sh http://localhost:3001 "$ADMIN_PASSWORD"
+```
+
 ## Service Architecture
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| `app` | 5173 | Phaser game renderer + brain |
-| `streamer` | — | Chromium + FFmpeg → RTMP |
+| `app` | 5173, 3001 | Companion web (static) + brain API |
+| `streamer` | — | Chromium + FFmpeg → RTMP (optional, `--profile streaming`) |
 | `caddy` | 80, 443 | Reverse proxy, auto-HTTPS |
-| `postgres` | 5432 | Memory + state persistence |
-| `redis` | 6379 | BullMQ job queue |
+| `postgres` | internal | Memory + state persistence |
+| `redis` | internal | BullMQ job queue |
 
 ## Restart
 
@@ -82,8 +88,11 @@ All services configured with `max-size: 50m`, `max-file: 3-5`. No manual cleanup
 # Check service health status
 docker compose ps
 
-# Manual health check
-curl -sf http://localhost:5173/ && echo "OK" || echo "DOWN"
+# Manual health check (brain API)
+curl -sf http://localhost:3001/health && echo "OK" || echo "DOWN"
+
+# Prometheus metrics
+curl -sf http://localhost:3001/metrics
 ```
 
 ### Resource usage

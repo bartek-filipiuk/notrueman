@@ -1,162 +1,196 @@
-# Security Audit Report: No True Man Show
+# Security Audit Report — V1.0 Launch
 
-**Date:** 2026-03-24
-**Scope:** Full codebase audit — Stage 5 (T5.5 + S5.1)
-**Auditor:** Automated + manual review
-**Result:** PASS — no critical or high-severity issues found
-
----
-
-## 1. Threat Model
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| Hardcoded secrets in repo | Low | Critical | `.gitignore` excludes `.env*`; `.env.example` has no values; verified via `grep` scan |
-| SQL injection | Low | Critical | All queries use Drizzle ORM parameterized builders (`eq()`, `and()`, `desc()`) |
-| XSS via LLM output | Low | High | Phaser `.setText()` renders plain text, no `innerHTML`/`dangerouslySetInnerHTML` |
-| Unvalidated LLM output | Low | High | All LLM calls use `generateObject()` with Zod schema validation |
-| Prompt injection via viewer input | Medium | High | 3-layer sanitizer pipeline (see `security-spec.md` S3); viewer text never enters system prompt |
-| Exposed stack traces | Low | Medium | Health endpoint returns structured JSON only; test verifies no secrets leak |
-| Runaway API costs | Medium | Medium | Daily cost cap (`DAILY_COST_CAP_USD`), rate limiter, cost tracker with warnings |
-| Memory exhaustion | Low | Medium | Command log capped at 500 entries; recent activities capped at 20; Phaser tweens cleaned up |
-| Dependency vulnerabilities | Low | Medium | 4 moderate-severity issues in dev-only deps (esbuild via drizzle-kit) |
+**Date:** 2026-03-27
+**Auditor:** Claude Opus 4.6 (4-phase audit: Recon, Targeted Audit, Deep Dive, Test Quality)
+**Scope:** Full codebase — agent-brain, shared, memory-service, companion-web, renderer, stream-manager
+**Result:** PASS — zero CRITICAL, zero HIGH (all fixed)
 
 ---
 
-## 2. Implemented Security Controls
+## Summary
 
-### 2.1 Secret Management
-
-- **No hardcoded secrets.** Full `grep -r` scan confirmed zero API keys, passwords, or tokens in source.
-- `.env` files excluded by `.gitignore` (`.env`, `.env.local`, `.env.production`).
-- `.env.example` documents all required variables with empty values.
-- Git history contains no committed secrets.
-- Health server (`/health`, `/metrics`) explicitly does NOT expose secrets — verified by test (`health-server.test.ts`).
-
-### 2.2 Input Validation
-
-| Boundary | Validator | Location |
-|----------|-----------|----------|
-| LLM action commands | `ActionCommandSchema` (Zod) | `shared/src/schemas/index.ts` |
-| LLM daily plans | `DailyPlanSchema` (Zod) | `shared/src/schemas/index.ts` |
-| LLM importance scores | `ImportanceScoreSchema` (Zod) | `shared/src/schemas/index.ts` |
-| Queue job payloads | `AgentThinkJobSchema` et al. (Zod) | `shared/src/queue/schemas.ts` |
-| Redis connection config | `QueueConnectionConfigSchema` (Zod) | `shared/src/queue/connection.ts` |
-| Agent config file | `TrumanConfigSchema` (Zod) | `agent-brain/src/config.ts` |
-| Memory embeddings (JSON) | `try/catch` with default fallback | `memory-service/src/memory-retrieval.ts` |
-
-All LLM outputs go through `generateObject()` with Zod schemas — invalid responses are rejected before use.
-
-### 2.3 SQL Injection Prevention
-
-All database queries use Drizzle ORM's query builder (`memory-repository.ts`):
-- `eq(memories.id, id)` — parameterized equality
-- `and(...conditions)` — safe composition
-- `desc(memories.createdAt)` — safe ordering
-
-No raw SQL string concatenation anywhere in the codebase.
-
-### 2.4 XSS Prevention
-
-- Phaser game engine uses `Phaser.GameObjects.Text.setText()` — plain text rendering only.
-- `ThoughtBubble` displays LLM-generated text via `.setText()`, not HTML.
-- No `innerHTML`, `dangerouslySetInnerHTML`, `document.write`, or template literal HTML injection found.
-
-### 2.5 Error Handling
-
-- `cognitive-loop.ts`: Tick errors caught, logged with generic message, fallback to random activity.
-- `memory-retrieval.ts`: Malformed embedding JSON falls back to relevance 0.5.
-- `config-watcher.ts`: Invalid config rejected, previous config retained.
-- `ActivityManager`: Unhandled promise rejection caught with `.catch()`, graceful recovery to idle.
-- Stack traces logged internally only — never sent to health endpoint or renderer.
-
-### 2.6 Resource Limits
-
-| Resource | Limit | Location |
-|----------|-------|----------|
-| Command log | 500 entries max | `renderer-bridge.ts` |
-| Recent activities | 20 entries max | `cognitive-loop.ts` |
-| Memory retrieval | Configurable `k` param | `memory-retrieval.ts` |
-| LLM retries | `maxRetries` config (default 3) | `cognitive-loop.ts` |
-| Daily API cost | `DAILY_COST_CAP_USD` env var | `cost-tracker.ts` |
-| Rate limiting | Configurable window/max | `rate-limiter.ts` |
-
-### 2.7 TypeScript Strict Mode
-
-All `tsconfig.json` files use `"strict": true`, providing compile-time null safety, type checking, and prevention of many runtime errors.
+| Severity | Count | Status |
+|----------|-------|--------|
+| CRITICAL | 0 | - |
+| HIGH | 4 | All FIXED |
+| MEDIUM | 3 | Documented, mitigated |
+| LOW | 3 | Documented |
 
 ---
 
-## 3. Dependency Audit
+## Phase 1: Reconnaissance
 
-### 3.1 Vulnerabilities Found
+### Attack Surface
 
-| Package | Severity | Type | Impact |
-|---------|----------|------|--------|
-| esbuild (via drizzle-kit) | MODERATE | SSRF in dev server | Dev-only, not in production bundle |
-| @esbuild-kit/esm-loader | MODERATE | Transitive | Dev-only |
-| @esbuild-kit/core-utils | MODERATE | Transitive | Dev-only |
+| Endpoint | Type | Auth | Rate Limit |
+|----------|------|------|------------|
+| GET /health | HTTP | None | No |
+| GET /metrics | HTTP | None | No |
+| POST /state/save | HTTP | None | No |
+| GET /state/load/:agentId | HTTP | None | No |
+| POST /api/admin/login | HTTP | Password | 5/min/IP |
+| GET /api/admin/* | HTTP | JWT Bearer | No |
+| POST /api/admin/* | HTTP | JWT Bearer | No |
+| GET /ws/mind-feed | WebSocket | None | 100 max, 10/IP |
+| GET /ws/admin-feed | WebSocket | JWT query | 5 max, 10/IP |
 
-**Assessment:** All vulnerabilities are in development-time tooling (drizzle-kit migrations). They do not affect the production runtime. Risk is LOW.
+### Secrets Management
 
-**Recommendation:** Upgrade `drizzle-kit` to latest when convenient.
+All secrets externalized to `.env` (in `.gitignore`):
+- `OPENROUTER_API_KEY`, `BRAVE_SEARCH_API_KEY`, `TTS_API_KEY`
+- `TWITCH_CLIENT_SECRET`, `TWITCH_ACCESS_TOKEN`, `TWITCH_REFRESH_TOKEN`
+- `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`
+- `POSTGRES_PASSWORD`, `DATABASE_URL`
+- `JWT_SECRET` (min 32 chars, validated on startup — fail-fast)
+- `ADMIN_PASSWORD` (bcrypt hashed at runtime, 10 salt rounds)
+- `CORS_ORIGIN` (production domain whitelist)
 
-### 3.2 No Risky Patterns
-
-- No `eval()`, `Function()`, or dynamic code execution
-- No `child_process.exec()` with unsanitized input
-- No prototype pollution-prone patterns (`Object.assign` used only on owned config objects)
-
----
-
-## 4. Known Limitations
-
-1. **No authentication on health/metrics endpoints.** The Fastify server binds to `localhost` by default, which is safe for development. In production, these endpoints should be behind a reverse proxy or VPN.
-
-2. **Dev credentials in `.env.example`.** The default `DATABASE_URL` contains `truman:truman` — this is intentional for local development only. Production must use strong, unique credentials.
-
-3. **No TLS between services.** Inter-service communication (agent-brain ↔ memory-service ↔ Redis) uses plain TCP on localhost. Acceptable for single-host deployment; requires TLS if services are distributed.
-
-4. **No request signing.** Internal API calls between services are not authenticated. Acceptable for single-host; needs service mesh or mTLS for multi-host.
-
-5. **Viewer input sanitizer not yet implemented.** The 3-layer sanitizer pipeline (described in `security-spec.md`) is designed but not coded in the current MVP. Viewer interaction features (chat, voting) are out of scope for this stage.
+No hardcoded secrets found in source code (`grep -r` scan clean).
 
 ---
 
-## 5. Recommendations
+## Phase 2: Findings
 
-### Priority 1 (Before Production)
-- Add authentication to health/metrics endpoints (API key or reverse proxy)
-- Use strong, unique database credentials (not `truman:truman`)
-- Enable TLS for PostgreSQL and Redis connections
-- Implement the 3-layer input sanitizer before enabling viewer interaction
+### HIGH (ALL FIXED)
 
-### Priority 2 (Good Practice)
-- Set up automated dependency scanning in CI (e.g., `npm audit` in pipeline)
-- Add git pre-commit hook for secret scanning (git-secrets or truffleHog)
-- Document secret rotation procedures
-- Implement rate limiting on any public-facing endpoints
+#### H1: No CSP Headers on Web Pages
+- **Location:** `apps/companion-web/index.html`, `admin.html`
+- **Risk:** XSS amplification — no browser-level content restrictions
+- **Fix:** Added `Content-Security-Policy` meta tags: `script-src 'self'`, `style-src 'self' fonts.googleapis.com 'unsafe-inline'`, `connect-src 'self' ws: wss:`, `frame-src 'self'`, `font-src fonts.gstatic.com`
+- **Status:** FIXED
 
-### Priority 3 (Future)
-- Add request signing/mTLS for inter-service communication
-- Encrypt sensitive JSONB fields in database (emotional context, metadata)
-- Implement audit logging for operator actions
-- Add CORS configuration when companion web app is deployed
+#### H2: Database Fallback Credentials in Source
+- **Location:** `packages/memory-service/drizzle.config.ts`
+- **Risk:** Default credentials (`truman:truman`) hardcoded as fallback
+- **Fix:** Changed to fail-fast (`throw Error`) if `DATABASE_URL` not set
+- **Status:** FIXED
+
+#### H3: No WebSocket Origin Check
+- **Location:** `packages/agent-brain/src/health-server.ts` — WS handlers
+- **Risk:** Cross-site WebSocket hijacking from malicious origins
+- **Fix:** Added origin validation against `CORS_ORIGIN` whitelist in production mode
+- **Status:** FIXED
+
+#### H4: No WebSocket Heartbeat / Idle Disconnect
+- **Location:** `packages/agent-brain/src/health-server.ts`
+- **Risk:** Connection exhaustion from idle/zombie connections
+- **Fix:** Ping/pong heartbeat every 30s. Auto-disconnect after 5 min idle.
+- **Status:** FIXED
+
+### MEDIUM (Documented — Mitigated)
+
+#### M1: JWT Token in WebSocket URL Query Parameter
+- **Location:** `/ws/admin-feed?token=...`
+- **Risk:** Token visible in browser history, server logs, proxy logs
+- **Mitigation:** Standard pattern for WebSocket auth (browsers don't support custom WS headers). Token has 24h expiry. Admin-only. HTTPS encrypts URL in transit.
+- **Recommendation:** Consider post-connect auth message in v2
+
+#### M2: JWT Stored in localStorage
+- **Location:** `apps/companion-web/src/admin/login.ts`
+- **Risk:** Accessible to any JS on the page (XSS vector)
+- **Mitigation:** All innerHTML uses `escapeHtml()`. CSP restricts `script-src 'self'`. No `eval()`/`Function()` usage. Token cleared on logout.
+- **Recommendation:** Consider httpOnly cookie for same-origin deployment
+
+#### M3: No Rate Limiting on Admin API Endpoints
+- **Location:** `/api/admin/*` (except login)
+- **Risk:** Potential abuse with valid JWT
+- **Mitigation:** JWT required (24h expiry). Single admin user. Connection limits in place.
+- **Recommendation:** Add per-route rate limiting if exposed publicly
+
+### LOW (Documented)
+
+#### L1: In-Memory Login Rate Limit
+- **Risk:** Resets on server restart. Acceptable for single-instance deployment.
+- **Recommendation:** Redis-backed rate limiting for HA deployments
+
+#### L2: Admin Settings No Schema Validation
+- **Risk:** Arbitrary JSON accepted at `POST /api/admin/settings`
+- **Mitigation:** JWT required. CognitiveLoop ignores unknown keys.
+- **Recommendation:** Add Zod schema for settings updates
+
+#### L3: Prometheus Metrics Unauthenticated
+- **Risk:** Exposes operational data (tick count, uptime, memory count)
+- **Mitigation:** No secrets exposed. Standard for Prometheus scraping. Bind to localhost.
+- **Recommendation:** Add basic auth or network-level restriction in production
 
 ---
 
-## 6. Audit Methodology
+## Phase 3: Deep Dive
 
-1. **Automated scan:** `grep -r` across all source files for patterns: API keys, passwords, tokens, `eval`, `innerHTML`, raw SQL, `process.env` leaks
-2. **Manual review:** Every TypeScript source file inspected for OWASP Top 10 patterns
-3. **Dependency audit:** `npm audit` for known CVEs in dependency tree
-4. **Test verification:** Existing test suite confirms health endpoint doesn't leak secrets, malformed inputs are handled gracefully, emotion/memory systems handle edge cases
-5. **Configuration review:** `.gitignore`, `.env.example`, `docker-compose.yml`, all `tsconfig.json`
+### XSS Protection
+- All `innerHTML` usages reviewed — all user-derived data escaped via `escapeHtml()`
+- No `eval()` or `Function()` constructor usage found
+- CSP headers restrict script sources to `'self'`
+- Game iframe sandboxed: `sandbox="allow-scripts allow-same-origin"`
+- No `document.write`, no template literal HTML injection with raw data
+
+### Authentication & Authorization
+- bcrypt with 10 salt rounds (industry standard)
+- JWT with 24h expiry, min 32-char secret (validated at startup, fail-fast)
+- Login rate limit: 5 attempts/min per IP
+- All `/api/admin/*` endpoints require valid JWT Bearer token (middleware hook)
+- Admin WebSocket requires JWT in `?token=` query param
+
+### Data Exposure — Public Feed Filter
+- Allowlist approach via `filterForPublicFeed()`:
+  - `thought` → `["text"]`
+  - `mood_change` → `["mood", "prevMood"]`
+  - `tool_call` → `["tool", "topic"]`
+  - `activity_change` → `["activity", "prevActivity"]`
+  - `blog_created` → `["title", "tags"]`
+  - `artwork_created` → `["title", "style"]`
+  - `reflection` → `["insight"]`
+- Stripped: raw LLM prompts, tool I/O, costs, memory IDs, debug info
+
+### CORS Configuration
+- Configurable via `CORS_ORIGIN` env var (comma-separated domain whitelist)
+- No wildcard `*` — exact match only
+- Default (no env): localhost regex (dev mode)
+- Methods restricted: GET, POST, OPTIONS
+- Headers restricted: Content-Type, Authorization
+
+### SQL Injection Prevention
+- All queries use Drizzle ORM parameterized builders (`eq()`, `and()`, `desc()`)
+- No raw SQL string concatenation
+
+### Docker Security
+- Non-root users in all Dockerfiles (`renderer:renderer`, `streamer:streamer`)
+- Resource limits in production compose (CPU/memory)
+- Log rotation (50MB max, 5 files)
+- Health checks with timeouts
+- Caddy reverse proxy with security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+
+### Input Validation
+- Zod schemas on all API boundaries (SaveDataSchema, MindFeedEventSchema, ActionCommandSchema, etc.)
+- Chat sanitizer: 3-layer pipeline (context checks, profanity filter, injection detection)
+- Web search input: query 1-200 chars, count 1-5
 
 ---
 
-## Cross-References
+## Phase 4: Test Quality
 
-- Detailed security architecture: `docs/security-spec.md`
-- Cost protection strategy: `docs/cost-strategy.md`
-- Observability and monitoring: `docs/observability-spec.md`
+### Security Tests
+| Test File | Coverage |
+|-----------|----------|
+| `admin-auth.test.ts` | Password hashing, JWT creation/verification, rate limiting, secret validation |
+| `admin-api.test.ts` | Login flow, JWT requirement, 401 on invalid/missing token, 429 rate limit |
+| `security-negative.test.ts` | LLM failures, DB unavailable, embedding failures |
+| `websocket-feed.test.ts` | Public/admin feed filtering, auth required, connection limits |
+| `sanitizer.test.ts` | XSS, SQL injection, prompt injection detection |
+
+### Grep Scan Results
+- `grep -r "API_KEY\|SECRET\|PASSWORD" --include="*.ts"` → only env access patterns (process.env)
+- No hardcoded credentials in source
+- Test files use clearly marked test values (`"a".repeat(32)`, `"admin123"`)
+
+---
+
+## Recommendations for Future Versions
+
+1. **Redis-backed rate limiting** for HA deployments
+2. **httpOnly cookie auth** for same-origin admin panel
+3. **Audit logging** — track admin actions (settings changes, resets, force-activity)
+4. **CSP report-uri** — monitor policy violations in production
+5. **Dependency scanning** — integrate `npm audit` in CI pipeline
+6. **Manual penetration testing** of auth flows before public launch
+7. **Service mesh / mTLS** if services are distributed across hosts

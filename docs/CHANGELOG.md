@@ -1,5 +1,32 @@
 # Changelog
 
+## [V1.0 — Stage P: Security Audit + Deployment] - 2026-03-27
+
+### Security
+- Full 4-phase security audit: Recon → Targeted Audit → Deep Dive → Test Quality
+- Zero CRITICAL, zero HIGH findings (4 HIGH found and fixed)
+- CSP headers added to all HTML pages (script-src, style-src, connect-src restrictions)
+- Database fallback credentials removed (fail-fast if DATABASE_URL not set)
+- WebSocket origin check against CORS_ORIGIN whitelist in production
+- WebSocket heartbeat ping/pong (30s) and idle timeout (5 min auto-disconnect)
+- CORS configurable via CORS_ORIGIN env var (comma-separated whitelist, no wildcards)
+- Full audit documented in docs/SECURITY.md
+
+### Deployment
+- Multi-stage Dockerfile: companion-web + renderer (static) + agent-brain API (Node.js)
+- Updated docker-compose.prod.yml: API service with all env vars, internal-only DB/Redis ports
+- Caddyfile: reverse proxy for API (/api/*, /ws/*, /health, /metrics) + static companion-web
+- Streamer service moved to optional "streaming" profile
+- Security headers in Caddy: X-XSS-Protection, Permissions-Policy
+
+### Added
+- `scripts/smoke-test.sh`: health check, WebSocket, admin login, state save/load verification
+- `docs/SECURITY.md`: comprehensive V1.0 audit report
+- `docs/RUNBOOK.md`: production operations guide
+
+### Changed
+- `.env.example`: added CORS_ORIGIN variable
+
 ## [Stage O — Companion Web Redesign] - 2026-03-27
 
 ### Added

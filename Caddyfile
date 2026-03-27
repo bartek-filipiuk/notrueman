@@ -1,15 +1,36 @@
-# Caddy reverse proxy for No True Man Show
-# Replace {$DOMAIN} with your actual domain in .env, or use :80 for HTTP-only
+# Caddy reverse proxy for No True Man Show V1.0
+# Set DOMAIN in .env (e.g., yourdomain.com) for auto-HTTPS, or leave as localhost
 
 {$DOMAIN:localhost} {
-	# Renderer game
-	reverse_proxy app:5173
-
 	# Security headers
 	header {
 		X-Content-Type-Options nosniff
 		X-Frame-Options SAMEORIGIN
 		Referrer-Policy strict-origin-when-cross-origin
+		X-XSS-Protection "1; mode=block"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	# API + WebSocket endpoints → brain API on :3001
+	handle /health {
+		reverse_proxy app:3001
+	}
+	handle /metrics {
+		reverse_proxy app:3001
+	}
+	handle /api/* {
+		reverse_proxy app:3001
+	}
+	handle /state/* {
+		reverse_proxy app:3001
+	}
+	handle /ws/* {
+		reverse_proxy app:3001
+	}
+
+	# Everything else → companion-web static on :5173
+	handle {
+		reverse_proxy app:5173
 	}
 
 	# Gzip
