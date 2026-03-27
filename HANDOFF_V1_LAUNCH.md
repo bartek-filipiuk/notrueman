@@ -49,27 +49,27 @@ Stage P (Security Audit + Deployment)
 - [x] TM.5: Admin feed — w admin-feed WebSocket: WSZYSTKO bez filtrowania. Pełne prompty, tool I/O z wartościami, koszty per call, emotion deltas (stare→nowe), memory IDs, timing per operation. Wymaga JWT token w `?token=`. (implement → test auth required)
 - [x] TM.6: Client reconnect helper — nowy `apps/companion-web/src/ws-client.ts`. Auto-reconnect z exponential backoff (1s, 2s, 4s, max 30s). Parse JSON events. Callback pattern: `onEvent(event: MindFeedEvent)`. Connection status indicator. (implement → test reconnect)
 - [x] TM.7: Wire brain → WebSocket — w health-server: listen na CognitiveLoop events → broadcast do WebSocket clients. Jeśli brain nie uruchomiony → status message "brain offline". (implement → verify E2E)
-- [ ] TM.8: Testy — unit: event types Zod, filter logic, reconnect backoff. Integration: WebSocket mock server, event emission → client receive. `turbo test` zielone. (test → verify green)
+- [x] TM.8: Testy — unit: event types Zod, filter logic, reconnect backoff. Integration: WebSocket mock server, event emission → client receive. `turbo test` zielone. (test → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SM.1: Admin feed wymaga JWT — połączenie bez tokena = disconnect. (test)
-- [ ] SM.2: Public feed nie ujawnia secrets, raw LLM, kosztów. (verify filter)
-- [ ] SM.3: Max connections: 100 public + 5 admin. Rate limit: max 10 connections/IP. (implement)
-- [ ] SM.4: `turbo test` przechodzi. (verify)
+- [x] SM.1: Admin feed wymaga JWT — połączenie bez tokena = disconnect. (test)
+- [x] SM.2: Public feed nie ujawnia secrets, raw LLM, kosztów. (verify filter)
+- [x] SM.3: Max connections: 100 public + 5 admin. Rate limit: max 10 connections/IP. (implement)
+- [x] SM.4: `turbo test` przechodzi. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DM.1: Update `docs/CHANGELOG.md` — wpis Stage M.
-- [ ] DM.2: Update `docs/API.md` — WebSocket endpoints, event types.
+- [x] DM.1: Update `docs/CHANGELOG.md` — wpis Stage M.
+- [x] DM.2: Update `docs/API.md` — WebSocket endpoints, event types.
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCM.1: Self-check — WebSocket /ws/mind-feed streamuje thoughts.
-- [ ] SCM.2: Self-check — admin feed wymaga JWT.
-- [ ] SCM.3: Self-check — public feed nie zawiera secrets.
-- [ ] SCM.4: Self-check — testy zielone.
-- [ ] SCM.5: Zaktualizuj HANDOFF → [x].
+- [x] SCM.1: Self-check — WebSocket /ws/mind-feed streamuje thoughts.
+- [x] SCM.2: Self-check — admin feed wymaga JWT.
+- [x] SCM.3: Self-check — public feed nie zawiera secrets.
+- [x] SCM.4: Self-check — testy zielone.
+- [x] SCM.5: Zaktualizuj HANDOFF → [x].
 
 **Stage M DoD:** Brain tick → event emitted → WebSocket broadcast → client receives thought/mood/tool event w realtime. Admin feed z pełnym debug.
 

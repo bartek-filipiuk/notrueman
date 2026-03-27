@@ -1,5 +1,26 @@
 # Changelog
 
+## [Stage M — WebSocket Mind Feed + Event System] - 2026-03-27
+
+### Added
+- `MindFeedEvent` types with Zod schemas in `packages/shared/src/types/mind-feed.ts`
+- 7 event types: thought, mood_change, tool_call, activity_change, blog_created, artwork_created, reflection
+- `filterForPublicFeed()` strips sensitive data (raw prompts, costs, memory IDs, tool I/O) from public events
+- `PUBLIC_ALLOWED_FIELDS` whitelist per event type
+- CognitiveLoop extends `EventEmitter`, emits `mindFeedEvent` at key points in cognitive tick
+- WebSocket server via `@fastify/websocket`:
+  - `GET /ws/mind-feed` — public feed (filtered events only)
+  - `GET /ws/admin-feed` — admin feed (all events, JWT required via `?token=`)
+- Connection limits: 100 public, 5 admin, 10/IP rate limit
+- `MindFeedClient` in companion-web: auto-reconnect with exponential backoff (1s→30s max)
+- Brain → WebSocket wiring: CognitiveLoop events auto-broadcast to all connected clients
+- 35+ new tests covering event types, filter logic, EventEmitter behavior, WebSocket server
+
+### Security
+- Admin feed requires JWT token — unauthorized connections disconnected (SM.1)
+- Public feed strips raw LLM prompts, costs, tool inputs/outputs, memory IDs, debug info (SM.2)
+- Max 100 public + 5 admin connections, 10/IP rate limit (SM.3)
+
 ## [Stage L — Activity Panel UI] - 2026-03-26
 
 ### Added

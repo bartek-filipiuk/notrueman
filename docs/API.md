@@ -348,6 +348,62 @@ nts_uptime_seconds 12345
 nts_memory_count 150
 ```
 
+## WebSocket Endpoints
+
+### GET /ws/mind-feed
+
+Public WebSocket endpoint for streaming Truman's thoughts, moods, and activities in real-time. Auto-upgrades HTTP to WebSocket.
+
+**Connection:** `ws://localhost:3001/ws/mind-feed`
+
+**Events received:**
+
+```typescript
+interface PublicMindFeedEvent {
+  type: "thought" | "mood_change" | "tool_call" | "activity_change" | "blog_created" | "artwork_created" | "reflection";
+  timestamp: number;
+  data: Record<string, unknown>;
+}
+```
+
+**Allowed data fields per type:**
+| Type | Fields |
+|---|---|
+| `thought` | `text` |
+| `mood_change` | `mood`, `prevMood` |
+| `tool_call` | `tool`, `topic` |
+| `activity_change` | `activity`, `prevActivity` |
+| `blog_created` | `title`, `tags` |
+| `artwork_created` | `title`, `style` |
+| `reflection` | `insight` |
+
+**Security:** Raw LLM prompts, costs, tool inputs/outputs, memory IDs, and debug info are stripped.
+
+**Limits:** Max 100 connections, 10 per IP.
+
+### GET /ws/admin-feed
+
+Admin WebSocket endpoint streaming ALL unfiltered events including raw prompts, tool I/O, costs, emotion deltas, and memory IDs.
+
+**Connection:** `ws://localhost:3001/ws/admin-feed?token=<JWT>`
+
+**Authentication:** JWT token required as `token` query parameter. Connections without valid JWT are immediately closed with code 1008.
+
+**Events:** Same `MindFeedEvent` type but with all data fields unfiltered, plus `public: boolean` field.
+
+**Limits:** Max 5 connections, 10 per IP.
+
+### MindFeedEvent Schema (Zod)
+
+```typescript
+const MindFeedEventSchema = z.object({
+  type: MindFeedEventTypeSchema,  // 7 event types
+  timestamp: z.number(),
+  data: z.record(z.string(), z.unknown()),
+  public: z.boolean(),
+});
+```
+
 ## BullMQ Queues
 
 | Queue | Job Schema | Description |
