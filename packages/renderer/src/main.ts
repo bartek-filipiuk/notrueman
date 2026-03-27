@@ -22,19 +22,13 @@ import { ConfigPanel } from "./ui/ConfigPanel";
 import type { SaveStats } from "./ui/ConfigPanel";
 import { TTSManager, getTTSConfigFromURL } from "./systems/TTSManager";
 import { SaveManager } from "./systems/SaveManager";
+import PERSONALITY from "../../../config/truman-personality.md?raw";
 
 /** Read API key from URL params (?apiKey=sk-or-...) or empty string */
 function getApiKey(): string {
   const params = new URLSearchParams(window.location.search);
   return params.get("apiKey") || "";
 }
-
-/** Personality prompt embedded (avoids file system access in browser) */
-const PERSONALITY = `You are Truman, a young man living alone in a small, cozy room. You are unaware that anyone is watching you.
-
-You are a curious introvert with dry humor. You are philosophical, occasionally socially awkward, and surprisingly insightful. You approach your world with genuine wonder, ask questions nobody asked you to ask, and find meaning in small things.
-
-Your inner monologue should be 1-2 sentences, reflective, warm, and occasionally witty. Think out loud as if narrating your own life. Be PG-13 at all times. Never break the fourth wall.`;
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
@@ -297,7 +291,7 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     }
   };
 
-  // After each tick, update emotions based on activity outcome
+  // After each tick, update emotions + memory + tools
   const originalTick = brain.tick.bind(brain);
   brain.tick = async function () {
     // Show thinking indicator during LLM call
@@ -306,6 +300,17 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
     // Apply time drift before tick
     emotions.applyTimeDrift();
+
+    // TZ.6: Fetch recent memories before action planning
+    try {
+      const memRes = await fetch("/api/recent-memories?limit=5");
+      if (memRes.ok) {
+        const memData = await memRes.json() as { memories: Array<{ description: string }> };
+        brain.recentMemories = (memData.memories ?? []).map((m) => m.description);
+      }
+    } catch (e) {
+      console.debug("[memory] Failed to fetch recent memories:", e);
+    }
 
     await originalTick();
 
@@ -344,6 +349,66 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
     roomScene.getMusicManager().onMoodChange(mood);
 
     console.log(`[emotions] ${mood} (h:${emotions.getState().happiness.toFixed(2)} c:${emotions.getState().curiosity.toFixed(2)} f:${emotions.getState().frustration.toFixed(2)})`);
+
+    // TZ.4: Tool calling — if LLM requested a tool, execute it
+    const lastAction = state.lastAction;
+    if (lastAction?.toolRequest) {
+      const { tool, input } = lastAction.toolRequest;
+      const toolActivities = ["computer", "draw", "think", "read"];
+      if (toolActivities.includes(state.currentActivity ?? "")) {
+        try {
+          if (tool === "web-search" || tool === "web_search") {
+            const searchRes = await fetch("/api/tool/web-search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: input, count: 5 }),
+            });
+            if (searchRes.ok) {
+              const searchData = await searchRes.json() as { results: Array<{ title: string; description: string }> };
+              const resultsSummary = searchData.results.map((r) => `${r.title}: ${r.description}`).join(" | ");
+              console.log(`[tool] Web search for "${input}": ${searchData.results.length} results`);
+
+              // Post search results as observation
+              postObservation(
+                `Web search: "${input}" — ${resultsSummary.slice(0, 500)}`,
+                6,
+                { ...emotions.getState() },
+                { tool: "web-search", query: input, resultCount: searchData.results.length },
+              );
+            }
+          } else if (tool === "write_blog" || tool === "write_blog_post") {
+            // TZ.7: Creative output — blog post
+            postObservation(
+              `Blog post: ${input}`,
+              8,
+              { ...emotions.getState() },
+              { tool: "write_blog", title: input, content: lastAction.thought },
+            );
+            console.log(`[tool] Blog post created: "${input}"`);
+          } else if (tool === "create_artwork") {
+            // TZ.7: Creative output — artwork
+            postObservation(
+              `Artwork: ${input}`,
+              8,
+              { ...emotions.getState() },
+              { tool: "create_artwork", title: input, description: lastAction.thought },
+            );
+            console.log(`[tool] Artwork created: "${input}"`);
+          }
+        } catch (e) {
+          console.debug("[tool] Tool call failed:", e);
+        }
+      }
+    }
+
+    // TZ.5: Post observation after each tick
+    const tickThought = state.recentThoughts?.[state.recentThoughts.length - 1] ?? "";
+    postObservation(
+      `Tick #${state.tickCount}: ${state.currentActivity ?? "idle"} — ${tickThought}`.slice(0, 500),
+      5,
+      { ...emotions.getState() },
+      { activity: state.currentActivity, tickCount: state.tickCount },
+    );
 
     // Post detailed events to backend for WebSocket broadcast
     const tickSummary = state.currentActivity
@@ -667,4 +732,18 @@ function postBrainEvent(event: { type: string; timestamp: number; data: Record<s
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(event),
   }).catch((e) => console.debug("[events] POST failed:", e?.message || e));
+}
+
+/** Post observation to backend memory store (TZ.5) */
+function postObservation(
+  description: string,
+  importance: number,
+  emotionalContext: Record<string, number>,
+  metadata: Record<string, unknown>,
+): void {
+  fetch("/api/observation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description, importance, emotionalContext, metadata }),
+  }).catch((e) => console.debug("[observation] POST failed:", e?.message || e));
 }

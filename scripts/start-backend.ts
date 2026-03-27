@@ -58,6 +58,23 @@ async function main() {
       statePersistence,
       adminAuth,
       llmCallLog,
+      createMemory: async (memory: {
+        agentId: string;
+        type: string;
+        description: string;
+        importance?: number;
+        emotionalContext?: Record<string, number>;
+        metadata?: Record<string, unknown>;
+      }) => {
+        return memoryRepo.createMemory({
+          agentId: memory.agentId,
+          type: memory.type as "observation" | "reflection" | "plan",
+          description: memory.description,
+          importance: memory.importance ?? 5,
+          emotionalContext: memory.emotionalContext ?? {},
+          metadata: memory.metadata ?? {},
+        });
+      },
       queryMemories: async (params: {
         type?: string;
         importance?: number;

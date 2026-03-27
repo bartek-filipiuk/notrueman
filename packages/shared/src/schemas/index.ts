@@ -88,6 +88,9 @@ export const ActionCommandSchema = z.object({
   durationSeconds: z.number().min(10).max(600),
   thought: z.string().max(200),
   reason: z.string().max(100),
+  continuePrevious: z.boolean().optional(),
+  durationMinutes: z.number().min(1).max(300).optional(),
+  toolRequest: z.object({ tool: z.string(), input: z.string() }).optional(),
 });
 export type ActionCommand = z.infer<typeof ActionCommandSchema>;
 
