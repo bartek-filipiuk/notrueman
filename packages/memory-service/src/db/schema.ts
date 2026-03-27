@@ -8,6 +8,7 @@ import {
   jsonb,
   index,
   integer,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -79,6 +80,34 @@ export const agentStateSnapshots = pgTable(
   ],
 );
 
+/** LLM call log — every AI call logged with prompt/response previews and cost */
+export const llmCalls = pgTable(
+  "llm_calls",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentId: text("agent_id").notNull(),
+    model: text("model").notNull(),
+    callType: text("call_type", {
+      enum: ["generateText", "generateObject", "generateWithTools"],
+    }).notNull(),
+    promptPreview: text("prompt_preview").notNull(),
+    systemPreview: text("system_preview"),
+    responsePreview: text("response_preview").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsd: numeric("cost_usd"),
+    durationMs: integer("duration_ms").notNull(),
+    success: boolean("success").notNull(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_llm_calls_agent_id").on(table.agentId),
+    index("idx_llm_calls_created_at").on(table.createdAt),
+    index("idx_llm_calls_model").on(table.model),
+  ],
+);
+
 // Types inferred from schema
 export type MemoryRow = typeof memories.$inferSelect;
 export type NewMemoryRow = typeof memories.$inferInsert;
@@ -86,3 +115,5 @@ export type ReflectionSourceRow = typeof reflectionSources.$inferSelect;
 export type NewReflectionSourceRow = typeof reflectionSources.$inferInsert;
 export type AgentStateSnapshotRow = typeof agentStateSnapshots.$inferSelect;
 export type NewAgentStateSnapshotRow = typeof agentStateSnapshots.$inferInsert;
+export type LLMCallRow = typeof llmCalls.$inferSelect;
+export type NewLLMCallRow = typeof llmCalls.$inferInsert;

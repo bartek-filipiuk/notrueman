@@ -4,7 +4,13 @@
  */
 import "dotenv/config";
 import { createHealthServer, hashPassword } from "@nts/agent-brain";
-import { createStatePersistence, createDatabase } from "@nts/memory-service";
+import {
+  createStatePersistence,
+  createDatabase,
+  createLLMCallLog,
+  agentStateSnapshots,
+} from "@nts/memory-service";
+import { eq, desc } from "drizzle-orm";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -21,6 +27,7 @@ async function main() {
   console.log("[backend] Connecting to PostgreSQL...");
   const db = createDatabase(DATABASE_URL!);
   const statePersistence = createStatePersistence(db);
+  const llmCallLog = createLLMCallLog(db);
 
   // Hash admin password if provided
   let adminAuth;
@@ -47,6 +54,15 @@ async function main() {
       }),
       statePersistence,
       adminAuth,
+      llmCallLog,
+      queryStateHistory: async (limit: number) => {
+        return db
+          .select()
+          .from(agentStateSnapshots)
+          .where(eq(agentStateSnapshots.agentId, "truman"))
+          .orderBy(desc(agentStateSnapshots.createdAt))
+          .limit(limit);
+      },
     },
     { port: 3001, host: "0.0.0.0" },
   );

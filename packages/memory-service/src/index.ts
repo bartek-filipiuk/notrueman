@@ -2,6 +2,7 @@ export {
   memories,
   reflectionSources,
   agentStateSnapshots,
+  llmCalls,
 } from "./db/schema.js";
 
 export type {
@@ -11,6 +12,8 @@ export type {
   NewReflectionSourceRow,
   AgentStateSnapshotRow,
   NewAgentStateSnapshotRow,
+  LLMCallRow,
+  NewLLMCallRow,
 } from "./db/schema.js";
 
 export { createDatabase } from "./db/connection.js";
@@ -32,3 +35,6 @@ export type { ScoredMemoryResult } from "./memory-retrieval.js";
 
 export { createStatePersistence } from "./state-persistence.js";
 export type { StatePersistence } from "./state-persistence.js";
+
+export { createLLMCallLog } from "./llm-call-log.js";
+export type { LLMCallLog, LLMCallStats, LLMCallLogFilters } from "./llm-call-log.js";

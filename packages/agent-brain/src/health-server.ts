@@ -3,7 +3,7 @@ import websocket from "@fastify/websocket";
 import { register, Gauge, Counter } from "prom-client";
 import { SaveDataSchema, filterForPublicFeed } from "@nts/shared";
 import type { MindFeedEvent } from "@nts/shared";
-import type { StatePersistence } from "@nts/memory-service";
+import type { StatePersistence, LLMCallLog } from "@nts/memory-service";
 import type { WebSocket } from "ws";
 import {
   verifyPassword,
@@ -48,6 +48,10 @@ export interface HealthServerDeps {
     limit?: number;
     offset?: number;
   }) => Promise<unknown[]>;
+  /** Optional LLM call log for logging/querying LLM calls */
+  llmCallLog?: LLMCallLog;
+  /** Optional state history query */
+  queryStateHistory?: (limit: number) => Promise<unknown[]>;
 }
 
 export interface HealthServerOptions {
@@ -215,7 +219,7 @@ export async function createHealthServer(
   /** JWT middleware for /api/admin/* routes (except login) */
   app.addHook("onRequest", async (request, reply) => {
     if (!request.url.startsWith("/api/admin/") || request.url === "/api/admin/login") {
-      return;
+      return; // Skip auth for non-admin routes and login
     }
 
     // Graceful fallback: if admin auth not configured, return 503
@@ -291,6 +295,87 @@ export async function createHealthServer(
       offset: query.offset ? Number(query.offset) : 0,
     });
     return reply.send({ memories });
+  });
+
+  /** POST /api/llm-log — internal endpoint to log LLM calls (no auth) */
+  app.post("/api/llm-log", async (request, reply) => {
+    if (!deps.llmCallLog) {
+      return reply.status(503).send({ error: "LLM call log not configured" });
+    }
+    const body = request.body as Record<string, unknown> | null;
+    if (!body || typeof body !== "object") {
+      return reply.status(400).send({ error: "Invalid request body" });
+    }
+    if (!body.model || typeof body.model !== "string") {
+      return reply.status(400).send({ error: "model required" });
+    }
+    if (body.durationMs == null || typeof body.durationMs !== "number") {
+      return reply.status(400).send({ error: "durationMs required" });
+    }
+    try {
+      const row = await deps.llmCallLog.logCall({
+        agentId: (body.agentId as string) || "truman",
+        model: body.model as string,
+        callType: (body.callType as "generateText" | "generateObject" | "generateWithTools") || "generateText",
+        promptPreview: String(body.promptPreview ?? "").slice(0, 500),
+        systemPreview: body.systemPreview ? String(body.systemPreview).slice(0, 200) : null,
+        responsePreview: String(body.responsePreview ?? "").slice(0, 500),
+        inputTokens: typeof body.inputTokens === "number" ? body.inputTokens : null,
+        outputTokens: typeof body.outputTokens === "number" ? body.outputTokens : null,
+        costUsd: body.costUsd != null ? String(body.costUsd) : null,
+        durationMs: body.durationMs as number,
+        success: body.success !== false,
+        error: typeof body.error === "string" ? body.error : null,
+      });
+      return reply.send({ ok: true, id: row.id });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      return reply.status(500).send({ error: msg });
+    }
+  });
+
+  /** GET /api/admin/llm-calls — query LLM call history (JWT required) */
+  app.get("/api/admin/llm-calls", async (request, reply) => {
+    if (!deps.llmCallLog) {
+      return reply.status(503).send({ error: "LLM call log not configured" });
+    }
+    const query = request.query as Record<string, string>;
+    const calls = await deps.llmCallLog.getRecentCalls(
+      "truman",
+      query.limit ? Number(query.limit) : 30,
+      query.offset ? Number(query.offset) : 0,
+      {
+        model: query.model,
+        callType: query.call_type,
+        success: query.success === "true" ? true : query.success === "false" ? false : undefined,
+      },
+    );
+    return reply.send({ calls });
+  });
+
+  /** GET /api/admin/stats — aggregated statistics (JWT required) */
+  app.get("/api/admin/stats", async (request, reply) => {
+    if (!deps.llmCallLog) {
+      return reply.status(503).send({ error: "LLM call log not configured" });
+    }
+    const llmStats = await deps.llmCallLog.getStats("truman", 24);
+    // Also include memory count from status
+    const status = deps.getStatus();
+    return reply.send({
+      ...llmStats,
+      memoriesCount: status.memoryCount,
+    });
+  });
+
+  /** GET /api/admin/state-history — recent state snapshots (JWT required) */
+  app.get("/api/admin/state-history", async (request, reply) => {
+    if (!deps.queryStateHistory) {
+      return reply.status(503).send({ error: "State history not configured" });
+    }
+    const query = request.query as Record<string, string>;
+    const limit = query.limit ? Number(query.limit) : 10;
+    const snapshots = await deps.queryStateHistory(limit);
+    return reply.send({ snapshots });
   });
 
   /** POST /api/admin/reset — soft or hard reset */
