@@ -128,3 +128,47 @@ All effects configurable via `packages/renderer/src/config/VisualConfig.ts`.
 | **crtScanlines** | OFF | Alternating dark lines for retro TV feel |
 
 Disable all: add `?fx=off` to URL. Toggle individual effects via `~` debug panel.
+
+## Close-Up Scene Backgrounds (Stage R)
+
+Each close-up scene has a dedicated background image stored in `packages/renderer/public/sprites/scenes/`.
+
+### Specifications
+
+- **Resolution:** minimum 960×540 (game canvas resolution)
+- **Style:** Modern anime, warm atmospheric lighting, detailed
+- **Character:** Young man in dark hoodie/jacket (matches modern Truman design)
+- **Text area:** Bottom 25% of image must be dark/shadowed — used for text overlay
+- **Character position:** Upper/middle portion of image (NOT at bottom)
+
+### File Naming
+
+| Scene | File | Texture Key |
+|---|---|---|
+| Computer | `computer_bg.png` | `scene_computer_bg` |
+| Sleep | `sleep_bg.png` | `scene_sleep_bg` |
+| Read | `read_bg.png` | `scene_read_bg` |
+| Think | `think_bg.png` | `scene_think_bg` |
+| Draw | `draw_bg.png` | `scene_draw_bg` |
+| Cook | `cook_bg.png` | `scene_cook_bg` |
+| Eat | `eat_bg.png` | `scene_eat_bg` |
+| Exercise | `exercise_bg.png` | `scene_exercise_bg` |
+
+### Generation Prompts
+
+Base style: `modern anime style, warm atmospheric lighting, detailed background, young man in dark hoodie jacket, game scene, 960x540, bottom 25% of image is dark/shadowed area for text overlay`
+
+| Scene | Prompt |
+|---|---|
+| computer | `young man sitting at modern desk with two glowing monitors showing code, dark room, city lights through window behind, warm desk lamp, cyberpunk ambient, bottom area dark for text` |
+| sleep | `young man sleeping peacefully in modern bed, moonlight through window, cozy dark bedroom, blue ambient lighting, stars visible, bottom area dark for text` |
+| read | `young man sitting in modern armchair reading tablet/book, warm reading lamp glow, bookshelf background, cozy evening atmosphere, bottom area dark for text` |
+| think | `young man standing at large window looking at city skyline sunset, contemplative pose, warm golden light, dramatic clouds, bottom area dark for text` |
+| draw | `young man painting at modern easel, colorful canvas, art studio with warm lighting, paint supplies, creative mess, bottom area dark for text` |
+| cook | `young man cooking at modern kitchen, stirring pot, steam rising, warm kitchen lighting, ingredients on counter, bottom area dark for text` |
+| eat | `young man sitting at modern table eating meal, warm ambient lighting, cozy dining area, plate of food, bottom area dark for text` |
+| exercise | `young man doing push ups on yoga mat, modern room, water bottle nearby, energetic pose, bright lighting, bottom area dark for text` |
+
+### Fallback
+
+If background PNGs are missing, scenes use a solid dark background (`#1a1a2e`). All overlays (particles, text, effects) work on both real backgrounds and the fallback.

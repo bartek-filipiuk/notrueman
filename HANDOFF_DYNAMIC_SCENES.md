@@ -96,37 +96,37 @@ Każde tło musi mieć:
 
 ### Taski per scena:
 
-- [ ] TR.1: ComputerScene dynamic — `packages/renderer/src/scenes/ComputerScene.ts` przebudowa. Jeśli `context.toolResults` ma `web_search` → scrolling real search results (title + snippet). Jeśli ma `write_blog_post` → scrolling blog content. Fallback: scrolling "thinking..." z typed effect. Monitor glow kolor = mood. Tekst na "monitorze" (górna część sceny). Myśl na dole (z ActivitySceneBase). (implement → verify dynamic text)
-- [ ] TR.2: SleepScene dynamic — przebudowa. Jeśli `context.recentMemory` → wyświetl "dream" text (fade in/out, wolny, dreamlike font). Jeśli `context.thought` → dream narration. Floating text "Sen: [memory]" z alpha pulse (0.3-0.7). Zzz particles zachowane. Stars/moon zachowane. Myśl na dole: co śni. (implement → verify dream text)
-- [ ] TR.3: ReadScene dynamic — przebudowa. Jeśli `context.toolResults` ma `web_search` → wyświetl snippet jako "czytany tekst" (book page effect). Jeśli `context.thought` → refleksja o przeczytanym. Page turn effect zachowany. Tekst zmienia się co 4s (nie co 3s). (implement → verify reading content)
-- [ ] TR.4: ThinkScene dynamic — przebudowa. Zamiast "..." → prawdziwy thought z `context.thought`. Tekst pojawia się słowo po słowie (typewriter, 100ms/word). Clouds zachowane. Background mood-tinted. Jeśli brak context → fallback do "...". (implement → verify thought text)
-- [ ] TR.5: DrawScene dynamic — przebudowa. Jeśli `context.toolResults` ma `create_artwork` → wyświetl artwork description (title + description + style). Tekst jako "opis dzieła" na płótnie (canvas area). Paint splatter particles zachowane. Kolor splatters = mood-based. (implement → verify artwork text)
-- [ ] TR.6: CookScene dynamic — przebudowa. `context.thought` na dole. Steam particles zachowane. Opcjonalnie: co gotuje (jeśli brain zdecydował). Mood-based: excited=więcej pary, content=spokojne gotowanie. (implement → verify)
-- [ ] TR.7: EatScene dynamic — przebudowa. Zamiast random "nom"/"yum" → `context.thought` (np. "Hmm, ta zupa jest naprawdę dobra..."). Tekst na dole. Steam zachowany. (implement → verify)
-- [ ] TR.8: ExerciseScene dynamic — przebudowa. `context.thought` na dole (np. "30 more reps..."). Sweat particles intensity = mood (frustrated=więcej, content=mniej). Speed lines zachowane. (implement → verify)
-- [ ] TR.9: Nowe tła — prompty dla 8 scen. Użytkownik generuje i wrzuca do `public/sprites/scenes/`. Fallback: stare tła działają. Nazwy: `computer_bg.png`, `sleep_bg.png` itd. (bez zmian w nazewnictwie). Tła muszą mieć ciemny dół (25%) na tekst. (prepare prompts → user generates → verify)
-- [ ] TR.10: Testy — dynamic content display per scene (mock context), fallback bez context, mood tint per scene. `turbo test` zielone. (test → verify green)
+- [x] TR.1: ComputerScene dynamic — `packages/renderer/src/scenes/ComputerScene.ts` przebudowa. Jeśli `context.toolResults` ma `web_search` → scrolling real search results (title + snippet). Jeśli ma `write_blog_post` → scrolling blog content. Fallback: scrolling "thinking..." z typed effect. Monitor glow kolor = mood. Tekst na "monitorze" (górna część sceny). Myśl na dole (z ActivitySceneBase). (implement → verify dynamic text)
+- [x] TR.2: SleepScene dynamic — przebudowa. Jeśli `context.recentMemory` → wyświetl "dream" text (fade in/out, wolny, dreamlike font). Jeśli `context.thought` → dream narration. Floating text "Sen: [memory]" z alpha pulse (0.3-0.7). Zzz particles zachowane. Stars/moon zachowane. Myśl na dole: co śni. (implement → verify dream text)
+- [x] TR.3: ReadScene dynamic — przebudowa. Jeśli `context.toolResults` ma `web_search` → wyświetl snippet jako "czytany tekst" (book page effect). Jeśli `context.thought` → refleksja o przeczytanym. Page turn effect zachowany. Tekst zmienia się co 4s (nie co 3s). (implement → verify reading content)
+- [x] TR.4: ThinkScene dynamic — przebudowa. Zamiast "..." → prawdziwy thought z `context.thought`. Tekst pojawia się słowo po słowie (typewriter, 100ms/word). Clouds zachowane. Background mood-tinted. Jeśli brak context → fallback do "...". (implement → verify thought text)
+- [x] TR.5: DrawScene dynamic — przebudowa. Jeśli `context.toolResults` ma `create_artwork` → wyświetl artwork description (title + description + style). Tekst jako "opis dzieła" na płótnie (canvas area). Paint splatter particles zachowane. Kolor splatters = mood-based. (implement → verify artwork text)
+- [x] TR.6: CookScene dynamic — przebudowa. `context.thought` na dole. Steam particles zachowane. Opcjonalnie: co gotuje (jeśli brain zdecydował). Mood-based: excited=więcej pary, content=spokojne gotowanie. (implement → verify)
+- [x] TR.7: EatScene dynamic — przebudowa. Zamiast random "nom"/"yum" → `context.thought` (np. "Hmm, ta zupa jest naprawdę dobra..."). Tekst na dole. Steam zachowany. (implement → verify)
+- [x] TR.8: ExerciseScene dynamic — przebudowa. `context.thought` na dole (np. "30 more reps..."). Sweat particles intensity = mood (frustrated=więcej, content=mniej). Speed lines zachowane. (implement → verify)
+- [x] TR.9: Nowe tła — prompty dla 8 scen. Użytkownik generuje i wrzuca do `public/sprites/scenes/`. Fallback: stare tła działają. Nazwy: `computer_bg.png`, `sleep_bg.png` itd. (bez zmian w nazewnictwie). Tła muszą mieć ciemny dół (25%) na tekst. (prepare prompts → user generates → verify)
+- [x] TR.10: Testy — dynamic content display per scene (mock context), fallback bez context, mood tint per scene. `turbo test` zielone. (test → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SR.1: Brain-generated text escaped (Phaser Text, brak innerHTML). (verify)
-- [ ] SR.2: Tła to PNG only (brak executable content). (verify)
-- [ ] SR.3: `turbo test` przechodzi. (verify)
+- [x] SR.1: Brain-generated text escaped (Phaser Text, brak innerHTML). (verify)
+- [x] SR.2: Tła to PNG only (brak executable content). (verify)
+- [x] SR.3: `turbo test` przechodzi. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DR.1: Update `docs/CHANGELOG.md` — wpis Stage R.
-- [ ] DR.2: Update `docs/ART_GUIDE.md` — specyfikacja nowych tał (wymiary, styl, tekst area).
+- [x] DR.1: Update `docs/CHANGELOG.md` — wpis Stage R.
+- [x] DR.2: Update `docs/ART_GUIDE.md` — specyfikacja nowych tał (wymiary, styl, tekst area).
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCR.1: Self-check — ComputerScene scrolluje prawdziwy brain text (nie hardcoded).
-- [ ] SCR.2: Self-check — SleepScene pokazuje "sen" z memories.
-- [ ] SCR.3: Self-check — ThinkScene typewriter z prawdziwą myślą.
-- [ ] SCR.4: Self-check — DrawScene pokazuje artwork description.
-- [ ] SCR.5: Self-check — fallback do starych overlays gdy brak context.
-- [ ] SCR.6: Self-check — testy zielone.
-- [ ] SCR.7: Zaktualizuj HANDOFF → [x].
+- [x] SCR.1: Self-check — ComputerScene scrolluje prawdziwy brain text (nie hardcoded).
+- [x] SCR.2: Self-check — SleepScene pokazuje "sen" z memories.
+- [x] SCR.3: Self-check — ThinkScene typewriter z prawdziwą myślą.
+- [x] SCR.4: Self-check — DrawScene pokazuje artwork description.
+- [x] SCR.5: Self-check — fallback do starych overlays gdy brak context.
+- [x] SCR.6: Self-check — testy zielone.
+- [x] SCR.7: Zaktualizuj HANDOFF → [x].
 
 **Stage R DoD:** Truman idzie do komputera → brain zdecydował "piszę blog o AI" → close-up scena: monitor scrolluje treść bloga, mood-tinted glow, myśl na dole. Truman śpi → "sen" z ostatnich wspomnień. Truman rysuje → opis artwork na płótnie. ŻYWE, nie screensaver.
 

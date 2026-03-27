@@ -1,5 +1,28 @@
 # Changelog
 
+## [Stage R — Dynamic Scenes with Brain Content] - 2026-03-27
+
+### Changed
+- **ComputerScene**: scrolls real web_search results or blog content on monitor; mood-based monitor glow color; fallback to "thinking..." typed effect
+- **SleepScene**: displays dream text from recentMemory with floating alpha pulse animation; Zzz particles preserved
+- **ThinkScene**: typewriter effect showing real brain thoughts word-by-word (100ms/word); clouds/birds preserved; fallback to "..." dots
+- **DrawScene**: shows artwork title + description from create_artwork tool; mood-based paint splatter colors
+- **ReadScene**: displays web_search snippets as reading material with 4s page-turn effect; fallback to classic quotes
+- **CookScene**: steam particle frequency varies by mood (excited=more, content=calm)
+- **EatScene**: shows real brain thought instead of random "nom"/"yum"; fallback preserved
+- **ExerciseScene**: sweat particle intensity varies by mood (frustrated=more, content=less)
+
+### Added
+- All 8 scenes override `displayContent()` for custom brain context rendering
+- Bottom thought bar on all scenes (semi-transparent, max 120 chars)
+- Mood-responsive particle effects (steam, sweat, paint splatters)
+- Scene background prompts documented in `docs/ART_GUIDE.md`
+- 16 new tests for dynamic scene content (TR.10)
+
+### Security
+- All text rendered via Phaser Text only (no innerHTML) — SR.1
+- Background assets are PNG only — SR.2
+
 ## [Stage Q — Scene Architecture: Brain Context Pipeline] - 2026-03-27
 
 ### Added

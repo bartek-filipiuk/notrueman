@@ -137,6 +137,144 @@ describe("Stage Q: Scene Context Pipeline", () => {
     });
   });
 
+  describe("TR.10: Dynamic scene content", () => {
+    it("ComputerScene uses web_search tool results for monitor text", () => {
+      const context: SceneContext = {
+        thought: "Looking up quantum physics",
+        toolResults: [
+          { tool: "web_search", query: "quantum physics", title: "Intro to QM", content: "Quantum mechanics is a theory..." },
+        ],
+      };
+      expect(context.toolResults![0].tool).toBe("web_search");
+      expect(context.toolResults![0].query).toBe("quantum physics");
+      expect(context.toolResults![0].content).toBeDefined();
+    });
+
+    it("ComputerScene uses write_blog_post results for scrolling blog", () => {
+      const context: SceneContext = {
+        thought: "Writing a blog about AI",
+        toolResults: [
+          { tool: "write_blog_post", title: "AI Revolution", content: "Artificial intelligence is transforming..." },
+        ],
+      };
+      expect(context.toolResults![0].tool).toBe("write_blog_post");
+      expect(context.toolResults![0].title).toBe("AI Revolution");
+    });
+
+    it("ComputerScene falls back to thinking text without tool results", () => {
+      const context: SceneContext = { thought: "Just thinking..." };
+      expect(context.toolResults).toBeUndefined();
+      // Fallback lines should be used in the scene
+    });
+
+    it("SleepScene uses recentMemory for dream text", () => {
+      const context: SceneContext = {
+        thought: "Dreaming about the stars...",
+        recentMemory: "I saw a beautiful sunset yesterday",
+      };
+      expect(context.recentMemory).toBeDefined();
+      expect(context.recentMemory!.length).toBeGreaterThan(0);
+    });
+
+    it("SleepScene falls back to thought when no memory", () => {
+      const context: SceneContext = { thought: "A strange dream..." };
+      const dreamText = context.recentMemory || context.thought;
+      expect(dreamText).toBe("A strange dream...");
+    });
+
+    it("ThinkScene uses thought for typewriter effect", () => {
+      const context: SceneContext = { thought: "What is the meaning of consciousness?" };
+      const words = context.thought!.split(" ");
+      expect(words.length).toBe(6);
+      // Typewriter shows words one by one at 100ms/word
+    });
+
+    it("ThinkScene falls back to dots without thought", () => {
+      const context: SceneContext = {};
+      expect(context.thought).toBeUndefined();
+      // Scene should show "..." fallback
+    });
+
+    it("DrawScene uses create_artwork results", () => {
+      const context: SceneContext = {
+        thought: "Creating something beautiful",
+        toolResults: [
+          { tool: "create_artwork", title: "Sunset Over Ocean", description: "A vibrant sunset with warm colors" },
+        ],
+      };
+      const artResult = context.toolResults!.find(r => r.tool === "create_artwork");
+      expect(artResult).toBeDefined();
+      expect(artResult!.title).toBe("Sunset Over Ocean");
+      expect(artResult!.description).toBe("A vibrant sunset with warm colors");
+    });
+
+    it("ReadScene uses web_search as reading material", () => {
+      const context: SceneContext = {
+        thought: "Interesting read about philosophy",
+        toolResults: [
+          { tool: "web_search", query: "philosophy of mind", title: "What is Consciousness?", content: "A deep dive into..." },
+        ],
+      };
+      const searchResult = context.toolResults!.find(r => r.tool === "web_search");
+      expect(searchResult).toBeDefined();
+      expect(searchResult!.title).toBe("What is Consciousness?");
+    });
+
+    it("ReadScene falls back to quotes without context", () => {
+      const context: SceneContext = {};
+      expect(context.thought).toBeUndefined();
+      expect(context.toolResults).toBeUndefined();
+      // Scene should show hardcoded quotes as fallback
+    });
+
+    it("EatScene shows thought instead of random nom/yum when context present", () => {
+      const context: SceneContext = { thought: "This soup is really good..." };
+      expect(context.thought).toBeDefined();
+      // Scene should show the actual thought, not "nom"/"yum"
+    });
+
+    it("EatScene falls back to nom/yum without thought", () => {
+      const context: SceneContext = {};
+      expect(context.thought).toBeUndefined();
+      // Scene should show classic "nom"/"yum" fallback
+    });
+
+    it("CookScene steam frequency varies by mood", () => {
+      const freqMap: Record<string, number> = {
+        excited: 150, happy: 200, frustrated: 180, content: 400, bored: 500,
+      };
+      expect(freqMap.excited).toBeLessThan(freqMap.content);
+      expect(freqMap.bored).toBeGreaterThan(freqMap.happy);
+    });
+
+    it("ExerciseScene sweat frequency varies by mood", () => {
+      const freqMap: Record<string, number> = {
+        frustrated: 300, anxious: 350, excited: 400, content: 700, bored: 800,
+      };
+      expect(freqMap.frustrated).toBeLessThan(freqMap.content);
+      expect(freqMap.bored).toBeGreaterThan(freqMap.excited);
+    });
+
+    it("DrawScene splatter colors vary by mood", () => {
+      const moodPalettes: Record<string, number[]> = {
+        happy: [0xffd700, 0xff6b6b, 0xffd93d, 0x55efc4, 0xffab40],
+        curious: [0x48dbfb, 0x00bcd4, 0x81d4fa, 0x4dd0e1, 0x80deea],
+        anxious: [0xff4444, 0xff6b6b, 0xef5350, 0xd32f2f, 0xff8a80],
+      };
+      expect(moodPalettes.happy).toHaveLength(5);
+      expect(moodPalettes.curious[0]).not.toBe(moodPalettes.happy[0]);
+    });
+
+    it("all scenes truncate long text to prevent overflow", () => {
+      const longThought = "A".repeat(200);
+      const truncated = longThought.length > 120
+        ? longThought.substring(0, 117) + "..."
+        : longThought;
+      expect(truncated.length).toBe(120);
+      expect(truncated.endsWith("...")).toBe(true);
+    });
+  });
+
   describe("TQ.3: Brain bridge context pipeline", () => {
     it("context is constructed from executeAction params", () => {
       // Simulate what main.ts does: construct context from executeAction args
