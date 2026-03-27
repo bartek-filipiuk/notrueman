@@ -63,6 +63,20 @@ export type {
   AgentState,
 } from "./types/agent-state.js";
 
+// Mind feed (WebSocket event stream)
+export {
+  MindFeedEventTypeSchema,
+  MindFeedEventSchema,
+  PublicMindFeedEventSchema,
+  PUBLIC_ALLOWED_FIELDS,
+  filterForPublicFeed,
+} from "./types/mind-feed.js";
+export type {
+  MindFeedEventType,
+  MindFeedEvent,
+  PublicMindFeedEvent,
+} from "./types/mind-feed.js";
+
 // Save data (state persistence)
 export { SaveDataSchema, SAVE_DATA_VERSION } from "./types/save-data.js";
 export type { SaveData } from "./types/save-data.js";
