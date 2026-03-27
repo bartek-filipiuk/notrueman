@@ -412,6 +412,46 @@ export async function createHealthServer(
     return reply.send({ ok: true, activity: body.activity });
   });
 
+  // --- Public API rate limiting (SW.2: 60 req/min per IP) ---
+
+  const publicRateLimit = new Map<string, { count: number; resetAt: number }>();
+  const PUBLIC_RATE_LIMIT = 60;
+  const PUBLIC_RATE_WINDOW_MS = 60_000;
+
+  app.addHook("onRequest", async (request, reply) => {
+    if (!request.url.startsWith("/api/public/")) return;
+
+    const ip = request.ip;
+    const now = Date.now();
+    let bucket = publicRateLimit.get(ip);
+
+    if (!bucket || now >= bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + PUBLIC_RATE_WINDOW_MS };
+      publicRateLimit.set(ip, bucket);
+    }
+
+    bucket.count++;
+    reply.header("X-RateLimit-Limit", PUBLIC_RATE_LIMIT);
+    reply.header("X-RateLimit-Remaining", Math.max(0, PUBLIC_RATE_LIMIT - bucket.count));
+    reply.header("X-RateLimit-Reset", Math.ceil(bucket.resetAt / 1000));
+
+    if (bucket.count > PUBLIC_RATE_LIMIT) {
+      return reply.status(429).send({ error: "Rate limit exceeded. Max 60 requests per minute." });
+    }
+  });
+
+  // Periodically clean expired rate limit buckets
+  const rateLimitCleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, bucket] of publicRateLimit) {
+      if (now >= bucket.resetAt) publicRateLimit.delete(ip);
+    }
+  }, 60_000);
+
+  app.addHook("onClose", async () => {
+    clearInterval(rateLimitCleanup);
+  });
+
   // --- Public API (Stage W — no auth required) ---
 
   /** GET /api/public/feed — merged memories + llm_calls timeline (TW.1) */
