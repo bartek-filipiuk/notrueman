@@ -71,23 +71,29 @@ function startGame(): void {
 
   // Wait for RoomScene to be ready, then decide mode
   game.events.on("ready", () => {
-    // RoomScene starts after BootScene transition (1s delay)
-    setTimeout(async () => {
-      // Handle URL reset params (TI.5) — ?reset=soft or ?reset=hard
+    // Wait for RoomScene to be fully ready (Truman, HUD, etc.)
+    const waitForScene = async () => {
+      const roomScene = game.scene.getScene("RoomScene") as RoomScene | null;
+      if (!roomScene?.getTruman?.() || !roomScene?.getThoughtBubble?.()) {
+        setTimeout(waitForScene, 500);
+        return;
+      }
+
+      // Handle URL reset params (TI.5)
       const resetParam = new URLSearchParams(window.location.search).get("reset");
       if (resetParam === "hard" || resetParam === "soft") {
         await handleResetParam(resetParam);
-        return; // page will reload
+        return;
       }
 
-      // Init save manager + load existing save before brain starts
+      // Init save manager + load existing save
       const save = await initSaveManager();
-      // Restore Truman's position/facing from save (TH.1 + TH.2)
       if (save) {
         restoreRendererState(game, save);
       }
       initBrain(game, save);
-    }, 1500);
+    };
+    setTimeout(waitForScene, 1500);
   });
 }
 
@@ -117,7 +123,11 @@ if (overlay) {
 function restoreRendererState(game: Phaser.Game, save: SaveData): void {
   const roomScene = game.scene.getScene("RoomScene") as RoomScene | null;
   if (!roomScene) return;
-  const truman = roomScene.getTruman();
+  const truman = roomScene.getTruman?.();
+  if (!truman) {
+    console.warn("[save] Truman not ready — skipping position restore");
+    return;
+  }
   truman.setPosition(save.truman.x, save.truman.y);
   truman.setFacing(save.truman.facing);
   console.log(`[save] Restored position: (${save.truman.x.toFixed(0)}, ${save.truman.y.toFixed(0)}) facing ${save.truman.facing}`);
@@ -157,8 +167,9 @@ function applyOfflineCompensation(
 
 function initBrain(game: Phaser.Game, save?: SaveData | null): void {
   const roomScene = game.scene.getScene("RoomScene") as RoomScene;
-  if (!roomScene) {
-    console.warn("[main] RoomScene not found, retrying in 1s...");
+  // Wait until RoomScene is fully created (has all subsystems initialized)
+  if (!roomScene || !roomScene.getThoughtBubble?.()) {
+    console.warn("[main] RoomScene not fully ready, retrying in 1s...");
     setTimeout(() => initBrain(game, save), 1000);
     return;
   }
@@ -181,14 +192,18 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
   console.log("[main] API key detected — starting AI brain mode");
 
-  // Stop the demo loop
-  roomScene.getActivityManager().stopLoop();
+  // Stop the demo loop (if it was started — may not exist yet if scene still loading)
+  try {
+    roomScene.getActivityManager()?.stopLoop();
+  } catch {
+    console.log("[main] ActivityManager not ready yet — demo loop was prevented by URL check");
+  }
 
-  // Create LLM client
+  // Create LLM client — models from config/truman-config.json
   const llmClient = createLLMClient({
     apiKey,
-    thinkModel: "deepseek/deepseek-chat",
-    classifyModel: "mistralai/mistral-small-latest",
+    thinkModel: "deepseek/deepseek-v3.2",
+    classifyModel: "google/gemini-3.1-flash-lite-preview",
   });
 
   // Create emotion engine — drives mood in HUD and thought bubbles
@@ -255,16 +270,16 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
       mood: mood || undefined,
     });
 
-    // Override: randomly make some thoughts into spoken-aloud speech
-    if (thought && ttsManager.isEnabled() && Math.random() < 0.3) {
-      // Execute everything except bubble, then show speech bubble
-      await bridge.executeCommand({ type: "update_hud", payload: { activity, mood } });
-      const objectId = RendererBridge.getObjectForActivity(activity);
-      await bridge.executeCommand({ type: "move_to", payload: { objectId } });
-      await bridge.executeCommand({ type: "play_animation", payload: { state: activity } });
-      await bridge.executeCommand({ type: "show_bubble", payload: { text: thought, type: "speech", mood } });
-    } else {
-      await originalExecuteAction(activity, thought, mood);
+    // Use ActivityManager.doActivity() to trigger zoom scenes + proper flow
+    await activityMgr.doActivity(activity as import("@nts/shared").ActivityType);
+
+    // Show thought/speech bubble after activity starts
+    if (thought) {
+      if (ttsManager.isEnabled() && Math.random() < 0.3) {
+        roomScene.showSpeech(thought, mood);
+      } else {
+        roomScene.showThought(thought, mood);
+      }
     }
   };
 

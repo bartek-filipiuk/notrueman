@@ -117,6 +117,7 @@ export async function createHealthServer(
       reply.header("Access-Control-Allow-Origin", origin);
       reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      reply.header("Access-Control-Allow-Credentials", "true");
     }
     if (request.method === "OPTIONS") {
       return reply.status(204).send();

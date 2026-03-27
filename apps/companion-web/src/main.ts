@@ -5,7 +5,7 @@ import { createStatusBar } from './status-bar.js';
 import { createEmotionChart } from './emotion-chart.js';
 
 const STATUS_POLL_INTERVAL = 10_000;
-const STATUS_API_URL = '/api/health';
+const STATUS_API_URL = '/health';
 
 function getStatusApiUrl(): string {
   const params = new URLSearchParams(window.location.search);

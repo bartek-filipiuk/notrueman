@@ -55,21 +55,6 @@ export class TrumanSprite extends Phaser.GameObjects.Image {
     this.setDepth(900);
 
     this.baseY = y;
-
-    // DEBUG: intercept y setter to catch who modifies it
-    let _internalY = y;
-    Object.defineProperty(this, 'y', {
-      get: () => _internalY,
-      set: (val: number) => {
-        if (Math.abs(val - _internalY) > 2) {
-          console.warn(`[TRUMAN Y SET] ${_internalY.toFixed(1)} → ${val.toFixed(1)}`);
-          console.trace();
-        }
-        _internalY = val;
-      },
-      configurable: true,
-    });
-
     this.playIdle();
   }
 

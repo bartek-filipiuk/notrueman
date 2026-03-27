@@ -14,6 +14,16 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5175,
+    port: 4173,
+    proxy: {
+      '/api': 'http://localhost:3001',
+      '/health': 'http://localhost:3001',
+      '/metrics': 'http://localhost:3001',
+      '/state': 'http://localhost:3001',
+      '/ws': {
+        target: 'http://localhost:3001',
+        ws: true,
+      },
+    },
   },
 });

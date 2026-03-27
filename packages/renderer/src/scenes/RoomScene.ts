@@ -68,6 +68,7 @@ export class RoomScene extends Phaser.Scene {
     // Initialize visual FX config (respects ?fx=off URL param)
     initVisualConfig();
 
+
     // Generate pixel art textures for room objects and particles
     generateAllTextures(this);
     ParticleManager.generateTextures(this);
@@ -296,8 +297,12 @@ export class RoomScene extends Phaser.Scene {
       this.hud.setAudioMixer(this.audioMixer);
     });
 
-    this.activityManager.startLoop();
-    this.idleAnimator?.start(); // start breathing/blinking immediately
+    // Only start demo loop if no API key (AI mode will control activities)
+    const hasApiKey = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("apiKey");
+    if (!hasApiKey) {
+      this.activityManager.startLoop();
+    }
+    this.idleAnimator?.start();
   }
 
   getTruman(): TrumanSprite {
@@ -333,6 +338,7 @@ export class RoomScene extends Phaser.Scene {
   /** Set TTSManager for speech audio playback */
   setTTSManager(tts: TTSManager): void {
     this.ttsManager = tts;
+    if (!this.thoughtBubble) return; // Scene not fully initialized yet
     // Wire speech bubble callback to TTS
     this.thoughtBubble.onSpeechBubbleShow = (bubbleText, bubbleMood) => {
       void this.ttsManager?.speak(bubbleText, bubbleMood);
