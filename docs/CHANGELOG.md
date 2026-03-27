@@ -1,5 +1,28 @@
 # Changelog
 
+## [Stage N — Admin Panel] - 2026-03-27
+
+### Added
+- JWT auth system: bcrypt password hashing, 24h token expiry, rate limiting (5/min per IP)
+- `POST /api/admin/login` endpoint with rate limiting
+- JWT middleware protecting all `/api/admin/*` routes
+- Admin API: brain-state, settings (GET/POST), memories, reset (soft/hard), force-activity
+- Admin panel UI (vanilla TS + CSS):
+  - Login page with dark themed form
+  - Dashboard: live status, emotion bars, budget display, recent memories
+  - Log viewer: realtime event log with type filtering, search, auto-scroll
+  - Settings: interests tags, tick interval slider, model inputs, personality textarea
+  - Controls: soft/hard reset, force activity dropdown, visibility toggles
+- Hash-based router for admin SPA navigation
+- Dark gaming aesthetic CSS (glassmorphism, gradient accents, Inter font)
+- `.env.example` updated with `JWT_SECRET`
+
+### Security
+- ADMIN_PASSWORD only from .env, never hardcoded (SN.1)
+- JWT_SECRET min 32 chars, validated on startup (SN.2)
+- Login rate limit: 5 attempts/min per IP (SN.3)
+- All admin endpoints return 401 without valid JWT (SN.4)
+
 ## [Stage M — WebSocket Mind Feed + Event System] - 2026-03-27
 
 ### Added

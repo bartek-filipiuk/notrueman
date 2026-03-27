@@ -348,6 +348,57 @@ nts_uptime_seconds 12345
 nts_memory_count 150
 ```
 
+## Admin API
+
+### POST /api/admin/login
+
+Authenticate with admin password, receive JWT token.
+
+**Request:** `{ "password": "your-admin-password" }`
+
+**Response:** `200 { "token": "eyJ..." }`
+
+**Errors:**
+- `401` — Invalid password
+- `429` — Rate limited (max 5 attempts/min per IP)
+- `503` — Admin auth not configured
+
+### JWT Authentication
+
+All `/api/admin/*` endpoints (except login) require JWT in Authorization header:
+
+```
+Authorization: Bearer <token>
+```
+
+Tokens expire after 24 hours. Obtain via `/api/admin/login`.
+
+### GET /api/admin/brain-state
+
+Returns current brain state, config, and health status.
+
+### GET /api/admin/settings
+
+Returns current config and interests.
+
+### POST /api/admin/settings
+
+Update config at runtime (hot-reload). Body: partial config object + optional `interests` array.
+
+### GET /api/admin/memories
+
+Query memories. Query params: `type`, `importance`, `limit` (default 20), `offset`.
+
+### POST /api/admin/reset
+
+Reset agent state. Body: `{ "mode": "soft" | "hard" }`.
+- Soft: acknowledge only, brain continues
+- Hard: clears saved state
+
+### POST /api/admin/force-activity
+
+Override next tick activity. Body: `{ "activity": "read" }`.
+
 ## WebSocket Endpoints
 
 ### GET /ws/mind-feed

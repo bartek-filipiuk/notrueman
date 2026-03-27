@@ -140,6 +140,35 @@ Press `Tab` to toggle the Activity Panel — a sidebar showing Truman's creative
 - **Preview:** Click any entry to see full content in a modal (Escape to close)
 - **Budget:** Color-coded bar at bottom shows remaining tool calls and current day
 
+## Admin Panel
+
+Access the admin panel at `/admin.html` (or `/admin.html#/admin/login`).
+
+### Setup
+
+1. Set environment variables in `.env`:
+   ```
+   ADMIN_PASSWORD=your-secure-password
+   JWT_SECRET=at-least-32-characters-long-random-string
+   ```
+2. Start the health server (port 3001)
+3. Open `http://localhost:5175/admin.html` in your browser
+4. Login with `ADMIN_PASSWORD`
+
+### Features
+
+- **Dashboard**: Live brain status, emotion bars, budget usage, recent memories
+- **Log Viewer**: Realtime event log with type filtering, search, auto-scroll
+- **Settings**: Edit interests, tick interval, model names, daily budget, personality prompt
+- **Controls**: Soft/hard reset, force next activity, public feed visibility toggles
+
+### Security
+
+- JWT tokens expire after 24 hours
+- Login rate limited to 5 attempts per minute per IP
+- All admin endpoints require valid JWT in Authorization header
+- Admin WebSocket feed requires JWT token in query parameter
+
 ## Architecture
 
 ```

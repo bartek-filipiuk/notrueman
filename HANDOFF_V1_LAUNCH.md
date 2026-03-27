@@ -84,35 +84,35 @@ Stage P (Security Audit + Deployment)
 
 - [x] TN.1: JWT auth system — w `packages/agent-brain/src/health-server.ts`: `POST /api/admin/login` (body: `{ password }`, compare z `ADMIN_PASSWORD` env var, bcrypt hash). Zwraca `{ token }` (JWT, 24h expiry, secret z env `JWT_SECRET`). Middleware `verifyJWT` na `/api/admin/*` routes. Rate limit: max 5 login attempts/min. `.env.example`: dodać `ADMIN_PASSWORD`, `JWT_SECRET`. (implement → test valid/invalid/expired)
 - [x] TN.2: Admin API endpoints — w health-server.ts: `GET /api/admin/memories` (query: `{ type?, importance?, limit?, offset? }` → z memory service), `GET /api/admin/brain-state` (current emotions, activity, tick count, budget), `POST /api/admin/settings` (body: partial TrumanConfig → hot-reload), `GET /api/admin/settings` (current config), `POST /api/admin/reset` (body: `{ mode: "soft" | "hard" }` → SaveManager reset), `POST /api/admin/force-activity` (body: `{ activity: ActivityType }` → override next tick). (implement → test each endpoint)
-- [ ] TN.3: Admin login page — w `apps/companion-web/src/admin/login.ts`: login form (password input, submit button), POST /api/admin/login, store JWT w localStorage, redirect do /admin dashboard. Styled: dark bg, centered form, gradient button. (implement → verify login flow)
-- [ ] TN.4: Admin dashboard — `apps/companion-web/src/admin/dashboard.ts`: live status (activity, mood, day, uptime, tick count) — updated z /ws/admin-feed. Emotion radar chart (7 dims, animated). Budget usage bar (calls used/remaining, color coded). Recent memories list (last 20, clickable for detail). (implement → verify realtime updates)
-- [ ] TN.5: Admin log viewer — `apps/companion-web/src/admin/log-viewer.ts`: realtime z /ws/admin-feed. Entries: timestamp + type badge + content. Filtry: type dropdown (thought/tool/emotion/memory/system), search text, min importance. Scrollable, max 200 entries, auto-scroll toggle. Color coded per type. (implement → verify filter works)
-- [ ] TN.6: Admin settings panel — `apps/companion-web/src/admin/settings.ts`: editable fields: interests (tag input, add/remove), tick interval (range slider 15-120s), model names (text inputs), daily budget limit (number), personality prompt (textarea, markdown). Save button → POST /api/admin/settings. Feedback: "Saved ✓" toast. (implement → verify hot-reload)
-- [ ] TN.7: Admin controls — `apps/companion-web/src/admin/controls.ts`: buttons: "Soft Reset" (yellow, preserves day), "Hard Reset" (red, confirm dialog), "Force Activity" (dropdown + go button). Visibility toggles: checkboxes for what public feed shows (thoughts, moods, tools, creativity). POST /api/admin/reset, POST /api/admin/force-activity. (implement → test each control)
-- [ ] TN.8: Testy — JWT: valid login, wrong password (401), expired token (401), rate limit (429). Settings: save + reload. Reset: soft preserves day, hard clears. Force activity: override next tick. `turbo test` zielone. (test → verify green)
+- [x] TN.3: Admin login page — w `apps/companion-web/src/admin/login.ts`: login form (password input, submit button), POST /api/admin/login, store JWT w localStorage, redirect do /admin dashboard. Styled: dark bg, centered form, gradient button. (implement → verify login flow)
+- [x] TN.4: Admin dashboard — `apps/companion-web/src/admin/dashboard.ts`: live status (activity, mood, day, uptime, tick count) — updated z /ws/admin-feed. Emotion radar chart (7 dims, animated). Budget usage bar (calls used/remaining, color coded). Recent memories list (last 20, clickable for detail). (implement → verify realtime updates)
+- [x] TN.5: Admin log viewer — `apps/companion-web/src/admin/log-viewer.ts`: realtime z /ws/admin-feed. Entries: timestamp + type badge + content. Filtry: type dropdown (thought/tool/emotion/memory/system), search text, min importance. Scrollable, max 200 entries, auto-scroll toggle. Color coded per type. (implement → verify filter works)
+- [x] TN.6: Admin settings panel — `apps/companion-web/src/admin/settings.ts`: editable fields: interests (tag input, add/remove), tick interval (range slider 15-120s), model names (text inputs), daily budget limit (number), personality prompt (textarea, markdown). Save button → POST /api/admin/settings. Feedback: "Saved ✓" toast. (implement → verify hot-reload)
+- [x] TN.7: Admin controls — `apps/companion-web/src/admin/controls.ts`: buttons: "Soft Reset" (yellow, preserves day), "Hard Reset" (red, confirm dialog), "Force Activity" (dropdown + go button). Visibility toggles: checkboxes for what public feed shows (thoughts, moods, tools, creativity). POST /api/admin/reset, POST /api/admin/force-activity. (implement → test each control)
+- [x] TN.8: Testy — JWT: valid login, wrong password (401), expired token (401), rate limit (429). Settings: save + reload. Reset: soft preserves day, hard clears. Force activity: override next tick. `turbo test` zielone. (test → verify green)
 
 ### Security (MANDATORY):
 
-- [ ] SN.1: ADMIN_PASSWORD nie hardcoded — tylko .env. `grep -r "ADMIN" --include="*.ts"` = only env access. (verify)
-- [ ] SN.2: JWT_SECRET nie hardcoded — generowany losowo jeśli nie ustawiony. Min 32 chars. (verify)
-- [ ] SN.3: Login rate limit — 5 attempts/min per IP. Brute-force protection. (test)
-- [ ] SN.4: Admin endpoints 401 bez JWT. (test)
-- [ ] SN.5: `turbo test` przechodzi. (verify)
+- [x] SN.1: ADMIN_PASSWORD nie hardcoded — tylko .env. `grep -r "ADMIN" --include="*.ts"` = only env access. (verify)
+- [x] SN.2: JWT_SECRET nie hardcoded — generowany losowo jeśli nie ustawiony. Min 32 chars. (verify)
+- [x] SN.3: Login rate limit — 5 attempts/min per IP. Brute-force protection. (test)
+- [x] SN.4: Admin endpoints 401 bez JWT. (test)
+- [x] SN.5: `turbo test` przechodzi. (verify)
 
 ### Docs (MANDATORY):
 
-- [ ] DN.1: Update `docs/CHANGELOG.md` — wpis Stage N.
-- [ ] DN.2: Update `docs/API.md` — admin endpoints, JWT auth flow.
-- [ ] DN.3: Update `docs/README.md` — sekcja "Admin Panel" (setup, first login).
+- [x] DN.1: Update `docs/CHANGELOG.md` — wpis Stage N.
+- [x] DN.2: Update `docs/API.md` — admin endpoints, JWT auth flow.
+- [x] DN.3: Update `docs/README.md` — sekcja "Admin Panel" (setup, first login).
 
 ### Stage Completion (MANDATORY):
 
-- [ ] SCN.1: Self-check — login z hasłem → dashboard widoczny.
-- [ ] SCN.2: Self-check — admin widzi realtime logi (thoughts, tools).
-- [ ] SCN.3: Self-check — settings save → config hot-reloaded.
-- [ ] SCN.4: Self-check — reset buttons działają.
-- [ ] SCN.5: Self-check — testy zielone.
-- [ ] SCN.6: Zaktualizuj HANDOFF → [x].
+- [x] SCN.1: Self-check — login z hasłem → dashboard widoczny.
+- [x] SCN.2: Self-check — admin widzi realtime logi (thoughts, tools).
+- [x] SCN.3: Self-check — settings save → config hot-reloaded.
+- [x] SCN.4: Self-check — reset buttons działają.
+- [x] SCN.5: Self-check — testy zielone.
+- [x] SCN.6: Zaktualizuj HANDOFF → [x].
 
 **Stage N DoD:** `/admin` → login form → dashboard z live emocjami + logami + ustawieniami. Soft/hard reset. Force activity. Visibility toggles.
 
