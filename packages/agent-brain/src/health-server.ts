@@ -450,8 +450,8 @@ export async function createHealthServer(
   app.post("/api/events", async (request, reply) => {
     try {
       const event = request.body as MindFeedEvent;
-      if (!event || !event.type || !event.timestamp) {
-        return reply.status(400).send({ error: "Invalid event" });
+      if (!event || !event.type || !event.timestamp || !event.data || typeof event.data !== "object") {
+        return reply.status(400).send({ error: "Invalid event: requires type, timestamp, data" });
       }
       broadcastEvent(event);
       return reply.send({ ok: true });

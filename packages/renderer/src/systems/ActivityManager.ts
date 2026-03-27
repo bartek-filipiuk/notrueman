@@ -156,6 +156,8 @@ export class ActivityManager {
           mood: context?.mood ?? "neutral",
           context: context ?? undefined,
           onComplete: () => {
+            // Clear scene context to prevent leak to next activity
+            this.sceneContext = null;
             // Stop close-up scene
             this.scene.scene.stop(sceneKey);
             // Wake room scene

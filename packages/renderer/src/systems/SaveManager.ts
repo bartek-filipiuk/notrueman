@@ -2,7 +2,8 @@ import { SaveDataSchema, SAVE_DATA_VERSION } from "@nts/shared";
 import type { SaveData } from "@nts/shared";
 
 const STORAGE_KEY = "nts_save_data";
-const HEALTH_TIMEOUT_MS = 2000;
+const HEALTH_TIMEOUT_MS = 5000;
+const RETRY_INTERVAL_MS = 60_000;
 
 export interface SaveManagerConfig {
   backendUrl: string;
@@ -32,6 +33,23 @@ export class SaveManager {
       this.backendAvailable = res.ok;
     } catch {
       this.backendAvailable = false;
+    }
+
+    // Retry backend connection periodically if initially unavailable
+    if (!this.backendAvailable) {
+      setInterval(async () => {
+        if (this.backendAvailable) return;
+        try {
+          const c = new AbortController();
+          const t = setTimeout(() => c.abort(), HEALTH_TIMEOUT_MS);
+          const r = await fetch(`${this.backendUrl}/health`, { signal: c.signal });
+          clearTimeout(t);
+          if (r.ok) {
+            this.backendAvailable = true;
+            console.log("[SaveManager] Backend reconnected");
+          }
+        } catch { /* still unavailable */ }
+      }, RETRY_INTERVAL_MS);
     }
   }
 

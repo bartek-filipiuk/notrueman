@@ -305,6 +305,12 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
     await originalTick();
 
+    // Clear thinking indicator
+    roomScene.getThoughtBubble()?.hide();
+
+    // Mark save as dirty
+    markDirty();
+
     // After tick, apply small emotion delta based on activity
     const state = brain.getState();
     if (state.lastError) {
@@ -528,14 +534,7 @@ function setupSaveTriggers(
     markDirty();
   });
 
-  // Mark dirty on each brain tick
-  if (brain) {
-    const origTick = brain.tick.bind(brain);
-    brain.tick = async function () {
-      await origTick();
-      markDirty();
-    };
-  }
+  // markDirty already called inside brain.tick wrapper (line ~297)
 
   // Track position changes > 10px → mark dirty (TH.5)
   let lastSavedX = roomScene.getTruman().x;
@@ -639,5 +638,5 @@ function postBrainEvent(event: { type: string; timestamp: number; data: Record<s
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(event),
-  }).catch(() => { /* ignore — best effort */ });
+  }).catch((e) => console.debug("[events] POST failed:", e?.message || e));
 }
