@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import { ROOM_OBJECTS, GAME_WIDTH, GAME_HEIGHT } from "@nts/shared";
 
 describe("RoomScene data smoke tests", () => {
-  it("all 14 room objects have valid positions within game bounds", () => {
-    expect(ROOM_OBJECTS).toHaveLength(14);
-    for (const obj of ROOM_OBJECTS) {
+  it("all 13 room objects have valid positions within game bounds", () => {
+    expect(ROOM_OBJECTS).toHaveLength(13);
+    // Only check visible objects (skip hidden ones at x:-999)
+    const visible = ROOM_OBJECTS.filter((o) => o.x >= 0);
+    for (const obj of visible) {
       expect(obj.x).toBeGreaterThanOrEqual(0);
       expect(obj.x + obj.width).toBeLessThanOrEqual(GAME_WIDTH);
       expect(obj.y).toBeGreaterThanOrEqual(0);
@@ -24,12 +26,13 @@ describe("RoomScene data smoke tests", () => {
     expect(zones.has("door")).toBe(true);
   });
 
-  it("no objects overlap excessively", () => {
-    // Basic check: no two objects share the exact same position
-    for (let i = 0; i < ROOM_OBJECTS.length; i++) {
-      for (let j = i + 1; j < ROOM_OBJECTS.length; j++) {
-        const a = ROOM_OBJECTS[i];
-        const b = ROOM_OBJECTS[j];
+  it("no visible objects overlap excessively", () => {
+    // Basic check: no two visible objects share the exact same position
+    const visible = ROOM_OBJECTS.filter((o) => o.x >= 0);
+    for (let i = 0; i < visible.length; i++) {
+      for (let j = i + 1; j < visible.length; j++) {
+        const a = visible[i];
+        const b = visible[j];
         const samePos = a.x === b.x && a.y === b.y;
         expect(samePos).toBe(false);
       }

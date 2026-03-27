@@ -6,8 +6,13 @@ vi.mock("phaser", () => ({
   default: {
     GameObjects: {
       Container: class {},
+      Image: class {},
       Graphics: class {},
       Text: class {},
+      Ellipse: class {},
+    },
+    Textures: {
+      FilterMode: { LINEAR: 1 },
     },
     Scene: class {},
     Display: {

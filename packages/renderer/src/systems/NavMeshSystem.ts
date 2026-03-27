@@ -10,7 +10,7 @@ import { buildNavMeshPolygons } from "../config/NavMeshConfig";
  * findPath() returns an array of waypoints that form an obstacle-free path.
  */
 export class NavMeshSystem {
-  private navMesh: NavMesh;
+  private navMesh: InstanceType<typeof NavMesh>;
 
   constructor() {
     const polygons = buildNavMeshPolygons();

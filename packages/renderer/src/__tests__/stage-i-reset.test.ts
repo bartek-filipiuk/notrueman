@@ -95,8 +95,8 @@ describe("Stage I: Reset UI + Day Counter", () => {
 
     it("version mismatch should cause discard", () => {
       // When loaded version !== SAVE_DATA_VERSION, discard
-      const loadedVersion = 2;
-      const shouldDiscard = loadedVersion !== SAVE_DATA_VERSION;
+      const loadedVersion = 2 as number;
+      const shouldDiscard = loadedVersion !== (SAVE_DATA_VERSION as number);
       expect(shouldDiscard).toBe(true);
     });
 

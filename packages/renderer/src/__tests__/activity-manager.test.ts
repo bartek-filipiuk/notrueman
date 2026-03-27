@@ -8,18 +8,18 @@ const ACTIVITY_OBJECTS: Record<ActivityType, InteractiveObjectId> = {
   read: "bookshelf",
   computer: "computer",
   exercise: "exercise_mat",
-  think: "window",
+  think: "plant",
   cook: "stove",
   draw: "easel",
 };
 
 describe("activity state machine smoke tests", () => {
-  it("every activity maps to a valid room object", () => {
+  it("every activity maps to a room object that exists in ROOM_OBJECTS", () => {
     for (const activity of ACTIVITY_LIST) {
       const objectId = ACTIVITY_OBJECTS[activity];
       expect(objectId).toBeDefined();
       const obj = ROOM_OBJECTS.find((o) => o.id === objectId);
-      expect(obj).toBeDefined();
+      expect(obj, `activity "${activity}" should map to existing object "${objectId}"`).toBeDefined();
     }
   });
 

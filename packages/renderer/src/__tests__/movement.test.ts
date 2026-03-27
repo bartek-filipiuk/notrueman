@@ -2,8 +2,10 @@ import { describe, it, expect } from "vitest";
 import { ROOM_OBJECTS } from "@nts/shared";
 
 describe("movement system data tests", () => {
-  it("all room objects have valid target positions (center-bottom)", () => {
-    for (const obj of ROOM_OBJECTS) {
+  it("all visible room objects have valid target positions (center-bottom)", () => {
+    // Skip hidden objects (x:-999) that are merged into other sprites
+    const visible = ROOM_OBJECTS.filter((o) => o.x >= 0);
+    for (const obj of visible) {
       const targetX = obj.x + obj.width / 2;
       const targetY = obj.y + obj.height;
       expect(targetX).toBeGreaterThan(0);
