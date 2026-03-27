@@ -56,8 +56,8 @@ export class ActivityManager {
     this.activityRenderer = activityRenderer;
   }
 
-  /** Set brain context for the next scene launch */
-  setSceneContext(context: SceneContext): void {
+  /** Set brain context for the next scene launch (null to clear) */
+  setSceneContext(context: SceneContext | null): void {
     this.sceneContext = context;
   }
 
@@ -206,6 +206,8 @@ export class ActivityManager {
           // After performing, schedule end (use dynamic duration)
           const duration = this.getSceneDuration(activity);
           this.activityTimer = this.scene.time.delayedCall(duration, () => {
+            // Clear scene context to prevent leak to next activity
+            this.sceneContext = null;
             this.activityRenderer.stopActivity();
             this.truman.setActivityPose(null); // revert to idle sprite
             this.truman.playIdle();

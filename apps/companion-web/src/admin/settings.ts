@@ -2,7 +2,7 @@
  * Admin settings panel — edit interests, tick interval, model names, budget, personality.
  */
 
-import { getStoredToken } from "./login.js";
+import { getStoredToken, getApiBase } from "./login.js";
 
 export function renderSettings(container: HTMLElement): void {
   container.innerHTML = `
@@ -93,7 +93,7 @@ export function renderSettings(container: HTMLElement): void {
 
   // Load current settings
   if (token) {
-    fetch("/api/admin/settings", {
+    fetch(`${getApiBase()}/api/admin/settings`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => res.ok ? res.json() : null).then(data => {
       if (!data) return;
@@ -137,7 +137,7 @@ export function renderSettings(container: HTMLElement): void {
     if (budget) payload.dailyBudget = Number(budget);
 
     try {
-      const res = await fetch("/api/admin/settings", {
+      const res = await fetch(`${getApiBase()}/api/admin/settings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

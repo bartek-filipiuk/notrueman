@@ -78,7 +78,7 @@ function getAllowedOrigins(): string[] {
     return corsOrigin.split(",").map((o) => o.trim()).filter(Boolean);
   }
   // Default: localhost only (dev)
-  return ["http://localhost:5173", "http://localhost:3001"];
+  return ["http://localhost:5173", "http://localhost:3001", "http://localhost:4173", "http://localhost:5175"];
 }
 
 function isAllowedOrigin(origin: string | undefined): boolean {
@@ -218,14 +218,19 @@ export async function createHealthServer(
       return;
     }
 
+    // Graceful fallback: if admin auth not configured, return 503
+    if (!deps.adminAuth) {
+      return reply.status(503).send({ error: "Admin not configured" });
+    }
+
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
       return reply.status(401).send({ error: "Authorization header required" });
     }
 
     const token = authHeader.slice(7);
-    const jwtSecret = deps.adminAuth?.jwtSecret;
-    if (!jwtSecret || !verifyToken(token, jwtSecret)) {
+    const jwtSecret = deps.adminAuth.jwtSecret;
+    if (!verifyToken(token, jwtSecret)) {
       return reply.status(401).send({ error: "Invalid or expired token" });
     }
   });

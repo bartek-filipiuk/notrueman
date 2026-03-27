@@ -3,7 +3,7 @@
  * Filterable by type, searchable, auto-scroll toggle.
  */
 
-import { getStoredToken } from "./login.js";
+import { getStoredToken, getApiBase } from "./login.js";
 import { MindFeedClient, type MindFeedClientEvent } from "../ws-client.js";
 
 interface LogEntry {
@@ -133,8 +133,10 @@ export function renderLogViewer(container: HTMLElement): void {
 
   // Connect to admin WebSocket
   const token = getStoredToken();
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${wsProtocol}//${window.location.host}/ws/admin-feed?token=${token}`;
+  const apiBase = getApiBase();
+  const wsHost = apiBase ? new URL(apiBase).host : window.location.host;
+  const wsProtocol = (apiBase ? new URL(apiBase).protocol : window.location.protocol) === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${wsProtocol}//${wsHost}/ws/admin-feed?token=${token}`;
 
   const client = new MindFeedClient({
     url: wsUrl,

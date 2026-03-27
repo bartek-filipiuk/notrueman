@@ -3,7 +3,7 @@
  * Updated via /ws/admin-feed WebSocket.
  */
 
-import { getStoredToken } from "./login.js";
+import { getStoredToken, getApiBase } from "./login.js";
 import { MindFeedClient } from "../ws-client.js";
 
 export interface DashboardState {
@@ -133,8 +133,10 @@ export function renderDashboard(container: HTMLElement): void {
   }
 
   // Connect to admin WebSocket feed
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${wsProtocol}//${window.location.host}/ws/admin-feed?token=${token}`;
+  const apiBase = getApiBase();
+  const wsHost = apiBase ? new URL(apiBase).host : window.location.host;
+  const wsProtocol = (apiBase ? new URL(apiBase).protocol : window.location.protocol) === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${wsProtocol}//${wsHost}/ws/admin-feed?token=${token}`;
 
   const client = new MindFeedClient({
     url: wsUrl,
@@ -179,7 +181,7 @@ export function renderDashboard(container: HTMLElement): void {
 
 async function fetchBrainState(token: string, state: DashboardState): Promise<void> {
   try {
-    const res = await fetch("/api/admin/brain-state", {
+    const res = await fetch(`${getApiBase()}/api/admin/brain-state`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return;
@@ -199,7 +201,7 @@ async function fetchBrainState(token: string, state: DashboardState): Promise<vo
 
 async function fetchMemories(token: string, state: DashboardState): Promise<void> {
   try {
-    const res = await fetch("/api/admin/memories?limit=20", {
+    const res = await fetch(`${getApiBase()}/api/admin/memories?limit=20`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return;

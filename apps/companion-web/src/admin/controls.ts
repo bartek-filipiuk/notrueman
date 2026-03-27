@@ -2,7 +2,7 @@
  * Admin controls — reset buttons, force activity, visibility toggles.
  */
 
-import { getStoredToken } from "./login.js";
+import { getStoredToken, getApiBase } from "./login.js";
 
 export function renderControls(container: HTMLElement): void {
   container.innerHTML = `
@@ -68,7 +68,7 @@ export function renderControls(container: HTMLElement): void {
     if (!token) return;
     const statusEl = container.querySelector("#reset-status") as HTMLDivElement;
     try {
-      const res = await fetch("/api/admin/reset", {
+      const res = await fetch(`${getApiBase()}/api/admin/reset`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +93,7 @@ export function renderControls(container: HTMLElement): void {
 
     const statusEl = container.querySelector("#reset-status") as HTMLDivElement;
     try {
-      const res = await fetch("/api/admin/reset", {
+      const res = await fetch(`${getApiBase()}/api/admin/reset`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -118,7 +118,7 @@ export function renderControls(container: HTMLElement): void {
     const statusEl = container.querySelector("#force-status") as HTMLDivElement;
 
     try {
-      const res = await fetch("/api/admin/force-activity", {
+      const res = await fetch(`${getApiBase()}/api/admin/force-activity`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

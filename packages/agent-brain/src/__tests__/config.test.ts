@@ -7,9 +7,9 @@ describe("config system (T2.9)", () => {
 
   it("loads and validates truman-config.json", () => {
     const config = loadConfig(configPath);
-    expect(config.tickIntervalMs).toBe(45000);
-    expect(config.models.think).toBe("deepseek/deepseek-chat");
-    expect(config.models.classify).toBe("mistralai/mistral-small-latest");
+    expect(config.tickIntervalMs).toBe(60000);
+    expect(config.models.think).toBe("deepseek/deepseek-v3.2");
+    expect(config.models.classify).toBe("google/gemini-3.1-flash-lite-preview");
   });
 
   it("config has valid failure rate (0-1)", () => {

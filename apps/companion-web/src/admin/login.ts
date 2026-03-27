@@ -2,7 +2,18 @@
  * Admin login page — password input, JWT auth, redirect to dashboard.
  */
 
-const API_BASE = "/api/admin";
+/** Resolve API base URL: ?apiUrl= param overrides, fallback to relative (proxy) */
+export function getApiBase(): string {
+  const params = new URLSearchParams(window.location.search);
+  const override = params.get("apiUrl");
+  if (override) {
+    // Strip trailing slash
+    return override.replace(/\/+$/, "");
+  }
+  return "";
+}
+
+const API_BASE = `${getApiBase()}/api/admin`;
 
 export function getStoredToken(): string | null {
   return localStorage.getItem("nts_admin_token");

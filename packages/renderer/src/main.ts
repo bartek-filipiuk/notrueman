@@ -194,7 +194,10 @@ function initBrain(game: Phaser.Game, save?: SaveData | null): void {
 
   // Stop the demo loop (if it was started — may not exist yet if scene still loading)
   try {
-    roomScene.getActivityManager()?.stopLoop();
+    const actMgr = roomScene.getActivityManager();
+    actMgr?.stopLoop();
+    // Clear any demo context before AI mode starts
+    actMgr?.setSceneContext(null);
   } catch {
     console.log("[main] ActivityManager not ready yet — demo loop was prevented by URL check");
   }
