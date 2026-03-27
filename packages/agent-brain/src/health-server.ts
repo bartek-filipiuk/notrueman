@@ -5,6 +5,13 @@ import { SaveDataSchema, filterForPublicFeed } from "@nts/shared";
 import type { MindFeedEvent } from "@nts/shared";
 import type { StatePersistence } from "@nts/memory-service";
 import type { WebSocket } from "ws";
+import {
+  verifyPassword,
+  createToken,
+  verifyToken,
+  checkLoginRateLimit,
+  type AdminAuthConfig,
+} from "./admin-auth.js";
 
 export interface HealthStatus {
   status: "ok" | "degraded" | "error";
@@ -24,6 +31,23 @@ export interface HealthServerDeps {
   verifyJWT?: (token: string) => boolean;
   /** Optional CognitiveLoop event source — listens for 'mindFeedEvent' */
   brainEvents?: { on(event: string, listener: (...args: unknown[]) => void): void };
+  /** Optional admin auth config for JWT login */
+  adminAuth?: AdminAuthConfig;
+  /** Optional CognitiveLoop instance for admin API */
+  cognitiveLoop?: {
+    getState(): Record<string, unknown>;
+    getConfig(): Record<string, unknown>;
+    updateConfig(partial: Record<string, unknown>): void;
+    getInterests(): string[];
+    setInterests(interests: string[]): void;
+  };
+  /** Optional memory query function for admin */
+  queryMemories?: (params: {
+    type?: string;
+    importance?: number;
+    limit?: number;
+    offset?: number;
+  }) => Promise<unknown[]>;
 }
 
 export interface HealthServerOptions {
@@ -71,7 +95,7 @@ export async function createHealthServer(
     if (origin && isAllowedOrigin(origin)) {
       reply.header("Access-Control-Allow-Origin", origin);
       reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      reply.header("Access-Control-Allow-Headers", "Content-Type");
+      reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }
     if (request.method === "OPTIONS") {
       return reply.status(204).send();
@@ -137,6 +161,139 @@ export async function createHealthServer(
     }
 
     return reply.send({ agentId, state });
+  });
+
+  // --- Admin API (TN.1-TN.2) ---
+
+  /** POST /api/admin/login — authenticate and get JWT */
+  app.post("/api/admin/login", async (request, reply) => {
+    if (!deps.adminAuth) {
+      return reply.status(503).send({ error: "Admin auth not configured" });
+    }
+
+    const ip = request.ip;
+    if (!checkLoginRateLimit(ip)) {
+      return reply.status(429).send({ error: "Too many login attempts. Try again in 1 minute." });
+    }
+
+    const body = request.body as { password?: string } | null;
+    if (!body?.password || typeof body.password !== "string") {
+      return reply.status(400).send({ error: "Password required" });
+    }
+
+    const valid = await verifyPassword(body.password, deps.adminAuth.passwordHash);
+    if (!valid) {
+      return reply.status(401).send({ error: "Invalid password" });
+    }
+
+    const token = createToken(deps.adminAuth.jwtSecret);
+    return reply.send({ token });
+  });
+
+  /** JWT middleware for /api/admin/* routes (except login) */
+  app.addHook("onRequest", async (request, reply) => {
+    if (!request.url.startsWith("/api/admin/") || request.url === "/api/admin/login") {
+      return;
+    }
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return reply.status(401).send({ error: "Authorization header required" });
+    }
+
+    const token = authHeader.slice(7);
+    const jwtSecret = deps.adminAuth?.jwtSecret;
+    if (!jwtSecret || !verifyToken(token, jwtSecret)) {
+      return reply.status(401).send({ error: "Invalid or expired token" });
+    }
+  });
+
+  /** GET /api/admin/brain-state — current brain state */
+  app.get("/api/admin/brain-state", async (_request, reply) => {
+    if (!deps.cognitiveLoop) {
+      return reply.status(503).send({ error: "Brain not configured" });
+    }
+    const state = deps.cognitiveLoop.getState();
+    const config = deps.cognitiveLoop.getConfig();
+    const status = deps.getStatus();
+    return reply.send({ state, config, status });
+  });
+
+  /** GET /api/admin/settings — current config */
+  app.get("/api/admin/settings", async (_request, reply) => {
+    if (!deps.cognitiveLoop) {
+      return reply.status(503).send({ error: "Brain not configured" });
+    }
+    const config = deps.cognitiveLoop.getConfig();
+    const interests = deps.cognitiveLoop.getInterests();
+    return reply.send({ config, interests });
+  });
+
+  /** POST /api/admin/settings — update config (hot-reload) */
+  app.post("/api/admin/settings", async (request, reply) => {
+    if (!deps.cognitiveLoop) {
+      return reply.status(503).send({ error: "Brain not configured" });
+    }
+    const body = request.body as Record<string, unknown> | null;
+    if (!body || typeof body !== "object") {
+      return reply.status(400).send({ error: "Invalid settings" });
+    }
+
+    if (body.interests && Array.isArray(body.interests)) {
+      deps.cognitiveLoop.setInterests(body.interests as string[]);
+    }
+
+    const { interests: _, ...configUpdates } = body;
+    if (Object.keys(configUpdates).length > 0) {
+      deps.cognitiveLoop.updateConfig(configUpdates);
+    }
+
+    return reply.send({ ok: true, updatedAt: Date.now() });
+  });
+
+  /** GET /api/admin/memories — query memories */
+  app.get("/api/admin/memories", async (request, reply) => {
+    if (!deps.queryMemories) {
+      return reply.status(503).send({ error: "Memory service not configured" });
+    }
+    const query = request.query as Record<string, string>;
+    const memories = await deps.queryMemories({
+      type: query.type,
+      importance: query.importance ? Number(query.importance) : undefined,
+      limit: query.limit ? Number(query.limit) : 20,
+      offset: query.offset ? Number(query.offset) : 0,
+    });
+    return reply.send({ memories });
+  });
+
+  /** POST /api/admin/reset — soft or hard reset */
+  app.post("/api/admin/reset", async (request, reply) => {
+    if (!deps.statePersistence) {
+      return reply.status(503).send({ error: "State persistence not configured" });
+    }
+    const body = request.body as { mode?: string } | null;
+    const mode = body?.mode === "hard" ? "hard" : "soft";
+
+    if (mode === "hard") {
+      // Hard reset: clear saved state
+      await deps.statePersistence.saveState("truman", {});
+    }
+    // Soft reset: just acknowledge (brain continues with current state)
+    return reply.send({ ok: true, mode, resetAt: Date.now() });
+  });
+
+  /** POST /api/admin/force-activity — override next tick's activity */
+  app.post("/api/admin/force-activity", async (request, reply) => {
+    if (!deps.cognitiveLoop) {
+      return reply.status(503).send({ error: "Brain not configured" });
+    }
+    const body = request.body as { activity?: string } | null;
+    if (!body?.activity) {
+      return reply.status(400).send({ error: "Activity required" });
+    }
+    // Store as config override — cognitive loop will pick up on next tick
+    deps.cognitiveLoop.updateConfig({ forcedActivity: body.activity });
+    return reply.send({ ok: true, activity: body.activity });
   });
 
   // --- WebSocket Mind Feed (TM.3) ---
