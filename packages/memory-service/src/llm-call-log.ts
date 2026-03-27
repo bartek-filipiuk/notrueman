@@ -27,6 +27,10 @@ export interface LLMCallLog {
     filters?: LLMCallLogFilters,
   ): Promise<LLMCallRow[]>;
   getStats(agentId: string, sinceHours?: number): Promise<LLMCallStats>;
+  /** Public: recent calls without agentId filter, previews truncated */
+  getPublicRecentCalls(limit: number): Promise<LLMCallRow[]>;
+  /** Public: aggregate stats without agentId filter */
+  getPublicStats(sinceHours?: number): Promise<LLMCallStats>;
 }
 
 /** Create an LLM call log backed by Drizzle/PostgreSQL */
@@ -74,6 +78,50 @@ export function createLLMCallLog(db: Database): LLMCallLog {
         eq(llmCalls.agentId, agentId),
         gte(llmCalls.createdAt, since),
       ];
+
+      const [result] = await db
+        .select({
+          callCount: count(),
+          tokensIn: sum(llmCalls.inputTokens),
+          tokensOut: sum(llmCalls.outputTokens),
+          totalCost: sum(llmCalls.costUsd),
+          avgDuration: avg(llmCalls.durationMs),
+          errors: count(
+            sql`CASE WHEN ${llmCalls.success} = false THEN 1 END`,
+          ),
+        })
+        .from(llmCalls)
+        .where(and(...conditions));
+
+      return {
+        callsToday: result.callCount ?? 0,
+        totalTokensIn: Number(result.tokensIn) || 0,
+        totalTokensOut: Number(result.tokensOut) || 0,
+        totalCostUsd: Number(result.totalCost) || 0,
+        avgDurationMs: Math.round(Number(result.avgDuration) || 0),
+        errorCount: result.errors ?? 0,
+      };
+    },
+
+    async getPublicRecentCalls(limit: number): Promise<LLMCallRow[]> {
+      const rows = await db
+        .select()
+        .from(llmCalls)
+        .orderBy(desc(llmCalls.createdAt))
+        .limit(Math.min(limit, 100));
+
+      // Truncate previews for public safety
+      return rows.map((row) => ({
+        ...row,
+        promptPreview: row.promptPreview.slice(0, 500),
+        systemPreview: row.systemPreview ? row.systemPreview.slice(0, 200) : null,
+        responsePreview: row.responsePreview.slice(0, 500),
+      }));
+    },
+
+    async getPublicStats(sinceHours = 24): Promise<LLMCallStats> {
+      const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000);
+      const conditions = [gte(llmCalls.createdAt, since)];
 
       const [result] = await db
         .select({

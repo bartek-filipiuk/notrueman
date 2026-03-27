@@ -52,6 +52,10 @@ export interface HealthServerDeps {
   llmCallLog?: LLMCallLog;
   /** Optional state history query */
   queryStateHistory?: (limit: number) => Promise<unknown[]>;
+  /** Public query: gallery items (blog posts / artwork) */
+  queryGallery?: (params: { limit: number }) => Promise<unknown[]>;
+  /** Public query: emotion data points */
+  queryEmotions?: (params: { limit: number }) => Promise<unknown[]>;
 }
 
 export interface HealthServerOptions {
@@ -406,6 +410,79 @@ export async function createHealthServer(
     // Store as config override — cognitive loop will pick up on next tick
     deps.cognitiveLoop.updateConfig({ forcedActivity: body.activity });
     return reply.send({ ok: true, activity: body.activity });
+  });
+
+  // --- Public API (Stage W — no auth required) ---
+
+  /** GET /api/public/feed — merged memories + llm_calls timeline (TW.1) */
+  app.get("/api/public/feed", async (request, reply) => {
+    const { limit = 50 } = request.query as Record<string, string>;
+    const cap = Math.min(Number(limit) || 50, 50);
+
+    const memoriesRaw = await deps.queryMemories?.({ limit: cap }) ?? [];
+    const memoriesResult = memoriesRaw as Array<Record<string, unknown>>;
+    const llmCallsResult = await deps.llmCallLog?.getPublicRecentCalls(cap) ?? [];
+
+    const items = [
+      ...memoriesResult.map((m) => ({
+        source: "memory" as const,
+        data: m,
+        createdAt: (m.createdAt || m.created_at) as string,
+      })),
+      ...llmCallsResult.map((c) => ({
+        source: "llm_call" as const,
+        data: {
+          ...c,
+          promptPreview: String(c.promptPreview ?? "").slice(0, 500),
+          systemPreview: c.systemPreview ? String(c.systemPreview).slice(0, 200) : null,
+          responsePreview: String(c.responsePreview ?? "").slice(0, 500),
+        },
+        createdAt: String(c.createdAt),
+      })),
+    ]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, cap);
+
+    return reply.send({ items });
+  });
+
+  /** GET /api/public/stats — aggregate statistics (TW.2) */
+  app.get("/api/public/stats", async (_request, reply) => {
+    const llmStats = await deps.llmCallLog?.getPublicStats(24) ?? {
+      callsToday: 0,
+      totalTokensIn: 0,
+      totalTokensOut: 0,
+      totalCostUsd: 0,
+      avgDurationMs: 0,
+      errorCount: 0,
+    };
+    const status = deps.getStatus();
+    return reply.send({
+      ...llmStats,
+      memoriesCount: status.memoryCount,
+      uptime: status.uptime,
+      currentMood: status.currentMood,
+      currentActivity: status.currentActivity,
+    });
+  });
+
+  /** GET /api/public/gallery — blog posts and artwork (TW.3) */
+  app.get("/api/public/gallery", async (request, reply) => {
+    const { limit = 50 } = request.query as Record<string, string>;
+    const cap = Math.min(Number(limit) || 50, 50);
+    const items = await deps.queryGallery?.({ limit: cap }) ?? [];
+    return reply.send({ items });
+  });
+
+  /** GET /api/public/emotions — emotion history time series (TW.4) */
+  app.get("/api/public/emotions", async (request, reply) => {
+    const { limit = 100 } = request.query as Record<string, string>;
+    const cap = Math.min(Number(limit) || 100, 100);
+    const points = await deps.queryEmotions?.({ limit: cap }) ?? [];
+    return reply.send({ points });
   });
 
   // --- WebSocket Mind Feed (TM.3) ---

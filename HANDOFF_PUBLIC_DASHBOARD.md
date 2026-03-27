@@ -33,13 +33,13 @@ Stage X (Dashboard Redesign)
 
 ### Taski:
 
-- [ ] TW.1: GET /api/public/feed — `health-server.ts`. Zwraca merged timeline: last 50 memories + last 50 llm_calls, sorted by created_at DESC. Response: `{ items: Array<{ source: "memory" | "llm_call", data: Record<string, unknown>, createdAt: string }> }`. Query params: `limit` (default 50), `since` (ISO timestamp for incremental). Bez auth. (implement → test curl)
-- [ ] TW.2: GET /api/public/stats — `health-server.ts`. Returns aggregate stats: `{ callsToday, totalTokensIn, totalTokensOut, totalCostUsd, avgDurationMs, errorCount, memoriesCount, uptime, currentMood, currentActivity, dayCount }`. Bez auth. (implement → test)
-- [ ] TW.3: GET /api/public/gallery — `health-server.ts`. Memories z metadata.toolCalls containing write_blog_post lub create_artwork. Returns: `{ items: Array<{ type: "blog" | "artwork", title, content, description, style, tags, createdAt }> }`. Bez auth. (implement → test)
-- [ ] TW.4: GET /api/public/emotions — `health-server.ts`. Last 100 memories z emotionalContext (non-null). Returns: `{ points: Array<{ timestamp: string, happiness, curiosity, anxiety, boredom, excitement, contentment, frustration }> }`. Bez auth. (implement → test)
-- [ ] TW.5: LLMCallLog public methods — `llm-call-log.ts`. Dodać: `getPublicRecentCalls(limit)` (bez agentId filter, returns all), `getPublicStats()`. (implement → test)
-- [ ] TW.6: start-backend.ts — inject memory repository do deps dla public endpoints. (implement → verify)
-- [ ] TW.7: Testy — curl test all 4 endpoints, data returns correctly. `turbo test` zielone. (test)
+- [x] TW.1: GET /api/public/feed — `health-server.ts`. Zwraca merged timeline: last 50 memories + last 50 llm_calls, sorted by created_at DESC. Response: `{ items: Array<{ source: "memory" | "llm_call", data: Record<string, unknown>, createdAt: string }> }`. Query params: `limit` (default 50), `since` (ISO timestamp for incremental). Bez auth. (implement → test curl)
+- [x] TW.2: GET /api/public/stats — `health-server.ts`. Returns aggregate stats: `{ callsToday, totalTokensIn, totalTokensOut, totalCostUsd, avgDurationMs, errorCount, memoriesCount, uptime, currentMood, currentActivity, dayCount }`. Bez auth. (implement → test)
+- [x] TW.3: GET /api/public/gallery — `health-server.ts`. Memories z metadata.toolCalls containing write_blog_post lub create_artwork. Returns: `{ items: Array<{ type: "blog" | "artwork", title, content, description, style, tags, createdAt }> }`. Bez auth. (implement → test)
+- [x] TW.4: GET /api/public/emotions — `health-server.ts`. Last 100 memories z emotionalContext (non-null). Returns: `{ points: Array<{ timestamp: string, happiness, curiosity, anxiety, boredom, excitement, contentment, frustration }> }`. Bez auth. (implement → test)
+- [x] TW.5: LLMCallLog public methods — `llm-call-log.ts`. Dodać: `getPublicRecentCalls(limit)` (bez agentId filter, returns all), `getPublicStats()`. (implement → test)
+- [x] TW.6: start-backend.ts — inject memory repository do deps dla public endpoints. (implement → verify)
+- [x] TW.7: Testy — curl test all 4 endpoints, data returns correctly. `turbo test` zielone. (test)
 
 ### Security (MANDATORY):
 - [ ] SW.1: Public endpoints NIE zwracają: system prompts (>200 chars), API keys, passwords, full prompts (max 500 chars preview). (verify)

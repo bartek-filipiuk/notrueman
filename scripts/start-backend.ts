@@ -8,9 +8,11 @@ import {
   createStatePersistence,
   createDatabase,
   createLLMCallLog,
+  createMemoryRepository,
   agentStateSnapshots,
+  memories,
 } from "@nts/memory-service";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -28,6 +30,7 @@ async function main() {
   const db = createDatabase(DATABASE_URL!);
   const statePersistence = createStatePersistence(db);
   const llmCallLog = createLLMCallLog(db);
+  const memoryRepo = createMemoryRepository(db);
 
   // Hash admin password if provided
   let adminAuth;
@@ -55,6 +58,77 @@ async function main() {
       statePersistence,
       adminAuth,
       llmCallLog,
+      queryMemories: async (params: {
+        type?: string;
+        importance?: number;
+        limit?: number;
+        offset?: number;
+      }) => {
+        return memoryRepo.getRecentMemories(
+          "truman",
+          params.limit ?? 50,
+          params.type,
+        );
+      },
+      queryGallery: async (params: { limit: number }) => {
+        // Memories whose metadata contains toolCalls with write_blog_post or create_artwork
+        const rows = await db
+          .select()
+          .from(memories)
+          .where(
+            and(
+              eq(memories.agentId, "truman"),
+              sql`(${memories.metadata}::jsonb -> 'toolCalls')::text LIKE '%write_blog_post%'
+                OR (${memories.metadata}::jsonb -> 'toolCalls')::text LIKE '%create_artwork%'`,
+            ),
+          )
+          .orderBy(desc(memories.createdAt))
+          .limit(params.limit);
+
+        return rows.map((row) => {
+          const meta = (row.metadata ?? {}) as Record<string, unknown>;
+          const toolCalls = (meta.toolCalls ?? []) as Array<Record<string, unknown>>;
+          const isBlog = toolCalls.some((tc) => tc.toolName === "write_blog_post");
+          return {
+            type: isBlog ? "blog" : "artwork",
+            title: (meta.title as string) ?? row.description.slice(0, 80),
+            content: isBlog ? (meta.content as string) ?? row.description : undefined,
+            description: !isBlog ? row.description : undefined,
+            style: (meta.style as string) ?? null,
+            tags: (meta.tags as string[]) ?? [],
+            createdAt: row.createdAt,
+          };
+        });
+      },
+      queryEmotions: async (params: { limit: number }) => {
+        const rows = await db
+          .select({
+            createdAt: memories.createdAt,
+            emotionalContext: memories.emotionalContext,
+          })
+          .from(memories)
+          .where(
+            and(
+              eq(memories.agentId, "truman"),
+              isNotNull(memories.emotionalContext),
+            ),
+          )
+          .orderBy(desc(memories.createdAt))
+          .limit(params.limit);
+
+        return rows
+          .filter((row) => row.emotionalContext && Object.keys(row.emotionalContext).length > 0)
+          .map((row) => ({
+            timestamp: row.createdAt,
+            happiness: row.emotionalContext?.happiness ?? 0,
+            curiosity: row.emotionalContext?.curiosity ?? 0,
+            anxiety: row.emotionalContext?.anxiety ?? 0,
+            boredom: row.emotionalContext?.boredom ?? 0,
+            excitement: row.emotionalContext?.excitement ?? 0,
+            contentment: row.emotionalContext?.contentment ?? 0,
+            frustration: row.emotionalContext?.frustration ?? 0,
+          }));
+      },
       queryStateHistory: async (limit: number) => {
         return db
           .select()
